@@ -33,7 +33,7 @@ const experience = [
     role: 'Frontend Developer',
     company: 'Personal Projects & Self-study',
     period: '2023 – 2024',
-    location: 'Ho Chi Minh City, Vietnam',
+    location: 'Ha Noi City, Vietnam',
     bullets: [
       'Built SPAs with React + TypeScript, integrated Tailwind CSS and Framer Motion for polished UIs',
       'Studied React ecosystem in depth: React Query, Zustand, React Router, Zod schema validation',
@@ -155,7 +155,7 @@ export default function ResumePage() {
           </div>
 
           <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', fontSize: '12.5px', color: '#444' }}>
-            <span>📍 Ho Chi Minh City, Vietnam</span>
+            <span>📍 Ha Noi City, Vietnam</span>
             <a href="mailto:vanhleg2301@gmail.com" style={{ color: '#111', textDecoration: 'none' }}>
               vanhleg2301@gmail.com
             </a>

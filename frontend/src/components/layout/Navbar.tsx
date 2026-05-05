@@ -3,11 +3,12 @@ import { useTheme } from 'next-themes'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Moon, Sun, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useHireModal } from '@/components/HireModal'
 
 const navLinks = [
+  { label: 'Works', href: '#works' },
   { label: 'About', href: '#about' },
-  { label: 'Skills', href: '#skills' },
-  { label: 'Projects', href: '#projects' },
+  { label: 'Stack', href: '#stack' },
   { label: 'Contact', href: '#contact' },
 ]
 
@@ -18,49 +19,50 @@ function scrollTo(id: string) {
 
 export function Navbar() {
   const { theme, setTheme } = useTheme()
+  const { openModal } = useHireModal()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24)
+    const onScroll = () => setScrolled(window.scrollY > 60)
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
   return (
     <motion.header
-      initial={{ opacity: 0, y: -16 }}
+      initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        'sticky top-0 z-50 w-full border-b transition-all duration-300',
+        'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
         scrolled
-          ? 'border-border bg-background/90 backdrop-blur-md shadow-sm'
-          : 'border-transparent bg-background/60 backdrop-blur-sm'
+          ? 'bg-background/80 backdrop-blur-xl border-b border-border'
+          : 'bg-transparent'
       )}
     >
-      <div className="mx-auto max-w-2xl flex h-16 items-center justify-between px-6">
+      <div className="mx-auto max-w-[1400px] flex h-16 md:h-20 items-center justify-between px-6 md:px-10">
         {/* Logo */}
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="flex items-center gap-2 font-bold text-base tracking-tight hover:opacity-70 transition-opacity"
+          className="flex items-center gap-2.5 font-display font-bold text-sm tracking-widest uppercase hover:opacity-60 transition-opacity"
         >
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-foreground text-background text-xs font-bold">
+          <span className="h-7 w-7 rounded-full bg-foreground text-background text-[10px] font-bold flex items-center justify-center select-none">
             HV
           </span>
-          <span>Viet Anh</span>
+          <span className="hidden sm:inline">Viet Anh</span>
         </button>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-8">
           {navLinks.map((link, i) => (
             <motion.button
               key={link.href}
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 * i + 0.1 }}
+              transition={{ delay: 0.06 * i + 0.2 }}
               onClick={() => scrollTo(link.href)}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
             >
               {link.label}
             </motion.button>
@@ -68,20 +70,20 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
-          {/* Dark mode */}
+          {/* Theme toggle */}
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="rounded-md p-2 hover:bg-accent transition-colors"
+            className="rounded-full p-2 hover:bg-foreground/10 transition-colors"
             aria-label="Toggle theme"
           >
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={theme}
-                initial={{ opacity: 0, rotate: -90, scale: 0.5 }}
-                animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                exit={{ opacity: 0, rotate: 90, scale: 0.5 }}
+                initial={{ opacity: 0, rotate: -90 }}
+                animate={{ opacity: 1, rotate: 0 }}
+                exit={{ opacity: 0, rotate: 90 }}
                 transition={{ duration: 0.2 }}
               >
                 {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -89,20 +91,20 @@ export function Navbar() {
             </AnimatePresence>
           </motion.button>
 
-          {/* Hire Me CTA */}
+          {/* Hire Me */}
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            onClick={() => scrollTo('#contact')}
-            className="hidden md:flex items-center gap-1.5 rounded-lg bg-foreground px-4 py-2 text-sm font-semibold text-background hover:opacity-85 transition-opacity"
+            onClick={openModal}
+            className="hidden md:flex items-center gap-2 rounded-full border border-foreground/20 px-5 py-2.5 text-xs font-semibold uppercase tracking-widest hover:bg-foreground hover:text-background hover:border-foreground transition-all duration-300"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
             Hire Me
           </motion.button>
 
-          {/* Mobile menu toggle */}
+          {/* Mobile toggle */}
           <button
-            className="md:hidden rounded-md p-2 hover:bg-accent"
+            className="md:hidden rounded-full p-2 hover:bg-foreground/10 transition-colors"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="Toggle menu"
           >
@@ -128,10 +130,10 @@ export function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="md:hidden overflow-hidden border-t border-border bg-background"
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="md:hidden overflow-hidden bg-background/95 backdrop-blur-xl border-b border-border"
           >
-            <nav className="flex flex-col gap-1 px-6 py-3">
+            <nav className="flex flex-col px-6 py-6 gap-1">
               {navLinks.map((link, i) => (
                 <motion.button
                   key={link.href}
@@ -139,14 +141,14 @@ export function Navbar() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
                   onClick={() => { scrollTo(link.href); setMobileOpen(false) }}
-                  className="block w-full text-left rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                  className="text-left py-3.5 text-sm font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground border-b border-border/50 last:border-0 transition-colors"
                 >
                   {link.label}
                 </motion.button>
               ))}
               <button
-                onClick={() => { scrollTo('#contact'); setMobileOpen(false) }}
-                className="mt-2 flex items-center gap-2 rounded-lg bg-foreground px-3 py-2 text-sm font-semibold text-background"
+                onClick={() => { openModal(); setMobileOpen(false) }}
+                className="mt-4 flex items-center justify-center gap-2 rounded-full bg-foreground px-5 py-3 text-xs font-semibold uppercase tracking-widest text-background"
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
                 Hire Me Now

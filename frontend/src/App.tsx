@@ -2,6 +2,7 @@ import { Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
+import { HireModalProvider } from '@/components/HireModal'
 import HomePage from '@/pages/portfolio/HomePage'
 import ResumePage from '@/pages/ResumePage'
 import NotFoundPage from '@/pages/NotFoundPage'
@@ -19,6 +20,7 @@ export default function App() {
   if (isResume) return <ResumePage />
 
   return (
+    <HireModalProvider>
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1">
@@ -39,5 +41,6 @@ export default function App() {
       </main>
       <Footer />
     </div>
+    </HireModalProvider>
   )
 }

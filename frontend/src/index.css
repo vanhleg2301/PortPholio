@@ -24,44 +24,49 @@
   --radius-sm: calc(var(--radius) - 4px);
   --font-family-sans: Inter, system-ui, sans-serif;
   --font-family-mono: "JetBrains Mono", "Fira Code", monospace;
+  --font-family-display: 'Syne', system-ui, sans-serif;
 }
 
 @layer base {
   :root {
-    --background: hsl(0 0% 100%);
-    --foreground: hsl(0 0% 7%);
-    --card: hsl(0 0% 100%);
-    --card-foreground: hsl(0 0% 7%);
-    --border: hsl(0 0% 88%);
-    --input: hsl(0 0% 88%);
-    --primary: hsl(0 0% 9%);
+    --background: hsl(0 0% 98%);
+    --foreground: hsl(0 0% 4%);
+    --card: hsl(0 0% 96%);
+    --card-foreground: hsl(0 0% 4%);
+    --border: hsl(0 0% 84%);
+    --input: hsl(0 0% 84%);
+    --primary: hsl(0 0% 4%);
     --primary-foreground: hsl(0 0% 98%);
-    --secondary: hsl(0 0% 95%);
+    --secondary: hsl(0 0% 92%);
     --secondary-foreground: hsl(0 0% 20%);
-    --muted: hsl(0 0% 95%);
-    --muted-foreground: hsl(0 0% 46%);
-    --accent: hsl(0 0% 93%);
-    --accent-foreground: hsl(0 0% 9%);
-    --ring: hsl(0 0% 9%);
+    --muted: hsl(0 0% 92%);
+    --muted-foreground: hsl(0 0% 44%);
+    --accent: hsl(0 0% 90%);
+    --accent-foreground: hsl(0 0% 4%);
+    --ring: hsl(0 0% 4%);
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: hsl(0 0% 6%);
-    --foreground: hsl(0 0% 97%);
-    --card: hsl(0 0% 8%);
-    --card-foreground: hsl(0 0% 97%);
-    --border: hsl(0 0% 16%);
-    --input: hsl(0 0% 16%);
-    --primary: hsl(0 0% 97%);
-    --primary-foreground: hsl(0 0% 6%);
-    --secondary: hsl(0 0% 14%);
-    --secondary-foreground: hsl(0 0% 80%);
-    --muted: hsl(0 0% 14%);
-    --muted-foreground: hsl(0 0% 56%);
-    --accent: hsl(0 0% 14%);
-    --accent-foreground: hsl(0 0% 97%);
-    --ring: hsl(0 0% 97%);
+    --background: hsl(0 0% 4%);
+    --foreground: hsl(0 0% 94%);
+    --card: hsl(0 0% 7%);
+    --card-foreground: hsl(0 0% 94%);
+    --border: hsl(0 0% 13%);
+    --input: hsl(0 0% 13%);
+    --primary: hsl(0 0% 94%);
+    --primary-foreground: hsl(0 0% 4%);
+    --secondary: hsl(0 0% 11%);
+    --secondary-foreground: hsl(0 0% 75%);
+    --muted: hsl(0 0% 11%);
+    --muted-foreground: hsl(0 0% 52%);
+    --accent: hsl(0 0% 11%);
+    --accent-foreground: hsl(0 0% 94%);
+    --ring: hsl(0 0% 94%);
+  }
+
+  html {
+    scroll-behavior: smooth;
   }
 
   * {
@@ -73,6 +78,7 @@
     color: var(--foreground);
     font-family: Inter, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
 
   code, pre {
@@ -80,3 +86,19 @@
   }
 }
 
+/* Display font utility */
+.font-display {
+  font-family: 'Syne', system-ui, sans-serif;
+}
+
+/* Marquee animation */
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee-scroll 40s linear infinite;
+  display: inline-flex;
+  will-change: transform;
+}

@@ -1,37 +1,33 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { motion, useInView, useScroll, useTransform } from 'framer-motion'
-import { Mail, Download, MapPin, Code2, Database, Server, Layers, ExternalLink, Globe } from 'lucide-react'
+import { ArrowUpRight, Download, MapPin, ArrowDown } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useHireModal } from '@/components/HireModal'
 
-function GithubIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
-    </svg>
-  )
-}
-
-function LinkedinIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-    </svg>
-  )
-}
-
+// ── Easing ───────────────────────────────
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number]
 
+// ── Scroll-reveal variants ────────────────
 const fadeUp = {
-  hidden: { opacity: 0, y: 28 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease } },
+  hidden: { opacity: 0, y: 48 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease } },
 }
 
 const stagger = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.1 } },
+  show: { transition: { staggerChildren: 0.13 } },
 }
 
-function Section({ children, className = '', id }: { children: React.ReactNode; className?: string; id?: string }) {
+// ── Section wrapper ───────────────────────
+function Section({
+  children,
+  className = '',
+  id,
+}: {
+  children: React.ReactNode
+  className?: string
+  id?: string
+}) {
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, margin: '-80px' })
   return (
@@ -48,369 +44,404 @@ function Section({ children, className = '', id }: { children: React.ReactNode; 
   )
 }
 
-function Label({ children }: { children: React.ReactNode }) {
+// ── Marquee band ──────────────────────────
+const marqueeItems = [
+  'Full Stack Developer',
+  'CTO at NullifyMatter',
+  'React · TypeScript',
+  'Supabase · Node.js',
+  'Available for Hire',
+  'Ha Noi City',
+]
+
+function MarqueeBand() {
+  const doubled = [...marqueeItems, ...marqueeItems]
   return (
-    <motion.p variants={fadeUp} className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-      {children}
-    </motion.p>
+    <div className="overflow-hidden border-y border-border py-4 select-none">
+      <div className="animate-marquee whitespace-nowrap">
+        {doubled.map((item, i) => (
+          <span key={i} className="inline-flex items-center mx-8 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            {item}
+            <span className="ml-8 text-muted-foreground/30">·</span>
+          </span>
+        ))}
+      </div>
+    </div>
   )
 }
 
-const skills = [
-  {
-    icon: <Code2 className="h-5 w-5" />,
-    label: 'Frontend',
-    items: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS', 'Framer Motion'],
-  },
-  {
-    icon: <Server className="h-5 w-5" />,
-    label: 'Backend',
-    items: ['Node.js', 'Hono', 'REST API', 'Zod', 'JWT'],
-  },
-  {
-    icon: <Database className="h-5 w-5" />,
-    label: 'Database',
-    items: ['PostgreSQL', 'Supabase', 'Drizzle ORM', 'Redis'],
-  },
-  {
-    icon: <Layers className="h-5 w-5" />,
-    label: 'Tools & DevOps',
-    items: ['lovable.dev', 'Docker', 'GitHub Actions', 'Vercel', 'Railway'],
-  },
-]
-
+// ── Data ──────────────────────────────────
 const projects = [
   {
+    num: '01',
     title: 'NullifyMatter',
-    desc: 'Company website for NullifyMatter — a Singapore-based tech company. Led full-stack development and system architecture as CTO.',
-    tags: ['lovable.dev', 'Supabase', 'React', 'TypeScript'],
+    role: 'Company Website & Platform',
+    tags: ['React', 'TypeScript', 'Supabase'],
     link: 'https://nullifymatter.com.sg',
-    live: true,
     year: '2025',
   },
   {
+    num: '02',
     title: 'Gateway of Talent',
-    desc: 'Talent discovery platform connecting businesses with the right candidates. Built and shipped as part of the NullifyMatter product suite.',
-    tags: ['lovable.dev', 'Supabase', 'React', 'TypeScript'],
+    role: 'Talent Discovery Platform',
+    tags: ['React', 'TypeScript', 'Supabase'],
     link: 'https://gatewayoftalent.com',
-    live: true,
     year: '2025',
   },
   {
+    num: '03',
     title: 'Gateway of Asia',
-    desc: 'Asia-focused platform bridging business and recruitment opportunities across the region. Available at client.gatewayofasia.com.',
-    tags: ['lovable.dev', 'Supabase', 'React', 'TypeScript'],
+    role: 'Asia Business Platform',
+    tags: ['React', 'TypeScript', 'Supabase'],
     link: 'https://client.gatewayofasia.com',
-    live: true,
     year: '2025',
   },
 ]
 
-function Avatar() {
-  const [err, setErr] = useState(false)
-  if (err) {
-    return (
-      <div className="h-20 w-20 rounded-2xl bg-foreground flex items-center justify-center text-background font-bold text-xl ring-2 ring-border select-none">
-        HV
-      </div>
-    )
-  }
+const stats = [
+  { value: '3+', label: 'Products Shipped' },
+  { value: '1+', label: 'Year as CTO' },
+  { value: '2', label: 'Countries' },
+  { value: '20+', label: 'Technologies' },
+]
+
+const stack = [
+  { cat: 'Frontend', items: 'React · TypeScript · Next.js · Tailwind CSS · Framer Motion' },
+  { cat: 'Backend', items: 'Node.js · Hono · REST API · Zod · JWT' },
+  { cat: 'Database', items: 'PostgreSQL · Supabase · Drizzle ORM · Redis' },
+  { cat: 'Tools', items: 'lovable.dev · Docker · GitHub Actions · Vercel · Railway' },
+]
+
+// ── Section header ────────────────────────
+function SectionHeader({ num, title }: { num: string; title: string }) {
   return (
-    <img
-      src="/avatar.jpg"
-      alt="Hoang Cao Viet Anh"
-      className="h-20 w-20 rounded-2xl object-cover ring-2 ring-border"
-      onError={() => setErr(true)}
-    />
+    <motion.div
+      variants={fadeUp}
+      className="flex items-end justify-between mb-14 pb-5 border-b border-border"
+    >
+      <div>
+        <p className="text-[10px] font-mono text-muted-foreground mb-2 tracking-widest">{num}</p>
+        <h2
+          className="font-display font-bold uppercase leading-none tracking-tight"
+          style={{ fontSize: 'clamp(2rem, 6vw, 5.5rem)' }}
+        >
+          {title}
+        </h2>
+      </div>
+    </motion.div>
   )
 }
 
+// ── Main component ────────────────────────
 export default function HomePage() {
   const heroRef = useRef(null)
+  const { openModal } = useHireModal()
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, 40])
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0])
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, 80])
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0])
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-16 flex flex-col gap-24">
+    <div className="flex flex-col">
 
-      {/* ── Hero ── */}
-      <motion.section ref={heroRef} style={{ y: heroY, opacity: heroOpacity }}>
+      {/* ── Hero ───────────────────────────────────── */}
+      <motion.section
+        ref={heroRef}
+        style={{ opacity: heroOpacity }}
+        className="relative min-h-[100dvh] flex flex-col px-6 md:px-10 max-w-[1400px] mx-auto w-full"
+      >
+        {/* Top status bar — clears fixed navbar */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease }}
+          className="flex items-center justify-between pt-20 md:pt-24 pb-6"
+        >
+          <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+            Available for Hire
+          </span>
+          <span className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
+            <MapPin className="h-3 w-3" />
+            Ha Noi City, Vietnam
+          </span>
+        </motion.div>
+
+        {/* Large name — fills remaining vertical space */}
+        <div className="flex-1 flex flex-col justify-center py-6">
+          <motion.div style={{ y: heroY }}>
+            <motion.h1
+              initial={{ opacity: 0, y: 60 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, ease, delay: 0.1 }}
+              className="font-display font-extrabold uppercase leading-[0.88] tracking-tight"
+              style={{ fontSize: 'clamp(3.5rem, 10vw, 13rem)' }}
+            >
+              HOANG CAO
+            </motion.h1>
+            <motion.h1
+              initial={{ opacity: 0, y: 60 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, ease, delay: 0.2 }}
+              className="font-display font-extrabold uppercase leading-[0.88] tracking-tight text-muted-foreground"
+              style={{ fontSize: 'clamp(3.5rem, 10vw, 13rem)' }}
+            >
+              VIET ANH
+            </motion.h1>
+          </motion.div>
+        </div>
+
+        {/* Bottom row */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease }}
-          className="flex flex-col gap-8"
+          transition={{ duration: 0.7, ease, delay: 0.4 }}
+          className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6 pb-14"
         >
-          {/* Avatar + name */}
-          <div className="flex items-center gap-5">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.1, ease }}
-              className="relative shrink-0"
+          <p className="text-sm md:text-base font-medium text-muted-foreground max-w-xs leading-relaxed">
+            Full Stack Developer · CTO at{' '}
+            <a
+              href="https://nullifymatter.com.sg"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-foreground hover:opacity-60 transition-opacity"
             >
-              <Avatar />
-              <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-green-400 ring-2 ring-background" />
-            </motion.div>
+              NullifyMatter
+            </a>
+          </p>
 
-            <motion.div
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2, ease }}
-            >
-              <h1 className="text-2xl font-bold tracking-tight">Hoang Cao Viet Anh</h1>
-              <p className="mt-0.5 text-sm font-medium text-muted-foreground">
-                CTO · NullifyMatter
-              </p>
-              <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" /> Ho Chi Minh City, Vietnam
-              </p>
-              <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                Available for hire
-              </span>
-            </motion.div>
-          </div>
-
-          {/* Tagline */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.25, ease }}
-          >
-            <h2 className="text-4xl font-bold leading-tight tracking-tight">
-              Full Stack Developer{' '}
-              <span className="text-muted-foreground">
-                shipping real products.
-              </span>
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-              CTO at <span className="text-foreground font-medium">NullifyMatter</span> — building and launching
-              production-grade web platforms with lovable.dev and Supabase.
-              I cover the full stack, from database design to polished UI.
-            </p>
-          </motion.div>
-
-          {/* CTA row */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.35, ease }}
-            className="flex flex-wrap items-center gap-3"
-          >
+          <div className="flex items-center gap-3 flex-wrap">
             <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => document.querySelector('#contact')?.scrollIntoView({ behavior: 'smooth' })}
-              className="flex items-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:opacity-85 transition-opacity"
+              onClick={openModal}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              className="flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-background hover:opacity-80 transition-opacity"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
-              Hire Me Now
+              <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+              Hire Me
             </motion.button>
-            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
               <Link
                 to="/resume"
-                className="flex items-center gap-2 rounded-xl border border-border px-5 py-2.5 text-sm font-semibold hover:bg-accent transition-colors"
+                className="flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-xs font-semibold uppercase tracking-widest hover:border-foreground/40 hover:bg-foreground/5 transition-all"
               >
-                View Resume <Download className="h-4 w-4" />
+                Resume <Download className="h-3.5 w-3.5" />
               </Link>
             </motion.div>
-          </motion.div>
+          </div>
+        </motion.div>
 
-          {/* Social links */}
+        {/* Scroll indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2, duration: 0.6 }}
+          className="absolute bottom-6 left-1/2 -translate-x-1/2"
+        >
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.45 }}
-            className="flex flex-wrap items-center gap-5 text-muted-foreground"
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           >
-            {[
-              { icon: <GithubIcon className="h-4 w-4" />, label: 'GitHub', href: 'https://github.com' },
-              { icon: <LinkedinIcon className="h-4 w-4" />, label: 'LinkedIn', href: 'https://linkedin.com' },
-              { icon: <Globe className="h-4 w-4" />, label: 'NullifyMatter', href: 'https://nullifymatter.com.sg' },
-              { icon: <Mail className="h-4 w-4" />, label: 'Email', href: 'mailto:vanhleg2301@gmail.com' },
-            ].map((s) => (
-              <motion.a
-                key={s.label}
-                href={s.href}
-                target={s.href.startsWith('http') ? '_blank' : undefined}
-                rel={s.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                className="flex items-center gap-1.5 text-sm hover:text-foreground transition-colors"
-                whileHover={{ y: -2 }}
-                transition={{ type: 'spring', stiffness: 400 }}
-              >
-                {s.icon} {s.label}
-              </motion.a>
-            ))}
+            <ArrowDown className="h-4 w-4 text-muted-foreground" />
           </motion.div>
         </motion.div>
       </motion.section>
 
-      {/* ── About ── */}
-      <Section id="about">
-        <motion.div variants={fadeUp} className="flex flex-col gap-5">
-          <Label>About</Label>
-          <p className="text-muted-foreground leading-relaxed">
-            I'm a Full Stack Developer and CTO at{' '}
-            <a href="https://nullifymatter.com.sg" target="_blank" rel="noopener noreferrer"
-              className="text-foreground font-medium underline-offset-2 hover:underline">
-              NullifyMatter
-            </a>
-            , a Singapore-based tech company. I lead the development of web platforms and web apps — from
-            product architecture to shipping production features. My primary tool is{' '}
-            <span className="text-foreground font-medium">lovable.dev</span>, which lets me move fast
-            without sacrificing quality.
-          </p>
-          <p className="text-muted-foreground leading-relaxed">
-            I have shipped three live products:{' '}
-            <a href="https://nullifymatter.com.sg" target="_blank" rel="noopener noreferrer"
-              className="text-foreground font-medium underline-offset-2 hover:underline">nullifymatter.com.sg</a>,{' '}
-            <a href="https://gatewayoftalent.com" target="_blank" rel="noopener noreferrer"
-              className="text-foreground font-medium underline-offset-2 hover:underline">gatewayoftalent.com</a>, and{' '}
-            <a href="https://client.gatewayofasia.com" target="_blank" rel="noopener noreferrer"
-              className="text-foreground font-medium underline-offset-2 hover:underline">client.gatewayofasia.com</a>.
-            I'm grateful to be mentored by{' '}
-            <a href="mailto:dungcaond@gmail.com"
-              className="text-foreground font-medium underline-offset-2 hover:underline">
-              Dũng
-            </a>
-            , who has been my principal guide throughout this journey.
-          </p>
-        </motion.div>
-      </Section>
+      {/* ── Marquee ─────────────────────────────────── */}
+      <MarqueeBand />
 
-      {/* ── Skills ── */}
-      <Section id="skills">
-        <motion.div variants={fadeUp} className="flex flex-col gap-5">
-          <Label>Skills</Label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {skills.map((skill) => (
-              <motion.div
-                key={skill.label}
-                variants={fadeUp}
-                whileHover={{ y: -3 }}
-                className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3"
-              >
-                <div className="flex items-center gap-2 text-foreground">
-                  {skill.icon}
-                  <span className="text-sm font-semibold">{skill.label}</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {skill.items.map((item, i) => (
-                    <motion.span
-                      key={item}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: i * 0.05 }}
-                      viewport={{ once: true }}
-                      className="rounded-lg bg-secondary px-2.5 py-1 text-xs text-secondary-foreground"
+      {/* ── Selected Works ───────────────────────────── */}
+      <Section
+        id="works"
+        className="px-6 md:px-10 py-24 md:py-32 max-w-[1400px] mx-auto w-full"
+      >
+        <SectionHeader num="01" title="Selected Works" />
+
+        <div className="flex flex-col">
+          {projects.map((project) => (
+            <motion.a
+              key={project.title}
+              href={project.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              variants={fadeUp}
+              whileHover={{ x: 6 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="group flex items-center justify-between gap-6 py-6 md:py-8 border-b border-border hover:border-foreground/20 transition-colors"
+            >
+              <div className="flex items-start gap-6 md:gap-10 min-w-0">
+                <span className="shrink-0 text-[10px] font-mono text-muted-foreground pt-2 hidden sm:block">
+                  {project.num}
+                </span>
+                <div className="min-w-0">
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <h3
+                      className="font-display font-bold uppercase tracking-tight group-hover:opacity-60 transition-opacity"
+                      style={{ fontSize: 'clamp(1.2rem, 3vw, 2.5rem)' }}
                     >
-                      {item}
-                    </motion.span>
-                  ))}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </Section>
-
-      {/* ── Projects ── */}
-      <Section id="projects">
-        <motion.div variants={fadeUp} className="flex flex-col gap-5">
-          <Label>Projects @ NullifyMatter</Label>
-          <div className="flex flex-col gap-3">
-            {projects.map((project, i) => (
-              <motion.a
-                key={project.title}
-                href={project.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                variants={fadeUp}
-                custom={i}
-                whileHover={{ x: 4 }}
-                transition={{ type: 'spring', stiffness: 300 }}
-                className="group flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-5 hover:border-foreground/30 hover:bg-accent/30 transition-colors"
-              >
-                <div className="flex flex-col gap-2 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold group-hover:text-primary transition-colors">{project.title}</span>
-                    {project.live && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
-                        <span className="h-1 w-1 rounded-full bg-green-500" />
-                        Live
-                      </span>
-                    )}
-                    <span className="text-xs text-muted-foreground">{project.year}</span>
+                      {project.title}
+                    </h3>
+                    <span className="text-[10px] font-mono text-muted-foreground">{project.year}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{project.desc}</p>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">{project.role}</p>
+                  <div className="flex gap-2 mt-2.5 flex-wrap">
                     {project.tags.map((tag) => (
-                      <span key={tag} className="rounded-lg bg-secondary px-2 py-0.5 text-xs">
+                      <span
+                        key={tag}
+                        className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full border border-border text-muted-foreground"
+                      >
                         {tag}
                       </span>
                     ))}
                   </div>
                 </div>
-                <div className="shrink-0 mt-0.5 text-muted-foreground group-hover:text-foreground transition-colors">
-                  <ExternalLink className="h-4 w-4" />
-                </div>
-              </motion.a>
-            ))}
-          </div>
-        </motion.div>
+              </div>
+              <ArrowUpRight className="shrink-0 h-5 w-5 md:h-6 md:w-6 text-muted-foreground group-hover:text-foreground group-hover:rotate-12 transition-all duration-300" />
+            </motion.a>
+          ))}
+        </div>
       </Section>
 
-      {/* ── Contact ── */}
-      <Section id="contact">
-        <motion.div
-          variants={fadeUp}
-          className="rounded-2xl border border-border bg-card p-8 flex flex-col gap-5 text-center items-center"
+      {/* ── About ────────────────────────────────────── */}
+      <div className="border-t border-border">
+        <Section
+          id="about"
+          className="px-6 md:px-10 py-24 md:py-32 max-w-[1400px] mx-auto w-full"
         >
-          <div>
-            <h3 className="text-2xl font-bold">Let's work together</h3>
-            <p className="mt-2 text-muted-foreground text-sm max-w-sm leading-relaxed">
-              Open to full-time roles, freelance projects, and exciting collaborations.
-              I typically reply within 24 hours.
-            </p>
-          </div>
+          <SectionHeader num="02" title="About Me" />
 
-          <div className="flex flex-wrap gap-3 justify-center">
-            <motion.a
-              href="mailto:vanhleg2301@gmail.com"
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              className="flex items-center gap-2 rounded-xl bg-foreground px-6 py-2.5 text-sm font-semibold text-background hover:opacity-85 transition-opacity"
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-              Hire Me Now
-            </motion.a>
-            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-              <Link
-                to="/resume"
-                className="flex items-center gap-2 rounded-xl border border-border px-6 py-2.5 text-sm font-semibold hover:bg-accent transition-colors"
-              >
-                Download Resume <Download className="h-4 w-4" />
-              </Link>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-20">
+            {/* Bio */}
+            <motion.div variants={fadeUp} className="md:col-span-2 space-y-5">
+              <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                I'm a Full Stack Developer and CTO at{' '}
+                <a
+                  href="https://nullifymatter.com.sg"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground font-medium hover:opacity-60 transition-opacity"
+                >
+                  NullifyMatter
+                </a>
+                , a Singapore-based tech company. I lead product development from architecture to
+                production — covering database design, API layer, and polished UI.
+              </p>
+              <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                My primary tool is{' '}
+                <span className="text-foreground font-medium">lovable.dev</span>, which lets me
+                move fast without sacrificing quality. I've shipped three live production platforms,
+                all available today.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Guided by my mentor{' '}
+                <a
+                  href="mailto:dungcaond@gmail.com"
+                  className="text-foreground hover:opacity-60 transition-opacity"
+                >
+                  Dũng
+                </a>{' '}
+                throughout this journey.
+              </p>
+            </motion.div>
+
+            {/* Stats */}
+            <motion.div variants={fadeUp} className="grid grid-cols-2 gap-6 content-start">
+              {stats.map((stat) => (
+                <div key={stat.label} className="border-l-2 border-border pl-4 py-1">
+                  <div
+                    className="font-display font-bold leading-none"
+                    style={{ fontSize: 'clamp(2rem, 4vw, 3.5rem)' }}
+                  >
+                    {stat.value}
+                  </div>
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1.5">
+                    {stat.label}
+                  </div>
+                </div>
+              ))}
             </motion.div>
           </div>
+        </Section>
+      </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground pt-1">
-            <a href="mailto:vanhleg2301@gmail.com" className="hover:text-foreground transition-colors flex items-center gap-1.5">
-              <Mail className="h-3.5 w-3.5" /> vanhleg2301@gmail.com
-            </a>
-            <span className="hidden sm:inline">·</span>
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors flex items-center gap-1.5">
-              <GithubIcon className="h-3.5 w-3.5" /> GitHub
-            </a>
-            <span className="hidden sm:inline">·</span>
-            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors flex items-center gap-1.5">
-              <LinkedinIcon className="h-3.5 w-3.5" /> LinkedIn
-            </a>
+      {/* ── Tech Stack ───────────────────────────────── */}
+      <div className="border-t border-border">
+        <Section
+          id="stack"
+          className="px-6 md:px-10 py-24 md:py-32 max-w-[1400px] mx-auto w-full"
+        >
+          <SectionHeader num="03" title="Tech Stack" />
+
+          <div className="flex flex-col">
+            {stack.map((row) => (
+              <motion.div
+                key={row.cat}
+                variants={fadeUp}
+                className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-12 py-5 border-b border-border last:border-0"
+              >
+                <span className="shrink-0 w-24 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  {row.cat}
+                </span>
+                <span className="text-sm md:text-base text-foreground/80 leading-relaxed">
+                  {row.items}
+                </span>
+              </motion.div>
+            ))}
           </div>
-        </motion.div>
-      </Section>
+        </Section>
+      </div>
+
+      {/* ── Contact / CTA ────────────────────────────── */}
+      <div className="border-t border-border">
+        <Section
+          id="contact"
+          className="px-6 md:px-10 py-24 md:py-40 max-w-[1400px] mx-auto w-full"
+        >
+          <motion.div variants={fadeUp}>
+            <p className="text-[10px] font-mono text-muted-foreground mb-6 tracking-widest">04</p>
+            <h2
+              className="font-display font-extrabold uppercase leading-[0.88] tracking-tight mb-14"
+              style={{ fontSize: 'clamp(2.8rem, 9vw, 11rem)' }}
+            >
+              Let's Work<br />
+              <span className="text-muted-foreground">Together</span>
+              <span className="text-muted-foreground/40"> →</span>
+            </h2>
+          </motion.div>
+
+          <motion.div
+            variants={fadeUp}
+            className="flex flex-col sm:flex-row items-start sm:items-center gap-5"
+          >
+            <a
+              href="mailto:vanhleg2301@gmail.com"
+              onClick={(e) => { e.stopPropagation(); window.location.href = 'mailto:vanhleg2301@gmail.com' }}
+              className="flex items-center gap-3 rounded-full bg-foreground px-7 py-3.5 text-xs md:text-sm font-semibold uppercase tracking-widest text-background hover:opacity-80 transition-opacity active:scale-95"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+              vanhleg2301@gmail.com
+            </a>
+
+            <div className="flex items-center gap-5">
+              <a
+                href="https://github.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+              >
+                GitHub <ArrowUpRight className="h-3 w-3" />
+              </a>
+              <a
+                href="https://linkedin.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+              >
+                LinkedIn <ArrowUpRight className="h-3 w-3" />
+              </a>
+            </div>
+          </motion.div>
+        </Section>
+      </div>
 
     </div>
   )
