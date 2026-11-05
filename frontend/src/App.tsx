@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Navbar } from '@/components/layout/Navbar'
@@ -6,6 +7,8 @@ import { HireModalProvider } from '@/components/HireModal'
 import HomePage from '@/pages/portfolio/HomePage'
 import ResumePage from '@/pages/ResumePage'
 import NotFoundPage from '@/pages/NotFoundPage'
+
+const RoadmapPage = lazy(() => import('@/pages/RoadmapPage'))
 
 const pageVariants = {
   initial: { opacity: 0, y: 16 },
@@ -34,6 +37,14 @@ export default function App() {
           >
             <Routes location={location}>
               <Route path="/" element={<HomePage />} />
+              <Route
+                path="/roadmap"
+                element={
+                  <Suspense fallback={<div className="min-h-screen" />}>
+                    <RoadmapPage />
+                  </Suspense>
+                }
+              />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </motion.div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTheme } from 'next-themes'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Moon, Sun, Menu, X } from 'lucide-react'
@@ -22,6 +23,20 @@ export function Navbar() {
   const { openModal } = useHireModal()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+
+  // Section anchors live on the home page; leave other routes first and wait for the page transition.
+  function goToSection(id: string) {
+    if (pathname === '/') return scrollTo(id)
+    navigate('/')
+    setTimeout(() => scrollTo(id), 500)
+  }
+
+  function goHome() {
+    if (pathname === '/') window.scrollTo({ top: 0, behavior: 'smooth' })
+    else navigate('/')
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60)
@@ -44,7 +59,7 @@ export function Navbar() {
       <div className="mx-auto max-w-[1400px] flex h-16 md:h-20 items-center justify-between px-6 md:px-10">
         {/* Logo */}
         <button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          onClick={goHome}
           className="flex items-center gap-2.5 font-display font-bold text-sm tracking-widest uppercase hover:opacity-60 transition-opacity"
         >
           <span className="h-7 w-7 rounded-full bg-foreground text-background text-[10px] font-bold flex items-center justify-center select-none">
@@ -61,12 +76,27 @@ export function Navbar() {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.06 * i + 0.2 }}
-              onClick={() => scrollTo(link.href)}
+              onClick={() => goToSection(link.href)}
               className="text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
             >
               {link.label}
             </motion.button>
           ))}
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.06 * navLinks.length + 0.2 }}
+          >
+            <Link
+              to="/roadmap"
+              className={cn(
+                'text-xs font-semibold uppercase tracking-widest transition-colors',
+                pathname === '/roadmap' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Roadmap
+            </Link>
+          </motion.div>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -140,12 +170,19 @@ export function Navbar() {
                   initial={{ opacity: 0, x: -12 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  onClick={() => { scrollTo(link.href); setMobileOpen(false) }}
+                  onClick={() => { goToSection(link.href); setMobileOpen(false) }}
                   className="text-left py-3.5 text-sm font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground border-b border-border/50 last:border-0 transition-colors"
                 >
                   {link.label}
                 </motion.button>
               ))}
+              <Link
+                to="/roadmap"
+                onClick={() => setMobileOpen(false)}
+                className="py-3.5 text-sm font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Roadmap
+              </Link>
               <button
                 onClick={() => { openModal(); setMobileOpen(false) }}
                 className="mt-4 flex items-center justify-center gap-2 rounded-full bg-foreground px-5 py-3 text-xs font-semibold uppercase tracking-widest text-background"

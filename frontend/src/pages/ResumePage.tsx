@@ -129,6 +129,22 @@ export default function ResumePage() {
         {/* ── Header ── */}
         <header style={{ marginBottom: '28px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+            <img
+              src="/avatar/Face.jpg"
+              alt="Hoang Cao Viet Anh"
+              width={88}
+              height={88}
+              style={{
+                width: '88px',
+                height: '88px',
+                borderRadius: '50%',
+                objectFit: 'cover',
+                objectPosition: '45% 40%',
+                flexShrink: 0,
+                border: '1px solid #e5e5e5',
+              }}
+            />
             <div>
               <h1 style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px', margin: 0, lineHeight: 1.1 }}>
                 Hoang Cao Viet Anh
@@ -142,6 +158,7 @@ export default function ResumePage() {
                   dungcaond@gmail.com
                 </a>
               </p>
+            </div>
             </div>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: '6px',
