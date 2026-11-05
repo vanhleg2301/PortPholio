@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { Session } from '@supabase/supabase-js'
+import { ReminderToggle } from '@/components/roadmap/ReminderToggle'
 
 interface AccountSheetProps {
   isOpen: boolean
@@ -60,6 +61,7 @@ export function AccountSheet({ isOpen, session, isOwner, onClose, onSignIn, onSi
                 <p className="text-sm text-muted-foreground">Signed in as</p>
                 <p className="font-semibold">{session.user.email}</p>
                 {!isOwner && <p className="mt-2 text-sm text-hard">This account can only view. Only the owner can edit.</p>}
+                {isOwner && <ReminderToggle />}
                 <button
                   type="button"
                   onClick={() => void onSignOut().then(onClose)}

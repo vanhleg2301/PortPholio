@@ -26,6 +26,36 @@ self.addEventListener('activate', (event) => {
   )
 })
 
+// Daily reminder pushed by /api/remind.
+self.addEventListener('push', (event) => {
+  let data = { title: 'Road to Big Tech', body: 'Time to study.', url: '/roadmap' }
+  try {
+    data = { ...data, ...event.data.json() }
+  } catch {
+    // Keep the default text when the payload is missing or not JSON.
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url: data.url },
+    }),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const url = (event.notification.data && event.notification.data.url) || '/roadmap'
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      const existing = clients.find((c) => new URL(c.url).pathname.startsWith('/roadmap'))
+      if (existing) return existing.focus()
+      return self.clients.openWindow(url)
+    }),
+  )
+})
+
 self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
