@@ -7,12 +7,20 @@ export interface TaskLink {
   url: string
 }
 
-// Short "theory" card shown under a task: key points + one official source to read.
+// "Theory" card shown with a task. Text fields may use `backticks` for inline code.
 export interface TaskReference {
   title: string
-  source: TaskLink
+  // One sentence: the mental model. Shown even when the card is collapsed.
+  summary?: string
+  // How it works under the hood.
   points: string[]
+  complexity?: Array<{ op: string; cost: string; note?: string }>
   example?: string
+  pitfalls?: Array<{ title: string; fix: string }>
+  interview?: { when: string; problems: string[] }
+  quiz?: Array<{ question: string; answer: string }>
+  source: TaskLink
+  extraSource?: TaskLink
 }
 
 export interface TaskSeed {

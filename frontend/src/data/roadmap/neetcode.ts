@@ -224,6 +224,16 @@ export function getCategorySlugs(category: string, from = 0, to?: number): strin
   return (CATEGORIES[category] ?? []).slice(from, to).map(([slug]) => slug)
 }
 
+export function getProblemInfo(slug: string) {
+  const problem = PROBLEMS.find((p) => p.slug === slug)
+  if (!problem) return null
+  return {
+    title: problem.title,
+    difficulty: problem.difficulty,
+    url: problem.isPremium ? 'https://neetcode.io/practice' : `https://leetcode.com/problems/${slug}/`,
+  }
+}
+
 export function createProblemTask(slug: string): TaskSeed {
   const problem = PROBLEMS.find((p) => p.slug === slug)
   if (!problem) throw new Error(`Unknown NeetCode problem: ${slug}`)

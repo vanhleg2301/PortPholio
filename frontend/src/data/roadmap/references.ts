@@ -3,64 +3,184 @@ import type { TaskReference } from './types'
 const PY = 'https://docs.python.org/3'
 
 // ── Python basics (Week 0) ────────────────
+const PY_WIKI_COMPLEXITY = { label: 'Python wiki: TimeComplexity', url: 'https://wiki.python.org/moin/TimeComplexity' }
+
 export const PYTHON_REFERENCES = {
   basics: {
     title: 'Variables, strings and lists',
-    source: { label: 'Python Tutorial §3: An Informal Introduction', url: `${PY}/tutorial/introduction.html` },
+    summary:
+      'A variable is a name tag stuck on an object, not a box that holds it. Strings are immutable sequences of characters; lists are mutable, resizable arrays of references.',
     points: [
-      'A variable is just a name bound to a value: `x = 5`. No type declaration; the type belongs to the value.',
-      'Strings are immutable. Slice with `s[start:end:step]`, e.g. `s[::-1]` reverses; `len(s)` gives the length.',
-      'f-strings format text: `f"{name} is {age}"`.',
-      'Lists are ordered and mutable: `nums.append(x)`, `nums[-1]` is the last item, `nums[1:3]` slices.',
-      'Strings support `in`, `.split()`, `.join()`, `.lower()`, `.strip()` — used constantly in interviews.',
+      '`x = [1, 2]` creates a list object and sticks the name `x` on it. `y = x` sticks a second name on the same object — nothing is copied.',
+      'Immutable objects (`int`, `str`, `tuple`) never change. "Changing" one builds a new object: `s = s + "a"` makes a brand-new string and moves the name `s` to it.',
+      'A list is a contiguous array of references with spare room at the end, so `append` is usually instant. When it is full, Python allocates a bigger array and copies everything once — that is why append is O(1) amortised.',
+      'Indexes start at 0; negative indexes count from the end (`a[-1]` is the last item). A slice `a[i:j]` returns a new copy of items i to j-1.',
+      '`==` compares values, `is` compares identity (the very same object). Use `is` only for `None`: `if x is None`.',
     ],
-    example: `name = "Viet Anh"
-print(name[::-1], len(name))     # reverse, length
-nums = [3, 1, 2]
-nums.append(4)
-print(sorted(nums), nums[-1])    # [1, 2, 3, 4] 4
-print(",".join(["a", "b"]))      # a,b`,
+    complexity: [
+      { op: '`a[i]`, `a[i] = x`', cost: 'O(1)' },
+      { op: '`a.append(x)`, `a.pop()`', cost: 'O(1)', note: 'amortised' },
+      { op: '`a.insert(0, x)`, `a.pop(0)`', cost: 'O(n)', note: 'every item shifts' },
+      { op: '`x in a`', cost: 'O(n)', note: 'linear scan' },
+      { op: '`a[i:j]`', cost: 'O(j − i)', note: 'copies' },
+      { op: '`a.sort()`, `sorted(a)`', cost: 'O(n log n)' },
+      { op: '`s + t` (strings)', cost: 'O(len s + len t)', note: 'new string' },
+      { op: '`"".join(parts)`', cost: 'O(total length)' },
+    ],
+    example: `a = [1, 2, 3]
+b = a                 # same list, two names
+b.append(4)
+print(a)              # [1, 2, 3, 4]
+
+c = a[:]              # a real (shallow) copy
+c.append(5)
+print(a, c)           # [1, 2, 3, 4] [1, 2, 3, 4, 5]
+
+words = "  hello   big tech ".split()   # ['hello', 'big', 'tech']
+print(" ".join(reversed(words)))       # tech big hello
+print("racecar" == "racecar"[::-1])    # True`,
+    pitfalls: [
+      { title: '`b = a` is not a copy', fix: 'Use `a[:]`, `list(a)` or `a.copy()`. Nested lists need `copy.deepcopy(a)`.' },
+      { title: '`grid = [[0] * 3] * 3`', fix: 'The three rows are the same list, so one change shows up three times. Write `[[0] * 3 for _ in range(3)]`.' },
+      { title: 'Building a string with `+=` in a loop', fix: 'Each step may copy the whole string (O(n²) total). Append pieces to a list and call `"".join(parts)` once.' },
+      { title: 'Removing items while looping over the same list', fix: 'Items get skipped. Build a new list: `[x for x in a if keep(x)]`.' },
+    ],
+    interview: {
+      when: 'Arrays and strings are the input of most problems. Know slicing, reversing, `split`/`join` and walking with two indexes without thinking.',
+      problems: ['valid-anagram', 'valid-palindrome', 'encode-and-decode-strings', 'product-of-array-except-self'],
+    },
+    quiz: [
+      { question: '`a = [1]; b = a; b.append(2)` — what is `a` now?', answer: '`[1, 2]`. `b = a` put a second name on the same list; nothing was copied.' },
+      {
+        question: 'Why is `s += ch` inside a loop slow for long strings?',
+        answer: 'Strings are immutable, so each `+=` can build a new string and copy everything so far: O(n²) overall. Collect pieces in a list and `"".join(parts)` once: O(n).',
+      },
+      {
+        question: 'Cost of `nums.pop(0)` vs `nums.pop()`?',
+        answer: '`pop(0)` is O(n) because every remaining item shifts left; `pop()` is O(1). For fast pops from the front use `collections.deque`.',
+      },
+    ],
+    source: { label: 'Python Tutorial §3: An Informal Introduction', url: `${PY}/tutorial/introduction.html` },
+    extraSource: PY_WIKI_COMPLEXITY,
   },
   collections: {
     title: 'Dicts, sets, loops and functions',
-    source: { label: 'Python Tutorial §5: Data Structures', url: `${PY}/tutorial/datastructures.html` },
+    summary:
+      'dict and set are hash tables: they find a key in O(1) on average by jumping straight to the slot its hash points to, instead of scanning.',
     points: [
-      'dict maps key → value with O(1) average lookup: `d.get(k, 0)`, `for k, v in d.items()`.',
-      'set stores unique items with O(1) membership: `if x in seen`. Great for "have I seen this?".',
-      '`for i, x in enumerate(nums)` gives index and value; `range(n)` loops n times.',
-      'Functions: `def f(a, b=0): return a + b`. Return early to keep logic flat.',
-      'Loops and functions syntax: see Tutorial §4 (More Control Flow Tools).',
+      '`hash(key)` turns the key into a number that picks a slot. Lookup, insert and delete are O(1) on average; O(n) only in the rare worst case where many keys collide.',
+      'Keys must be hashable — their hash can never change — so `str`, `int`, `tuple` work and `list`, `dict`, `set` do not. Need a list as a key? Use `tuple(lst)`.',
+      'A dict remembers insertion order (guaranteed since Python 3.7). A set has no order and no duplicates.',
+      '`for` walks any iterable: `enumerate(a)` gives `(index, value)`, `zip(a, b)` pairs items, `d.items()` gives `(key, value)`.',
+      'Default argument values are evaluated once, when the function is defined — not on every call.',
+      'Comprehensions build a whole collection in one expression: `{x: i for i, x in enumerate(nums)}`.',
     ],
-    example: `def count_words(text):
-    counts = {}
-    for word in text.split():
-        counts[word] = counts.get(word, 0) + 1
-    return counts
+    complexity: [
+      { op: '`d[k]`, `d[k] = v`, `k in d`, `del d[k]`', cost: 'O(1)', note: 'average' },
+      { op: '`s.add(x)`, `x in s`, `s.remove(x)`', cost: 'O(1)', note: 'average' },
+      { op: 'loop over a dict / set', cost: 'O(n)' },
+      { op: '`a | b` (union)', cost: 'O(len a + len b)' },
+      { op: '`a & b` (intersection)', cost: 'O(min(len a, len b))' },
+      { op: '`len(x)`', cost: 'O(1)' },
+    ],
+    example: `from collections import defaultdict
 
-seen = set()
-for i, x in enumerate([2, 7, 2]):
-    if x in seen:
-        print("duplicate at", i)
-    seen.add(x)`,
+def group_anagrams(words):
+    groups = defaultdict(list)           # missing key -> new empty list
+    for w in words:
+        key = "".join(sorted(w))         # 'eat' -> 'aet'
+        groups[key].append(w)
+    return list(groups.values())
+
+print(group_anagrams(["eat", "tea", "tan", "ate", "nat"]))
+# [['eat', 'tea', 'ate'], ['tan', 'nat']]
+
+counts = {}
+for ch in "banana":
+    counts[ch] = counts.get(ch, 0) + 1   # {'b': 1, 'a': 3, 'n': 2}`,
+    pitfalls: [
+      { title: '`def f(x, seen=[])`', fix: 'The same list is shared by every call, so items pile up. Use `seen=None`, then `if seen is None: seen = []` inside.' },
+      { title: '`d[k]` on a missing key', fix: 'Raises `KeyError`. Use `d.get(k, default)`, `k in d`, or a `defaultdict`.' },
+      { title: 'A list as a dict key or set item', fix: '`TypeError: unhashable type: list`. Convert it: `tuple(lst)`.' },
+      { title: 'Adding or deleting keys while looping over a dict', fix: '`RuntimeError`. Loop over a snapshot: `for k in list(d):`.' },
+    ],
+    interview: {
+      when: 'Whenever you hear "have I seen…", "count…", "group by…", or need to find something fast, reach for a dict or a set.',
+      problems: ['contains-duplicate', 'two-sum', 'group-anagrams', 'top-k-frequent-elements', 'longest-consecutive-sequence'],
+    },
+    quiz: [
+      {
+        question: 'Why can a tuple be a dict key but a list cannot?',
+        answer: 'Keys must be hashable: their hash must never change. A list can change after insertion, so it is unhashable; a tuple cannot change.',
+      },
+      {
+        question: 'How does a dict make Two Sum O(n) instead of O(n²)?',
+        answer: 'Walk the array once. For each `x`, check whether `target - x` is already in the dict (O(1)); if not, store `x -> index`. No need to try every pair.',
+      },
+      {
+        question: 'What goes wrong with `def add(x, acc=[])`?',
+        answer: 'The default list is created once and shared by every call, so values from earlier calls stay in it. Use `acc=None` and create the list inside.',
+      },
+    ],
+    source: { label: 'Python Tutorial §5: Data Structures', url: `${PY}/tutorial/datastructures.html` },
+    extraSource: { label: 'Python Tutorial §4: More Control Flow Tools', url: `${PY}/tutorial/controlflow.html` },
   },
   interviewToolkit: {
     title: 'Interview toolkit: collections and heapq',
-    source: { label: 'collections — Container datatypes', url: `${PY}/library/collections.html` },
+    summary:
+      'Five standard-library tools turn many medium problems into a few lines: `Counter`, `defaultdict`, `deque`, `heapq` and `sorted(key=...)`.',
     points: [
-      '`Counter(iterable)` counts items; `.most_common(k)` gives the top k.',
-      '`defaultdict(list)` creates missing keys automatically — perfect for adjacency lists and grouping.',
-      '`deque` gives O(1) `append`/`popleft` — use it as the queue in BFS (a list `pop(0)` is O(n)).',
-      '`heapq` is a min-heap on a plain list: `heappush`, `heappop`; push `-x` for a max-heap.',
-      '`sorted(items, key=lambda x: x[1], reverse=True)` sorts by any field.',
+      '`Counter(items)` is a dict of counts. A missing key reads as 0, `most_common(k)` gives the top k, and `Counter(a) == Counter(b)` checks anagrams.',
+      '`defaultdict(factory)` creates the value the first time a key is read: `defaultdict(list)` for grouping, `defaultdict(int)` for counting.',
+      '`deque` is a double-ended queue: O(1) append and pop at both ends. It is the BFS queue; `deque(maxlen=k)` keeps only the last k items.',
+      '`heapq` keeps a binary min-heap inside a plain list: `h[0]` is always the smallest, push/pop are O(log n), `heapify` is O(n). Tuples compare item by item, so push `(priority, value)`.',
+      '`sorted(items, key=..., reverse=...)` is a stable O(n log n) sort. Sort by several fields with a tuple key: `key=lambda p: (-p[1], p[0])`.',
     ],
-    example: `from collections import Counter, defaultdict, deque
+    complexity: [
+      { op: '`Counter(items)`', cost: 'O(n)' },
+      { op: '`c.most_common(k)`', cost: 'O(n log k)' },
+      { op: '`append`, `appendleft`, `pop`, `popleft` (deque)', cost: 'O(1)' },
+      { op: '`dq[i]` in the middle', cost: 'O(n)' },
+      { op: '`heappush`, `heappop`', cost: 'O(log n)' },
+      { op: '`heapify(list)`', cost: 'O(n)' },
+      { op: '`h[0]` (peek smallest)', cost: 'O(1)' },
+      { op: '`sorted(items)`', cost: 'O(n log n)' },
+    ],
+    example: `from collections import Counter, deque
 import heapq
 
-Counter("banana").most_common(1)      # [('a', 3)]
-groups = defaultdict(list); groups["a"].append(1)
-q = deque([1]); q.append(2); q.popleft()  # 1
-h = []; heapq.heappush(h, 5); heapq.heappush(h, 1)
-heapq.heappop(h)                       # 1`,
+nums = [1, 1, 1, 2, 2, 3]
+print(Counter(nums).most_common(2))     # [(1, 3), (2, 2)]
+
+h = []
+for x in [5, 1, 8, 3]:
+    heapq.heappush(h, -x)               # negate -> max-heap
+print(-h[0])                            # 8, the largest
+
+q = deque(["start"])                    # BFS queue
+q.append("a")
+print(q.popleft())                      # start  (O(1), unlike list.pop(0))
+
+people = [("an", 25), ("binh", 19), ("chi", 25)]
+print(sorted(people, key=lambda p: (-p[1], p[0])))
+# [('an', 25), ('chi', 25), ('binh', 19)]`,
+    pitfalls: [
+      { title: 'Expecting a max-heap', fix: '`heapq` is min-only. Push `-x` and read `-h[0]`; for tuples negate the priority field.' },
+      { title: 'Reading `h[-1]` as the largest', fix: 'Only `h[0]` has a guaranteed meaning in a heap; the rest is only partially ordered.' },
+      { title: 'Ties on objects that cannot be compared', fix: 'Pushing `(dist, node)` crashes when two dists tie and nodes have no `<`. Add a counter: `(dist, i, node)`.' },
+      { title: 'Reading `d[k]` on a defaultdict to "check" a key', fix: 'Reading creates the key. Check with `k in d` instead.' },
+    ],
+    interview: {
+      when: 'Top-K, "k closest", merging sorted lists and scheduling → heap. BFS or a window that drops from the left → deque. Frequency questions → Counter.',
+      problems: ['top-k-frequent-elements', 'kth-largest-element-in-an-array', 'merge-k-sorted-lists', 'task-scheduler', 'number-of-islands'],
+    },
+    quiz: [
+      { question: 'Where is the smallest item of a heap list `h`, and what does reading it cost?', answer: '`h[0]`, O(1). Removing it with `heappop(h)` costs O(log n).' },
+      { question: 'How do you get a max-heap in Python?', answer: '`heapq` is min-only: push `-x` and read `-h[0]`. With tuples, negate the priority part.' },
+      { question: 'Why use `deque` instead of a list for BFS?', answer: '`popleft()` is O(1). `list.pop(0)` shifts every item (O(n)), which can turn BFS into O(n²).' },
+    ],
+    source: { label: 'collections — Container datatypes', url: `${PY}/library/collections.html` },
+    extraSource: { label: 'heapq — Heap queue algorithm', url: `${PY}/library/heapq.html` },
   },
 } satisfies Record<string, TaskReference>
 
