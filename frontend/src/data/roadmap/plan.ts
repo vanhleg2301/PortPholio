@@ -172,6 +172,8 @@ interface WeekSpec {
   sunday?: TaskSeed[]
   // Theory card attached to every CS task of the week that has none.
   csReference?: TaskReference
+  // In-app lesson for the week's CS tasks.
+  csLessonId?: string
 }
 
 const weekSpecs: WeekSpec[] = [
@@ -195,6 +197,7 @@ const weekSpecs: WeekSpec[] = [
     label: 'Week 1',
     phaseId: 'p1',
     csReference: CS_REFERENCES.latencyTcp,
+    csLessonId: 'net-latency-tcp',
     start: '2026-11-16',
     end: '2026-11-22',
     goal: 'Arrays & Hashing done. Understand latency and how TCP works.',
@@ -785,7 +788,13 @@ function buildWeek(spec: WeekSpec): RoadmapWeek {
       weekdayIndex++
     }
     const withTheory = seeds.map((seed) =>
-      seed.kind === 'cs' && !seed.reference && spec.csReference ? { ...seed, reference: spec.csReference } : seed
+      seed.kind === 'cs'
+        ? {
+            ...seed,
+            reference: seed.reference ?? spec.csReference,
+            lessonId: seed.lessonId ?? spec.csLessonId,
+          }
+        : seed
     )
     return { date, tasks: assignIds(date, withTheory) }
   })

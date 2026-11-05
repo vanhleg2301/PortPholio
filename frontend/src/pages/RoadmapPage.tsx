@@ -89,8 +89,12 @@ export default function RoadmapPage() {
 
   const lessonId = /^\/roadmap\/learn\/([^/]+)/.exec(location.pathname)?.[1]
   const lesson = lessonId ? LESSON_BY_ID.get(lessonId) : undefined
-  const lessonTaskId =
-    (location.state as { taskId?: string } | null)?.taskId ?? ALL_TASKS.find((t) => t.lessonId === lessonId)?.id ?? null
+  // Only dedicated lesson tasks can be ticked from the lesson page; a problem or reading task
+  // that merely links to a lesson keeps its own checkbox.
+  const openedTaskId = (location.state as { taskId?: string } | null)?.taskId
+  const lessonTask =
+    ALL_TASKS.find((t) => t.id === openedTaskId) ?? ALL_TASKS.find((t) => t.lessonId === lessonId && t.title.startsWith('Lesson:'))
+  const lessonTaskId = lessonTask?.title.startsWith('Lesson:') ? lessonTask.id : null
 
   const doneIds = useMemo(() => new Set(rows.map((r) => r.task_id)), [rows])
   const activity = useMemo(() => getActivityDates(rows.map((r) => r.completed_at)), [rows])
