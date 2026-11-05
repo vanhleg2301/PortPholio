@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { format, parseISO } from 'date-fns'
 import { ArrowRight, FileText, Link2, Lock, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { listContainer, listItem } from '@/lib/motion'
 import { TOPICS, TOPIC_ORDER, type NoteTopic } from '@/data/roadmap/topics'
 import type { RoadmapNote } from '@/hooks/useRoadmapNotes'
 import type { RoadmapResource } from '@/hooks/useRoadmapResources'
@@ -79,12 +81,12 @@ export function NotesView({ isOwner, isLoading, notes, resources, onOpenDay, onR
         </p>
       )}
 
-      <ul className="mt-4 space-y-3">
+      <motion.ul key={`${topic}:${q}`} variants={listContainer} initial="hidden" animate="show" className="mt-4 space-y-3">
         {days.map((day) => {
           const dayNotes = matchingNotes.filter((n) => n.day === day)
           const dayResources = matchingResources.filter((r) => r.day === day)
           return (
-            <li key={day} className="rounded-2xl border border-border bg-card/40 p-4">
+            <motion.li key={day} variants={listItem} className="rounded-2xl border border-border bg-card/40 p-4">
               <button
                 type="button"
                 onClick={() => onOpenDay(day)}
@@ -127,10 +129,10 @@ export function NotesView({ isOwner, isLoading, notes, resources, onOpenDay, onR
                   ))}
                 </div>
               )}
-            </li>
+            </motion.li>
           )
         })}
-      </ul>
+      </motion.ul>
     </div>
   )
 }

@@ -1,5 +1,7 @@
+import { AnimatePresence, motion } from 'framer-motion'
 import { Check, ArrowUpRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { EASE_OUT, SPRING, listItem } from '@/lib/motion'
 import { TOPICS } from '@/data/roadmap/topics'
 import type { RoadmapTask } from '@/data/roadmap/types'
 
@@ -17,24 +19,38 @@ interface TaskItemProps {
 
 export function TaskItem({ task, isDone, onToggle }: TaskItemProps) {
   return (
-    <li className="flex items-start gap-3 py-3">
-      <button
+    <motion.li variants={listItem} className="flex items-start gap-3 py-3">
+      <motion.button
         type="button"
         role="checkbox"
         aria-checked={isDone}
         aria-label={`Mark "${task.title}" as ${isDone ? 'not done' : 'done'}`}
         onClick={() => onToggle(task.id, !isDone)}
+        whileTap={{ scale: 0.82 }}
         className="-m-2 p-2 shrink-0"
       >
-        <span
+        <motion.span
+          animate={isDone ? { scale: [1, 1.18, 1] } : { scale: 1 }}
+          transition={{ duration: 0.3, ease: EASE_OUT }}
           className={cn(
-            'h-6 w-6 rounded-md border-[1.5px] flex items-center justify-center transition-colors',
+            'h-6 w-6 rounded-md border-[1.5px] flex items-center justify-center transition-colors duration-200',
             isDone ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-foreground/30 hover:border-foreground'
           )}
         >
-          {isDone && <Check className="h-4 w-4" strokeWidth={3} />}
-        </span>
-      </button>
+          <AnimatePresence initial={false}>
+            {isDone && (
+              <motion.span
+                initial={{ scale: 0, rotate: -30, opacity: 0 }}
+                animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+                transition={SPRING}
+              >
+                <Check className="h-4 w-4" strokeWidth={3} />
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.span>
+      </motion.button>
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2">
@@ -47,7 +63,7 @@ export function TaskItem({ task, isDone, onToggle }: TaskItemProps) {
             </span>
           )}
         </div>
-        <p className={cn('text-[15px] leading-snug mt-0.5', isDone && 'text-muted-foreground line-through decoration-foreground/30')}>
+        <p className={cn('text-[15px] leading-snug mt-0.5 transition-colors duration-300', isDone && 'text-muted-foreground line-through decoration-foreground/30')}>
           {task.title}
         </p>
         {task.links.length > 0 && (
@@ -67,6 +83,6 @@ export function TaskItem({ task, isDone, onToggle }: TaskItemProps) {
           </div>
         )}
       </div>
-    </li>
+    </motion.li>
   )
 }

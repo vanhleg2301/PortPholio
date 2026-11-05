@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { Flame, UserRound } from 'lucide-react'
 import { AccountSheet } from '@/components/roadmap/AccountSheet'
 import { BottomTabBar, type RoadmapTab } from '@/components/roadmap/BottomTabBar'
@@ -21,6 +22,26 @@ import {
   getTodayIso,
   toPercent,
 } from '@/lib/roadmapStats'
+import { SPRING, fadeSwap } from '@/lib/motion'
+
+// Re-mounts on change so a new value rolls in instead of snapping.
+function RollingValue({ value }: { value: string }) {
+  return (
+    <span className="relative inline-flex overflow-hidden align-bottom text-foreground">
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.span
+          key={value}
+          initial={{ y: '100%', opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: '-100%', opacity: 0 }}
+          transition={SPRING}
+        >
+          {value}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  )
+}
 
 export default function RoadmapPage() {
   const today = getTodayIso()
@@ -72,6 +93,7 @@ export default function RoadmapPage() {
   const avatarUrl = session?.user.user_metadata.avatar_url as string | undefined
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="min-h-[100dvh] bg-background">
       <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
@@ -100,19 +122,23 @@ export default function RoadmapPage() {
         </div>
         <div className="mx-auto flex max-w-3xl items-center gap-4 px-4 pb-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
           <span>
-            <span className="text-foreground">{overall}%</span> plan
+            <RollingValue value={`${overall}%`} /> plan
           </span>
           <span>
-            <span className="text-foreground">{solved}/{NEETCODE_150_TOTAL}</span> NeetCode
+            <RollingValue value={`${solved}/${NEETCODE_150_TOTAL}`} /> NeetCode
           </span>
           <span className="flex items-center gap-1">
-            <Flame className="h-3.5 w-3.5 text-orange-500" />
-            <span className="text-foreground">{streak}</span> streak
+            <motion.span key={streak} initial={{ scale: 0.6, rotate: -15 }} animate={{ scale: 1, rotate: 0 }} transition={SPRING}>
+              <Flame className="h-3.5 w-3.5 text-orange-500" />
+            </motion.span>
+            <RollingValue value={`${streak}`} /> streak
           </span>
         </div>
       </header>
 
       <main className="mx-auto max-w-3xl px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]">
+        <AnimatePresence mode="wait" initial={false}>
+        <motion.div key={tab} variants={fadeSwap} initial="initial" animate="animate" exit="exit">
         {tab === 'today' && (
           <TodayView
             date={selectedDate}
@@ -138,13 +164,25 @@ export default function RoadmapPage() {
             onRequestSignIn={() => setIsAccountOpen(true)}
           />
         )}
+        </motion.div>
+        </AnimatePresence>
       </main>
 
-      {toast && (
-        <div className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-50 mx-auto max-w-sm rounded-2xl bg-foreground px-4 py-3 text-center text-sm text-background shadow-lg">
-          {toast}
-        </div>
-      )}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key={toast}
+            role="status"
+            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.98 }}
+            transition={SPRING}
+            className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-50 mx-auto max-w-sm rounded-2xl bg-foreground px-4 py-3 text-center text-sm text-background shadow-lg"
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <BottomTabBar active={tab} onChange={changeTab} />
       <AccountSheet
@@ -156,5 +194,6 @@ export default function RoadmapPage() {
         onSignOut={signOut}
       />
     </div>
+    </MotionConfig>
   )
 }

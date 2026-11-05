@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { FileText, Link2, Paperclip, Plus, Trash2 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/roadmap/ConfirmDialog'
 import { useAddLink, useDeleteResource, useUploadFile, type RoadmapResource } from '@/hooks/useRoadmapResources'
@@ -60,8 +61,17 @@ export function ResourceList({ day, resources }: ResourceListProps) {
     <div className="rounded-2xl border border-border bg-card/40 p-3">
       {resources.length > 0 && (
         <ul className="divide-y divide-border/50 mb-2">
+          <AnimatePresence initial={false}>
           {resources.map((r) => (
-            <li key={r.id} className="flex items-center gap-3 py-2">
+            <motion.li
+              key={r.id}
+              layout="position"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10, transition: { duration: 0.15 } }}
+              transition={{ duration: 0.22 }}
+              className="flex items-center gap-3 py-2"
+            >
               {r.kind === 'link' ? (
                 <Link2 className="h-4 w-4 shrink-0 text-muted-foreground" />
               ) : (
@@ -81,13 +91,20 @@ export function ResourceList({ day, resources }: ResourceListProps) {
                 }} aria-label={`Delete ${r.title}`} className="p-1.5 rounded-full text-muted-foreground hover:text-hard hover:bg-hard/10 transition-colors">
                 <Trash2 className="h-4 w-4" />
               </button>
-            </li>
+            </motion.li>
           ))}
+          </AnimatePresence>
         </ul>
       )}
 
       {isLinkFormOpen ? (
-        <form onSubmit={(e) => void handleAddLink(e)} className="flex flex-col gap-2">
+        <motion.form
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          onSubmit={(e) => void handleAddLink(e)}
+          className="flex flex-col gap-2"
+        >
           <input type="text" inputMode="url" required autoFocus value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste a link" className={inputClass} />
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title (optional)" className={inputClass} />
           <div className="flex gap-2">
@@ -98,7 +115,7 @@ export function ResourceList({ day, resources }: ResourceListProps) {
               Cancel
             </button>
           </div>
-        </form>
+        </motion.form>
       ) : (
         <div className="grid grid-cols-2 gap-2">
           <button type="button" onClick={() => setIsLinkFormOpen(true)} className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-foreground/[0.04] transition-colors">

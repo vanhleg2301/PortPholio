@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { format, parseISO } from 'date-fns'
 import { Lock } from 'lucide-react'
 import { DayNotes } from '@/components/roadmap/DayNotes'
@@ -8,6 +10,7 @@ import type { RoadmapNote } from '@/hooks/useRoadmapNotes'
 import type { NoteTopic } from '@/data/roadmap/topics'
 import type { RoadmapResource } from '@/hooks/useRoadmapResources'
 import { DAY_BY_DATE, getWeekForDate } from '@/lib/roadmapStats'
+import { listContainer, slide } from '@/lib/motion'
 
 interface TodayViewProps {
   date: string
@@ -35,10 +38,20 @@ export function TodayView({ date, today, doneIds, isOwner, notes, isNotesReady, 
   const suggestedTopics = [...new Set(tasks.map((t): NoteTopic => t.kind))]
   const dayResources = resources.filter((r) => r.day === date)
 
+  // Slide direction follows the calendar: later day comes in from the right.
+  const [lastDate, setLastDate] = useState(date)
+  const [direction, setDirection] = useState(1)
+  if (date !== lastDate) {
+    setDirection(date > lastDate ? 1 : -1)
+    setLastDate(date)
+  }
+
   return (
     <div>
       <WeekStrip selectedDate={date} today={today} doneIds={doneIds} onSelect={onSelectDate} />
 
+      <AnimatePresence mode="wait" initial={false} custom={direction}>
+      <motion.div key={date} custom={direction} variants={slide} initial="enter" animate="center" exit="exit">
       <div className="mt-5 flex items-end justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -59,11 +72,16 @@ export function TodayView({ date, today, doneIds, isOwner, notes, isNotesReady, 
       {tasks.length === 0 ? (
         <p className="text-sm text-muted-foreground">Rest day. Recharge.</p>
       ) : (
-        <ul className="rounded-2xl border border-border bg-card/40 px-4 divide-y divide-border/50">
+        <motion.ul
+          variants={listContainer}
+          initial="hidden"
+          animate="show"
+          className="rounded-2xl border border-border bg-card/40 px-4 divide-y divide-border/50"
+        >
           {tasks.map((task) => (
             <TaskItem key={task.id} task={task} isDone={doneIds.has(task.id)} onToggle={onToggle} />
           ))}
-        </ul>
+        </motion.ul>
       )}
 
       {isOwner ? (
@@ -86,6 +104,8 @@ export function TodayView({ date, today, doneIds, isOwner, notes, isNotesReady, 
           <Lock className="h-4 w-4" /> Sign in to tick tasks, write notes and attach files
         </button>
       )}
+      </motion.div>
+      </AnimatePresence>
     </div>
   )
 }

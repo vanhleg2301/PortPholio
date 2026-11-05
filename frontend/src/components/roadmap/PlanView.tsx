@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion'
 import { format, parseISO } from 'date-fns'
 import { ActivityHeatmap } from '@/components/roadmap/ActivityHeatmap'
 import { ProgressBar } from '@/components/roadmap/ProgressBar'
@@ -5,6 +6,14 @@ import { TaskItem } from '@/components/roadmap/TaskItem'
 import { WeekCard } from '@/components/roadmap/WeekCard'
 import { PHASES, TARGETS, WEEKS } from '@/data/roadmap/plan'
 import { getPhaseTasks, getProgress, toPercent } from '@/lib/roadmapStats'
+import { EASE_OUT } from '@/lib/motion'
+
+const reveal = {
+  initial: { opacity: 0, y: 24 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: '-60px' },
+  transition: { duration: 0.45, ease: EASE_OUT },
+} as const
 
 interface PlanViewProps {
   doneIds: Set<string>
@@ -30,19 +39,19 @@ export function PlanView({ doneIds, today, onToggle, onOpenDay }: PlanViewProps)
         <ActivityHeatmap doneIds={doneIds} today={today} />
       </section>
 
-      <section className="mt-12">
+      <motion.section {...reveal} className="mt-12">
         <SectionLabel eyebrow="GOAL · 31 OCT 2027" title="Targets" />
         <ul className="divide-y divide-border/50">
           {TARGETS.map((t) => (
             <TaskItem key={t.id} task={t} isDone={doneIds.has(t.id)} onToggle={onToggle} />
           ))}
         </ul>
-      </section>
+      </motion.section>
 
       {PHASES.map((phase) => {
         const percent = toPercent(getProgress(getPhaseTasks(phase.id), doneIds))
         return (
-          <section key={phase.id} className="mt-14">
+          <motion.section key={phase.id} {...reveal} className="mt-14">
             <SectionLabel
               eyebrow={`PHASE ${phase.number} · ${format(parseISO(phase.start), 'd MMM yyyy')} → ${format(parseISO(phase.end), 'd MMM yyyy')}`}
               title={phase.title}
@@ -65,7 +74,7 @@ export function PlanView({ doneIds, today, onToggle, onOpenDay }: PlanViewProps)
                 <TaskItem key={t.id} task={t} isDone={doneIds.has(t.id)} onToggle={onToggle} />
               ))}
             </ul>
-          </section>
+          </motion.section>
         )
       })}
     </div>
