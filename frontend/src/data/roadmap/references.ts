@@ -661,192 +661,911 @@ print(out, has_cycle(build([1, 2])))   # [3, 2, 1] False`,
     extraSource: { label: 'collections.OrderedDict (LRU building block)', url: `${PY}/library/collections.html#collections.OrderedDict` },
   },
   Trees: {
-    source: { label: 'collections.deque (for BFS)', url: `${PY}/library/collections.html#collections.deque` },
-    points: [
-      'Most tree problems are recursion: solve for left, solve for right, combine at the node.',
-      'DFS (recursive) for depth/paths; BFS with a deque for level-by-level.',
-      'BST: left < node < right, so an in-order traversal is sorted.',
+    summary:
+      'A tree is recursion made visible: solve the problem for the left subtree, solve it for the right subtree, and combine the two answers at the node.',
+    recognize: [
+      'The input is a `TreeNode` root',
+      'Depth, height, diameter, path sums',
+      '"Level by level", "right side view"',
+      'BST: "k-th smallest", "validate", anything about sorted order',
     ],
-    example: `def max_depth(root):
-    if not root:
-        return 0
-    return 1 + max(max_depth(root.left), max_depth(root.right))`,
+    points: [
+      'Most tree problems are one DFS in which each call returns something about its subtree (height, sum, is-balanced) and the parent combines the results — O(n), every node visited once.',
+      'Decide what the function returns versus what you track globally. Diameter: return the height, but update `best = left + right` on the side.',
+      'BFS with a deque walks level by level: `for _ in range(len(q))` processes exactly one level.',
+      'BST invariant: everything in the left subtree < node < everything in the right subtree, so an in-order traversal is sorted. Validate with (low, high) bounds, not only against the parent.',
+      'Recursion depth equals the tree height: O(log n) when balanced, O(n) for a skewed tree — mind Python’s recursion limit.',
+    ],
+    complexity: [
+      { op: 'DFS or BFS over the tree', cost: 'O(n)' },
+      { op: 'DFS memory', cost: 'O(h)', note: 'h = height' },
+      { op: 'BFS memory', cost: 'O(w)', note: 'w = widest level' },
+      { op: 'BST search / insert', cost: 'O(h)', note: 'O(log n) balanced, O(n) skewed' },
+    ],
+    example: `from collections import deque
+
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+def diameter(root):
+    best = 0
+    def height(node):                  # returns height, updates best
+        nonlocal best
+        if not node:
+            return 0
+        l, r = height(node.left), height(node.right)
+        best = max(best, l + r)        # longest path through this node
+        return 1 + max(l, r)
+    height(root)
+    return best
+
+def level_order(root):
+    out, q = [], deque([root] if root else [])
+    while q:
+        level = []
+        for _ in range(len(q)):        # exactly one level per outer loop
+            node = q.popleft()
+            level.append(node.val)
+            q.extend(c for c in (node.left, node.right) if c)
+        out.append(level)
+    return out
+
+def is_bst(node, low=float("-inf"), high=float("inf")):
+    if not node:
+        return True
+    if not (low < node.val < high):
+        return False
+    return is_bst(node.left, low, node.val) and is_bst(node.right, node.val, high)
+
+#      4
+#    2   6
+#   1 3    7
+root = TreeNode(4, TreeNode(2, TreeNode(1), TreeNode(3)), TreeNode(6, None, TreeNode(7)))
+print(diameter(root), level_order(root), is_bst(root))
+# 4 [[4], [2, 6], [1, 3, 7]] True`,
+    pitfalls: [
+      { title: 'Validating a BST against the parent only', fix: 'A node deep in the left subtree can still be bigger than the root. Pass (low, high) bounds down.' },
+      { title: 'Mixing the return value and the answer', fix: 'In Diameter the function returns height; the answer lives in a separate variable.' },
+      { title: 'No `None` base case', fix: '`AttributeError` on `None.left`. Handle the empty node first.' },
+      { title: 'Deep, skewed trees in Python', fix: '`RecursionError` past ~1000 levels. Use an explicit stack.' },
+    ],
+    interview: {
+      when: 'Before coding, say "each call returns …". Interviewers watch whether you separate the returned value from the global answer and handle `None` first.',
+      problems: [
+        'invert-binary-tree',
+        'maximum-depth-of-binary-tree',
+        'diameter-of-binary-tree',
+        'binary-tree-level-order-traversal',
+        'validate-binary-search-tree',
+        'lowest-common-ancestor-of-a-binary-search-tree',
+      ],
+    },
+    inWork: [
+      'File systems: folder sizes are a recursive sum',
+      'DOM and React component trees; JSON and syntax trees in compilers and linters',
+      'Org charts, nested categories, comment threads',
+      'Database indexes are B-trees',
+    ],
+    quiz: [
+      { question: 'Why is DFS over a tree O(n)?', answer: 'Every node is visited exactly once and does O(1) work apart from its recursive calls.' },
+      {
+        question: 'Validate BST: why is comparing with the parent not enough?',
+        answer: 'A value deep in the left subtree must be smaller than every ancestor where you went left, not just its parent. (low, high) bounds carry that constraint down.',
+      },
+      { question: 'When BFS instead of DFS on a tree?', answer: 'When the question is about levels or the fewest steps from the root: level order, right side view, minimum depth.' },
+    ],
+    source: { label: 'Tech Interview Handbook: Tree', url: `${TIH}/tree/` },
+    extraSource: { label: 'collections.deque (BFS queue)', url: `${PY}/library/collections.html#collections.deque` },
   },
   Tries: {
-    source: { label: 'Python Tutorial: Dictionaries', url: `${PY}/tutorial/datastructures.html#dictionaries` },
+    summary:
+      'A prefix tree: each edge is a character, so words that share a prefix share a path. Prefix lookups cost the length of the word, not the number of words stored.',
+    recognize: ['"Starts with", "prefix"', 'Autocomplete or search suggestions', 'Many words searched at once (Word Search II)', 'Wildcard `.` matching'],
     points: [
-      'Each node is a dict of children plus an "end of word" flag.',
-      'Insert/search cost O(length of word), independent of how many words are stored.',
-      'Great for prefix search and for pruning DFS over a grid of letters.',
+      'A node is a dict of children plus an end-of-word flag. Insert and search walk one node per character: O(L).',
+      'A hash set also answers "is this exact word present?" in O(L). A trie wins when you need prefix queries or want to stop a search early.',
+      'Word Search II: put every word in a trie, then DFS the grid once and abandon a path as soon as it is not a prefix of any word — instead of searching each word separately.',
+      'Wildcards: at a `.` branch into every child, which turns the lookup into a small DFS.',
+    ],
+    complexity: [
+      { op: '`insert`, `search`, `starts_with`', cost: 'O(L)', note: 'L = word length' },
+      { op: 'Memory', cost: 'O(total characters)' },
+      { op: 'Word Search II', cost: 'one grid DFS', note: 'pruned by the trie' },
     ],
     example: `class Trie:
     def __init__(self):
         self.root = {}
+
     def insert(self, word):
         node = self.root
         for ch in word:
-            node = node.setdefault(ch, {})
-        node["$"] = True`,
+            node = node.setdefault(ch, {})   # create the path if missing
+        node["$"] = True                      # end-of-word marker
+
+    def _walk(self, s):
+        node = self.root
+        for ch in s:
+            if ch not in node:
+                return None
+            node = node[ch]
+        return node
+
+    def search(self, word):
+        node = self._walk(word)
+        return node is not None and "$" in node
+
+    def starts_with(self, prefix):
+        return self._walk(prefix) is not None
+
+t = Trie()
+for w in ["app", "apple", "apt"]:
+    t.insert(w)
+print(t.search("app"), t.search("ap"), t.starts_with("ap"))   # True False True`,
+    pitfalls: [
+      { title: 'No end-of-word marker', fix: '"ap" would be reported as a word just because "app" exists.' },
+      { title: 'A trie where a set is enough', fix: 'Only exact lookups? A `set` is simpler and just as fast.' },
+      { title: 'Word Search II timing out', fix: 'Prune paths that are not prefixes, remove words once found, and restore visited cells after the DFS.' },
+      { title: 'Heavy node objects', fix: 'A dict of dicts is the pragmatic Python representation; a class per node is fine but heavier.' },
+    ],
+    interview: {
+      when: 'Reach for a trie when the problem says "prefix" or searches many words together. Explain the pruning win in Word Search II.',
+      problems: ['implement-trie-prefix-tree', 'design-add-and-search-words-data-structure', 'word-search-ii'],
+    },
+    inWork: ['Autocomplete and search suggestions', 'IP routing: longest-prefix match', 'Spell checkers and URL routers that match path segments'],
+    quiz: [
+      { question: 'Trie or hash set for checking exact words?', answer: 'Both are O(L); a set is simpler. A trie earns its place with prefix queries or early pruning.' },
+      { question: 'Why does a trie make Word Search II fast?', answer: 'One grid DFS checks all words at once, and a path stops the moment no word starts with it.' },
+      { question: 'What does `starts_with(prefix)` cost?', answer: 'O(length of the prefix), no matter how many words are stored.' },
+    ],
+    source: { label: 'Tech Interview Handbook: Trie', url: `${TIH}/trie/` },
+    extraSource: { label: 'Python Tutorial: Dictionaries', url: `${PY}/tutorial/datastructures.html#dictionaries` },
   },
   Heap: {
-    source: { label: 'heapq — Heap queue algorithm', url: `${PY}/library/heapq.html` },
+    summary:
+      'A heap always hands you the smallest (or largest) item in O(1) and re-orders in O(log n) — the tool for "top k", "next best" and anything processed by priority.',
+    recognize: ['"k largest", "k smallest", "k closest"', 'Median of a stream', 'Merge k sorted lists', 'Repeatedly take the best item: scheduling by priority or time'],
     points: [
-      '`heapq` is a min-heap: push/pop O(log n), smallest item at `h[0]`.',
-      'Max-heap: push negative values.',
-      'Top K: keep a heap of size k → O(n log k). Two heaps give a running median.',
+      'A binary heap lives in an array: children of index i are 2i+1 and 2i+2. Only the root is guaranteed to be the minimum.',
+      'Top-k largest: keep a MIN-heap of size k; push every item and pop when the size exceeds k. The root is the k-th largest. O(n log k) time, O(k) memory, and it works on streams.',
+      'Running median: a max-heap for the lower half and a min-heap for the upper half, sizes differing by at most one.',
+      'Merge k sorted lists: the heap holds the current head of each list — O(N log k).',
+    ],
+    complexity: [
+      { op: 'push, pop', cost: 'O(log n)' },
+      { op: 'peek the top', cost: 'O(1)' },
+      { op: '`heapify` a list', cost: 'O(n)' },
+      { op: 'Top-k with a size-k heap', cost: 'O(n log k)', note: 'vs O(n log n) sorting' },
     ],
     example: `import heapq
+
 def k_largest(nums, k):
     h = []
     for x in nums:
         heapq.heappush(h, x)
         if len(h) > k:
-            heapq.heappop(h)
-    return h`,
+            heapq.heappop(h)            # drop the smallest of the k + 1
+    return sorted(h, reverse=True)
+
+class MedianFinder:
+    def __init__(self):
+        self.low, self.high = [], []    # low: max-heap (negated), high: min-heap
+
+    def add(self, x):
+        heapq.heappush(self.low, -x)
+        heapq.heappush(self.high, -heapq.heappop(self.low))   # move low's max up
+        if len(self.high) > len(self.low):
+            heapq.heappush(self.low, -heapq.heappop(self.high))
+
+    def median(self):
+        if len(self.low) > len(self.high):
+            return -self.low[0]
+        return (-self.low[0] + self.high[0]) / 2
+
+print(k_largest([3, 2, 1, 5, 6, 4], 2))   # [6, 5]
+m = MedianFinder()
+for x in [5, 15, 1, 3]:
+    m.add(x)
+print(m.median())                          # 4.0`,
+    pitfalls: [
+      { title: 'Sorting everything for top-k', fix: 'O(n log n) and needs all data in memory. A size-k heap is O(n log k) and streams.' },
+      { title: 'Max-heap for the k largest', fix: 'Use a MIN-heap of size k: its root is the one to evict.' },
+      { title: 'Ties on incomparable items', fix: 'Add a counter: push `(priority, i, item)`.' },
+      { title: '`h[-1]` as the maximum', fix: 'Only `h[0]` is meaningful in a heap.' },
+    ],
+    interview: {
+      when: 'For top-k say "size-k heap, O(n log k)" and mention `heapq.nlargest` for real code. Two heaps is the expected answer for a running median.',
+      problems: [
+        'kth-largest-element-in-a-stream',
+        'last-stone-weight',
+        'k-closest-points-to-origin',
+        'kth-largest-element-in-an-array',
+        'task-scheduler',
+        'find-median-from-data-stream',
+      ],
+    },
+    inWork: [
+      'Task schedulers and job queues ordered by priority or deadline',
+      'Dijkstra in maps and network routing',
+      'Top-N dashboards over streaming data',
+      'k-way merge of sorted log files or database runs',
+    ],
+    quiz: [
+      { question: 'Why a MIN-heap to keep the k LARGEST items?', answer: 'Its root is the smallest of the current top k — exactly the item to evict when something bigger arrives.' },
+      { question: '`heapify` vs n pushes?', answer: '`heapify` is O(n); n separate pushes cost O(n log n).' },
+      {
+        question: 'Running median with O(log n) per insert: how?',
+        answer: 'Two heaps — a max-heap for the lower half and a min-heap for the upper half, sizes within one. The median sits at the tops.',
+      },
+    ],
+    source: { label: 'Tech Interview Handbook: Heap', url: `${TIH}/heap/` },
+    extraSource: { label: 'heapq — Heap queue algorithm', url: `${PY}/library/heapq.html` },
   },
   Backtracking: {
-    source: { label: 'Python Tutorial §4.7: Defining Functions', url: `${PY}/tutorial/controlflow.html#defining-functions` },
+    summary:
+      'Build a solution one choice at a time; when a partial solution cannot work, undo the last choice and try the next one — a DFS over the tree of decisions.',
+    recognize: ['"All subsets / permutations / combinations"', '"Generate every valid …"', 'N-Queens, Sudoku, a word in a grid', 'Small n (≤ 20) and an output that is exponential in size'],
     points: [
-      'Template: choose → recurse → un-choose. Builds every candidate step by step.',
-      'Prune early when the partial answer can no longer be valid.',
-      'Copy the path when saving it (`path[:]`), because the list keeps changing.',
+      'Template: choose → recurse → un-choose. The `path` list is shared, so undo with `path.pop()` right after the call.',
+      'Picture the decision tree: depth = number of decisions, branching = options per decision. Counting its leaves gives the complexity (2ⁿ subsets, n! permutations).',
+      'Prune early: abandon a branch the moment it breaks a constraint (sum too large, queen attacked). Pruning is what makes these solutions pass.',
+      'Duplicate results: sort the input and skip `nums[i] == nums[i - 1]` at the same depth.',
+      'Save a copy when recording a result: `res.append(path[:])`.',
+    ],
+    complexity: [
+      { op: 'All subsets', cost: 'O(n · 2ⁿ)' },
+      { op: 'All permutations', cost: 'O(n · n!)' },
+      { op: 'Combination sum', cost: 'exponential', note: 'bounded by pruning' },
+      { op: 'Memory', cost: 'O(n)', note: 'recursion depth' },
     ],
     example: `def subsets(nums):
     res, path = [], []
     def dfs(i):
         if i == len(nums):
-            res.append(path[:]); return
-        path.append(nums[i]); dfs(i + 1)   # choose
-        path.pop(); dfs(i + 1)             # skip
+            res.append(path[:])              # copy: path keeps changing
+            return
+        path.append(nums[i]); dfs(i + 1)     # choose nums[i]
+        path.pop();           dfs(i + 1)     # un-choose: skip it
     dfs(0)
-    return res`,
+    return res
+
+def combination_sum(candidates, target):
+    res, path = [], []
+    candidates.sort()
+    def dfs(start, remaining):
+        if remaining == 0:
+            res.append(path[:])
+            return
+        for i in range(start, len(candidates)):
+            c = candidates[i]
+            if c > remaining:
+                break                        # prune: the rest are even bigger
+            path.append(c)
+            dfs(i, remaining - c)            # i, not i + 1: c can be reused
+            path.pop()
+    dfs(0, target)
+    return res
+
+print(subsets([1, 2]))                       # [[1, 2], [1], [2], []]
+print(combination_sum([2, 3, 6, 7], 7))      # [[2, 2, 3], [7]]`,
+    pitfalls: [
+      { title: '`res.append(path)` without a copy', fix: 'Every saved result is the same list, which ends up empty. Append `path[:]`.' },
+      { title: 'Forgetting to undo', fix: 'Missing `path.pop()` or not un-marking a visited cell leaks state into sibling branches.' },
+      { title: 'Duplicates from repeated input values', fix: 'Sort, then skip a value equal to the previous one at the same depth.' },
+      { title: 'No pruning', fix: 'Exponential blow-up and time-outs. Cut a branch as soon as it cannot succeed.' },
+    ],
+    interview: {
+      when: 'State the decision tree and its size (2ⁿ, n!) before coding. Exponential time is expected here — show you know it and point out where you prune.',
+      problems: ['subsets', 'combination-sum', 'permutations', 'subsets-ii', 'word-search', 'n-queens'],
+    },
+    inWork: [
+      'Constraint solvers: timetables, seat and room allocation',
+      'Generating every configuration for tests',
+      'Regex engines and parsers backtrack internally',
+      'Puzzle and game solvers (Sudoku, path search)',
+    ],
+    quiz: [
+      {
+        question: 'Why `res.append(path[:])` instead of `res.append(path)`?',
+        answer: '`path` is one shared list that keeps changing. Without a copy every saved result points to the same list, which ends up empty.',
+      },
+      { question: 'Time complexity of generating all subsets?', answer: '2ⁿ subsets, each up to n items to copy: O(n · 2ⁿ).' },
+      { question: 'How do you avoid duplicate subsets when the input has repeats?', answer: 'Sort it, and at the same recursion depth skip a value equal to the previous one.' },
+    ],
+    source: { label: 'Tech Interview Handbook: Recursion', url: `${TIH}/recursion/` },
+    extraSource: { label: 'Python Tutorial §4: Defining Functions', url: `${PY}/tutorial/controlflow.html#defining-functions` },
   },
   Graphs: {
-    source: { label: 'collections.defaultdict', url: `${PY}/library/collections.html#collections.defaultdict` },
-    points: [
-      'Build an adjacency list with `defaultdict(list)`; keep a `visited` set.',
-      'Grid = graph: neighbours are up/down/left/right.',
-      'Topological sort (course schedule) and union-find (connected components) are the two big extras.',
+    summary:
+      'Things connected to things. Model the problem as nodes and edges and it is almost always BFS, DFS, topological sort or union-find.',
+    recognize: [
+      'A grid of cells: islands, regions, flood fill',
+      'Dependencies, prerequisites, build order',
+      'Fewest steps (every move costs the same)',
+      'Connected components, "is it a valid tree", the redundant edge',
     ],
-    example: `def num_islands(grid):
-    rows, cols, seen = len(grid), len(grid[0]), set()
-    def dfs(r, c):
-        if (r, c) in seen or not (0 <= r < rows and 0 <= c < cols) or grid[r][c] == "0":
-            return
-        seen.add((r, c))
-        for dr, dc in ((1,0), (-1,0), (0,1), (0,-1)):
-            dfs(r + dr, c + dc)
-    count = 0
+    points: [
+      'Build an adjacency list with `defaultdict(list)`; in a grid the neighbours are the 4 directions. Always keep a `visited` set — graphs have cycles.',
+      'DFS goes deep (components, cycle detection). BFS expands in rings from the start, so the first time it reaches a node is the shortest path in an unweighted graph.',
+      'Multi-source BFS: start the queue with every source at once (Rotting Oranges, Walls and Gates).',
+      'Topological sort (Kahn): repeatedly take nodes with in-degree 0. If not every node gets taken, there is a cycle (Course Schedule).',
+      'Union-find merges sets and answers "same component?" in near O(1) — Redundant Connection, number of components.',
+    ],
+    complexity: [
+      { op: 'BFS / DFS', cost: 'O(V + E)' },
+      { op: 'Grid traversal', cost: 'O(rows × cols)' },
+      { op: 'Topological sort', cost: 'O(V + E)' },
+      { op: 'Union-find (path compression + rank)', cost: '≈ O(1)', note: 'per operation' },
+    ],
+    example: `from collections import deque, defaultdict
+
+def num_islands(grid):
+    rows, cols, seen, count = len(grid), len(grid[0]), set(), 0
     for r in range(rows):
         for c in range(cols):
             if grid[r][c] == "1" and (r, c) not in seen:
-                dfs(r, c); count += 1
-    return count`,
+                count += 1
+                q = deque([(r, c)])
+                seen.add((r, c))                  # mark when pushing
+                while q:                          # BFS flood fill
+                    y, x = q.popleft()
+                    for ny, nx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
+                        if 0 <= ny < rows and 0 <= nx < cols \\
+                                and grid[ny][nx] == "1" and (ny, nx) not in seen:
+                            seen.add((ny, nx))
+                            q.append((ny, nx))
+    return count
+
+def course_order(n, prereqs):                     # Kahn's algorithm
+    graph, indeg = defaultdict(list), [0] * n
+    for course, pre in prereqs:
+        graph[pre].append(course)
+        indeg[course] += 1
+    q = deque(i for i in range(n) if indeg[i] == 0)
+    order = []
+    while q:
+        node = q.popleft()
+        order.append(node)
+        for nxt in graph[node]:
+            indeg[nxt] -= 1
+            if indeg[nxt] == 0:
+                q.append(nxt)
+    return order if len(order) == n else []       # [] means a cycle
+
+print(num_islands(["1100", "1100", "0010", "0001"]))       # 3
+print(course_order(4, [[1, 0], [2, 0], [3, 1], [3, 2]]))  # [0, 1, 2, 3]`,
+    pitfalls: [
+      { title: 'Marking visited when popping (BFS)', fix: 'The same node gets queued many times. Mark it when you push it.' },
+      { title: 'Ignoring cycles', fix: 'Infinite recursion. Directed cycle detection needs "visiting" vs "done" states — or use Kahn.' },
+      { title: 'Recursive DFS on a 1000 × 1000 grid', fix: '`RecursionError` in Python. Use BFS or an explicit stack.' },
+      { title: 'Union-find without optimisations', fix: 'Add path compression and union by rank, or it degrades on big inputs.' },
+    ],
+    interview: {
+      when: 'First say how you model it ("cells are nodes, neighbours are edges"), then name the algorithm and O(V + E). Choosing BFS for fewest steps and topological sort for dependencies is what is being tested.',
+      problems: ['number-of-islands', 'clone-graph', 'rotting-oranges', 'pacific-atlantic-water-flow', 'course-schedule', 'redundant-connection'],
+    },
+    inWork: [
+      'Dependency resolution in package managers, build systems and task pipelines (topological sort)',
+      'Social features: "friends of friends" is BFS',
+      'Detecting circular imports or deadlocks (cycle detection)',
+      'Network reachability and permission inheritance',
+    ],
+    quiz: [
+      {
+        question: 'Why does BFS give the shortest path in an unweighted graph?',
+        answer: 'It visits nodes ring by ring in order of distance, so the first time a node is reached is via the fewest edges.',
+      },
+      { question: "How does Kahn's algorithm detect a cycle?", answer: 'Nodes on a cycle never reach in-degree 0, so fewer than V nodes end up in the output.' },
+      {
+        question: 'When union-find instead of DFS?',
+        answer: 'When edges arrive one by one and you keep asking "are these connected?", or must find the edge that creates a cycle.',
+      },
+    ],
+    source: { label: 'Tech Interview Handbook: Graph', url: `${TIH}/graph/` },
+    extraSource: { label: 'collections.defaultdict', url: `${PY}/library/collections.html#collections.defaultdict` },
   },
   'Advanced Graphs': {
-    source: { label: 'heapq — Heap queue algorithm', url: `${PY}/library/heapq.html` },
+    summary:
+      'When edges have weights, "shortest" means cheapest, not fewest steps: replace the plain queue with a priority queue (Dijkstra) or relax edges round by round (Bellman-Ford).',
+    recognize: [
+      'Weighted edges: time, cost, distance',
+      '"Minimum cost to connect all points" (spanning tree)',
+      '"Cheapest path with at most k stops"',
+      '"How long until the signal reaches every node?"',
+    ],
     points: [
-      'Dijkstra: shortest path with non-negative weights, using a min-heap of (distance, node).',
-      "Prim's algorithm (minimum spanning tree) uses the same heap idea.",
-      'Bellman-Ford handles "at most K edges" by relaxing K times.',
+      'Dijkstra: always expand the closest unfinished node from a min-heap of `(distance, node)` and skip stale entries. Correct only with non-negative weights.',
+      "Minimum spanning tree: Prim grows one tree, always adding the cheapest edge that leaves it (heap). Kruskal sorts all edges and adds one if union-find says it joins two components.",
+      'Bellman-Ford relaxes every edge in rounds. It handles negative weights, and running exactly k + 1 rounds limits a path to k stops.',
+      'Plain BFS on a weighted graph finds the fewest edges, which is generally not the cheapest path.',
+    ],
+    complexity: [
+      { op: 'Dijkstra with a heap', cost: 'O((V + E) log V)' },
+      { op: 'Prim with a heap', cost: 'O(E log V)' },
+      { op: 'Kruskal', cost: 'O(E log E)' },
+      { op: 'Bellman-Ford', cost: 'O(V · E)', note: 'O(k · E) for k stops' },
     ],
     example: `import heapq
-def dijkstra(graph, start):          # graph[u] = [(v, w), ...]
+from collections import defaultdict
+
+def network_delay(times, n, start):              # Dijkstra
+    graph = defaultdict(list)
+    for u, v, w in times:
+        graph[u].append((v, w))
     dist, h = {}, [(0, start)]
     while h:
-        d, u = heapq.heappop(h)
-        if u in dist: continue
-        dist[u] = d
-        for v, w in graph[u]:
-            if v not in dist:
-                heapq.heappush(h, (d + w, v))
-    return dist`,
+        d, node = heapq.heappop(h)
+        if node in dist:
+            continue                             # stale entry: already final
+        dist[node] = d
+        for nxt, w in graph[node]:
+            if nxt not in dist:
+                heapq.heappush(h, (d + w, nxt))
+    return max(dist.values()) if len(dist) == n else -1
+
+def cheapest_with_k_stops(n, flights, src, dst, k):   # Bellman-Ford
+    cost = [float("inf")] * n
+    cost[src] = 0
+    for _ in range(k + 1):                       # each round adds one edge
+        nxt = cost[:]                            # read last round's values only
+        for u, v, price in flights:
+            if cost[u] + price < nxt[v]:
+                nxt[v] = cost[u] + price
+        cost = nxt
+    return -1 if cost[dst] == float("inf") else cost[dst]
+
+print(network_delay([[2, 1, 1], [2, 3, 1], [3, 4, 1]], 4, 2))   # 2
+flights = [[0, 1, 100], [1, 2, 100], [2, 0, 100], [1, 3, 600], [2, 3, 200]]
+print(cheapest_with_k_stops(4, flights, 0, 3, 1))              # 700`,
+    pitfalls: [
+      { title: 'Dijkstra with negative edges', fix: 'Wrong answers: a node is finalised too early. Use Bellman-Ford.' },
+      { title: 'Finalising a node when it is pushed', fix: 'Finalise when popped, and skip stale heap entries.' },
+      { title: 'Updating the cost array in place (k stops)', fix: 'One round could chain several edges and exceed k stops. Copy the array each round.' },
+      { title: 'BFS on weighted edges', fix: 'It minimises edge count, not cost.' },
+    ],
+    interview: {
+      when: 'Say why plain BFS fails (weights) and why Dijkstra needs non-negative weights. Picking correctly between Dijkstra, Bellman-Ford and an MST is the signal.',
+      problems: ['network-delay-time', 'min-cost-to-connect-all-points', 'cheapest-flights-within-k-stops', 'swim-in-rising-water', 'reconstruct-itinerary'],
+    },
+    inWork: [
+      'Maps and routing; link-state routing protocols such as OSPF use Dijkstra',
+      'Cheapest or fastest flight and delivery search',
+      'Network design: connecting sites with the least cable (minimum spanning tree)',
+      'Latency-aware request routing between services',
+    ],
+    quiz: [
+      {
+        question: 'Why does Dijkstra fail with negative edges?',
+        answer: 'It treats a node as final when popped, assuming no later path can be cheaper. A negative edge can make a later path cheaper.',
+      },
+      {
+        question: 'Why copy the cost array each round in "cheapest flights within k stops"?',
+        answer: 'So each round extends paths by exactly one edge. Updating in place lets one round use several edges and exceed k stops.',
+      },
+      {
+        question: 'Prim or Kruskal?',
+        answer: 'Prim grows one tree with a heap (handy with an adjacency list or a dense graph); Kruskal sorts edges and uses union-find (handy with an edge list).',
+      },
+    ],
+    source: { label: 'Tech Interview Handbook: Graph', url: `${TIH}/graph/` },
+    extraSource: { label: 'heapq — Heap queue algorithm', url: `${PY}/library/heapq.html` },
   },
   '1-D DP': {
-    source: { label: 'functools.cache (memoization)', url: `${PY}/library/functools.html#functools.cache` },
+    summary:
+      'Dynamic programming is recursion with memory: define the answer for a smaller prefix, build it from earlier answers, and compute each one only once.',
+    recognize: ['"Count the ways"', '"Minimum / maximum cost to reach the end"', '"Can you reach / partition / build …?"', 'Each choice limits later choices (rob this house or skip it)'],
     points: [
-      'Define `dp[i]` in one sentence, write the recurrence, set the base cases, pick the order.',
-      'Start top-down with `@cache` on a recursive function, then convert to a bottom-up array.',
-      'Often only the last 1–2 values are needed → O(1) space.',
+      'Four steps: (1) the state in one sentence — "`dp[i]` = most money from houses 0..i"; (2) the recurrence from smaller states; (3) base cases; (4) the order to compute them.',
+      'Top-down: write the plain recursion and add `@cache` so each state is solved once. Bottom-up: fill a table from the base cases; easier to make memory-light.',
+      'Complexity = number of states × work per state.',
+      'Often only the last one or two values are needed, so memory drops to O(1) (House Robber, Climbing Stairs).',
+      'If a greedy choice has a counterexample (coins 1, 3, 4 and amount 6), it is a DP problem.',
     ],
-    example: `def climb_stairs(n):
-    a, b = 1, 1          # ways to reach step 0 and 1
-    for _ in range(n - 1):
-        a, b = b, a + b
-    return b`,
+    complexity: [
+      { op: 'Plain recursion', cost: 'often O(2ⁿ)' },
+      { op: 'Memoised or bottom-up', cost: 'O(states × transition)' },
+      { op: 'Coin Change', cost: 'O(amount × coins)' },
+      { op: 'Longest Increasing Subsequence', cost: 'O(n²)', note: 'O(n log n) with bisect' },
+    ],
+    example: `from functools import cache
+
+def rob(nums):
+    prev, cur = 0, 0                         # best up to i-2, best up to i-1
+    for x in nums:
+        prev, cur = cur, max(cur, prev + x)  # skip x, or take x + best up to i-2
+    return cur
+
+def coin_change(coins, amount):
+    @cache
+    def best(rem):                           # fewest coins that make rem
+        if rem == 0:
+            return 0
+        if rem < 0:
+            return float("inf")
+        return 1 + min(best(rem - c) for c in coins)
+    ans = best(amount)
+    return -1 if ans == float("inf") else ans
+
+print(rob([2, 7, 9, 3, 1]))                  # 12  (2 + 9 + 1)
+print(coin_change([1, 3, 4], 6))             # 2   (3 + 3; greedy 4 + 1 + 1 needs 3)`,
+    pitfalls: [
+      { title: 'A vague state', fix: 'Write `dp[i] = …` as a sentence before the recurrence; most wrong DPs start here.' },
+      { title: 'A greedy that "looks right"', fix: 'Test a small counterexample — coin change is the classic trap.' },
+      { title: 'Deep top-down recursion', fix: '`@cache` recursion on amount 10⁴ hits Python’s limit. Switch to a bottom-up table.' },
+      { title: 'Off-by-one base cases', fix: 'Be explicit about what `dp[0]` means (often "empty prefix").' },
+    ],
+    interview: {
+      when: 'Narrate the four steps: state, recurrence, base case, order. If stuck, start with memoised recursion, then convert to bottom-up and mention the O(1)-space version.',
+      problems: ['climbing-stairs', 'house-robber', 'coin-change', 'decode-ways', 'word-break', 'longest-increasing-subsequence'],
+    },
+    inWork: [
+      'Caching expensive recursive computations with `functools.cache`',
+      'Pricing, packing and budget optimisation (knapsack-style)',
+      'Text segmentation and tokenisation (Word Break)',
+      'Decoding the most likely sequence in speech and routing (Viterbi)',
+    ],
+    quiz: [
+      {
+        question: 'Which two properties make DP applicable?',
+        answer: 'Overlapping subproblems (the same state comes up again) and optimal substructure (the best answer is built from best answers to smaller states).',
+      },
+      { question: 'Why does greedy fail for coins [1, 3, 4] and amount 6?', answer: 'Greedy takes 4 + 1 + 1 = 3 coins; the optimum is 3 + 3 = 2 coins.' },
+      { question: 'How does House Robber get to O(1) memory?', answer: '`dp[i]` depends only on `dp[i-1]` and `dp[i-2]`, so two variables are enough.' },
+    ],
+    source: { label: 'Tech Interview Handbook: Dynamic programming', url: `${TIH}/dynamic-programming/` },
+    extraSource: { label: 'functools.cache (memoisation)', url: `${PY}/library/functools.html#functools.cache` },
   },
   '2-D DP': {
-    source: { label: 'functools.cache (memoization)', url: `${PY}/library/functools.html#functools.cache` },
-    points: [
-      'State has two indexes: a grid cell (r, c) or positions in two strings (i, j).',
-      'Fill a table row by row; each cell depends on top/left/diagonal neighbours.',
-      'Keep only the previous row to cut space to O(n).',
+    summary:
+      'The same DP thinking with two indexes: a cell in a grid, or positions i and j in two strings. Each cell is built from its neighbours above, to the left or on the diagonal.',
+    recognize: [
+      'Two strings: common subsequence, edit distance, interleaving',
+      'Counting paths in a grid',
+      'Knapsack: items × capacity (Target Sum, Coin Change II)',
+      'The state needs two numbers to describe',
     ],
-    example: `def lcs(a, b):
-    dp = [[0] * (len(b) + 1) for _ in range(len(a) + 1)]
-    for i in range(len(a) - 1, -1, -1):
-        for j in range(len(b) - 1, -1, -1):
-            dp[i][j] = 1 + dp[i+1][j+1] if a[i] == b[j] else max(dp[i+1][j], dp[i][j+1])
-    return dp[0][0]`,
+    points: [
+      'State: `dp[i][j]` = answer for prefixes `a[:i]` and `b[:j]` (or for grid cell (i, j)). Draw the table for a tiny example before coding.',
+      'Strings: when the characters match, take the diagonal + 1; otherwise take the best of dropping one character (up or left). Edit distance adds the cost of insert / delete / replace.',
+      'Counting combinations (Coin Change II): loop coins outside and amounts inside so each combination is counted once.',
+      'Each row usually needs only the previous row, so memory drops to O(n).',
+    ],
+    complexity: [
+      { op: 'LCS, edit distance', cost: 'O(m × n)', note: 'O(min(m, n)) space possible' },
+      { op: 'Unique paths in a grid', cost: 'O(rows × cols)' },
+      { op: 'Knapsack', cost: 'O(items × capacity)' },
+    ],
+    example: `def lcs(a, b):                               # longest common subsequence
+    m, n = len(a), len(b)
+    dp = [[0] * (n + 1) for _ in range(m + 1)]  # dp[i][j]: a[:i] vs b[:j]
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            if a[i - 1] == b[j - 1]:
+                dp[i][j] = dp[i - 1][j - 1] + 1  # match: extend the diagonal
+            else:
+                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
+    return dp[m][n]
+
+def edit_distance(a, b):
+    prev = list(range(len(b) + 1))           # row for the empty prefix of a
+    for i in range(1, len(a) + 1):
+        cur = [i] + [0] * len(b)
+        for j in range(1, len(b) + 1):
+            if a[i - 1] == b[j - 1]:
+                cur[j] = prev[j - 1]
+            else:                            # delete, insert, replace
+                cur[j] = 1 + min(prev[j], cur[j - 1], prev[j - 1])
+        prev = cur
+    return prev[-1]
+
+print(lcs("abcde", "ace"))                   # 3
+print(edit_distance("horse", "ros"))         # 3`,
+    pitfalls: [
+      { title: '`[[0] * n] * m`', fix: 'All rows are the same list. Build rows with a comprehension.' },
+      { title: 'Index shift between the string and the table', fix: 'The table has an extra empty row and column: `dp[i][j]` uses `a[i - 1]` and `b[j - 1]`.' },
+      { title: 'Loop order in Coin Change II', fix: 'Amounts outside counts orderings (permutations). Put coins in the outer loop.' },
+      { title: 'Rolling rows that overwrite needed values', fix: 'Keep `prev` and `cur` rows, or iterate in the order that preserves what you still need.' },
+    ],
+    interview: {
+      when: 'Draw a small table for an example and fill a few cells out loud — that proves the recurrence. Then offer the rolling-row O(n) memory optimisation.',
+      problems: ['unique-paths', 'longest-common-subsequence', 'coin-change-ii', 'target-sum', 'interleaving-string', 'edit-distance'],
+    },
+    inWork: [
+      '`git diff`, diff tools and spell checkers (LCS, edit distance)',
+      'Fuzzy search and duplicate-record matching',
+      'DNA and sequence alignment',
+      'Budget and resource allocation (knapsack)',
+    ],
+    quiz: [
+      { question: 'In LCS, what happens when the characters differ?', answer: 'Take the best of skipping one character: `max(dp[i-1][j], dp[i][j-1])`.' },
+      {
+        question: 'Why does loop order matter in Coin Change II?',
+        answer: 'Coins outside and amounts inside counts each combination once; amounts outside counts every ordering, i.e. permutations.',
+      },
+      { question: 'How do you cut LCS or edit distance memory?', answer: 'Each row depends only on the previous one, so two rows are enough: O(n) space.' },
+    ],
+    source: { label: 'Tech Interview Handbook: Dynamic programming', url: `${TIH}/dynamic-programming/` },
+    extraSource: { label: 'Tech Interview Handbook: Matrix', url: `${TIH}/matrix/` },
   },
   Greedy: {
-    source: { label: 'Python Sorting HOW TO', url: `${PY}/howto/sorting.html` },
+    summary:
+      'Make the locally best choice and never look back. Fast and simple — but only correct when you can argue that no better option is thrown away.',
+    recognize: ['Maximum subarray', '"Can you reach the end?", "fewest jumps"', 'Choose the most non-overlapping items', 'One pass with a running best feels like it should be enough'],
     points: [
-      'Make the locally best choice and never revisit it — only correct when you can argue why.',
-      'Often starts with sorting by the right key.',
-      "Kadane's algorithm: reset the running sum when it goes negative.",
+      'Greedy runs in O(n) or O(n log n) but needs a reason it is safe — usually an exchange argument: swapping the greedy choice into an optimal solution never makes it worse.',
+      "Kadane: keep the best sum ending at the current index; once it drops below zero, restart — a negative prefix can only hurt what follows.",
+      'Jump Game: track the farthest reachable index. If the current index is beyond it, you are stuck.',
+      'Sorting first often sets up the greedy choice (by end time, by size).',
+      'If you cannot argue it, look for a small counterexample. If you find one, switch to DP.',
     ],
-    example: `def max_subarray(nums):
+    complexity: [
+      { op: 'Single greedy pass', cost: 'O(n)' },
+      { op: 'Greedy after sorting', cost: 'O(n log n)' },
+      { op: 'Extra memory', cost: 'usually O(1)' },
+    ],
+    example: `def max_subarray(nums):                      # Kadane
     best = cur = nums[0]
     for x in nums[1:]:
-        cur = max(x, cur + x)
+        cur = max(x, cur + x)                # extend, or restart at x
         best = max(best, cur)
-    return best`,
+    return best
+
+def can_jump(nums):
+    reach = 0
+    for i, step in enumerate(nums):
+        if i > reach:
+            return False                     # cannot even get to i
+        reach = max(reach, i + step)
+    return True
+
+def jump_count(nums):                        # Jump Game II: fewest jumps
+    jumps = end = farthest = 0
+    for i in range(len(nums) - 1):
+        farthest = max(farthest, i + nums[i])
+        if i == end:                         # this jump's range is used up
+            jumps, end = jumps + 1, farthest
+    return jumps
+
+print(max_subarray([-2, 1, -3, 4, -1, 2, 1, -5, 4]))           # 6
+print(can_jump([3, 2, 1, 0, 4]), jump_count([2, 3, 1, 1, 4]))   # False 2`,
+    pitfalls: [
+      { title: 'Greedy without an argument', fix: 'Coin change with unusual coins is the classic failure. Prove it or test a counterexample.' },
+      { title: 'Kadane starting from 0', fix: 'All-negative arrays then return 0. Start from `nums[0]`.' },
+      { title: 'Gas Station brute force', fix: 'If total gas < total cost there is no answer; otherwise restart the start index after any point where the tank goes negative.' },
+      { title: 'Sorting by the wrong key', fix: 'Interval greedy usually sorts by end time, not start time.' },
+    ],
+    interview: {
+      when: 'Always add one sentence on why greedy is safe here. If you cannot, say so and switch to DP — that judgement is what is being tested.',
+      problems: ['maximum-subarray', 'jump-game', 'jump-game-ii', 'gas-station', 'partition-labels'],
+    },
+    inWork: [
+      'Scheduling and resource-allocation heuristics',
+      'Load balancing: send work to the least-loaded server',
+      'Huffman coding in compression',
+      'Making change with standard currency denominations',
+    ],
+    quiz: [
+      { question: 'Why can Kadane restart when the running sum is negative?', answer: 'Any subarray that continues a negative prefix gets better by dropping that prefix.' },
+      { question: 'How do you tell a greedy problem from a DP problem?', answer: 'Try to prove the local choice is safe (exchange argument) or find a small counterexample; a counterexample means DP.' },
+      {
+        question: 'Gas Station: when is there no answer, and where do you start otherwise?',
+        answer: 'No answer when total gas < total cost. Otherwise start right after the last point where the running tank went negative.',
+      },
+    ],
+    source: { label: 'Tech Interview Handbook: Array', url: `${TIH}/array/` },
+    extraSource: { label: 'Wikipedia: Greedy algorithm', url: 'https://en.wikipedia.org/wiki/Greedy_algorithm' },
   },
   Intervals: {
-    source: { label: 'Python Sorting HOW TO', url: `${PY}/howto/sorting.html` },
+    summary: 'Sort intervals by start; then each new interval only has to be compared with the last one you kept.',
+    recognize: ['Meetings, bookings, time ranges', 'Merge or insert overlapping ranges', 'Minimum rooms, maximum overlap', 'Remove the fewest intervals to stop overlaps'],
     points: [
-      'Sort by start time first; then overlaps are always with the previous interval.',
-      'Two intervals overlap when `a.start <= b.end and b.start <= a.end`.',
-      'Count rooms needed with a min-heap of end times.',
+      '`[a, b]` and `[c, d]` overlap when `a <= d and c <= b`. After sorting by start this reduces to `c <= last_end`.',
+      'Merge: sort by start, then either extend the last kept interval or append a new one — O(n log n).',
+      'Most non-overlapping intervals: sort by END and keep the one that finishes first — it leaves the most room (provably optimal greedy).',
+      'Meeting rooms: the answer is the maximum number of meetings at the same moment. Track it with a min-heap of end times (or a sweep over sorted starts and ends).',
     ],
-    example: `def merge(intervals):
-    intervals.sort(key=lambda x: x[0])
-    out = [intervals[0]]
-    for s, e in intervals[1:]:
-        if s <= out[-1][1]:
-            out[-1][1] = max(out[-1][1], e)
+    complexity: [
+      { op: 'Sort', cost: 'O(n log n)' },
+      { op: 'Merge pass', cost: 'O(n)' },
+      { op: 'Meeting rooms with a heap', cost: 'O(n log n)' },
+    ],
+    example: `import heapq
+
+def merge(intervals):
+    intervals.sort(key=lambda iv: iv[0])
+    out = [intervals[0][:]]
+    for start, end in intervals[1:]:
+        if start <= out[-1][1]:                   # overlaps the last kept one
+            out[-1][1] = max(out[-1][1], end)
         else:
-            out.append([s, e])
-    return out`,
+            out.append([start, end])
+    return out
+
+def min_rooms(meetings):
+    meetings.sort(key=lambda m: m[0])
+    ends = []                                     # min-heap of rooms' end times
+    for start, end in meetings:
+        if ends and ends[0] <= start:
+            heapq.heappop(ends)                   # reuse the room that freed up
+        heapq.heappush(ends, end)
+    return len(ends)
+
+print(merge([[1, 3], [8, 10], [2, 6], [15, 18]]))   # [[1, 6], [8, 10], [15, 18]]
+print(min_rooms([[0, 30], [5, 10], [15, 20]]))      # 2`,
+    pitfalls: [
+      { title: 'Not sorting first', fix: 'Every later step assumes sorted input.' },
+      { title: 'Touching endpoints', fix: 'Do `[1, 2]` and `[2, 3]` overlap? Merge Intervals says yes; for meeting rooms a meeting ending at 2 frees the room. Ask.' },
+      { title: 'Sorting by start for "remove the fewest"', fix: 'Sort by end time instead.' },
+      { title: 'Mutating the caller’s lists', fix: 'Copy intervals before extending them if the input is reused.' },
+    ],
+    interview: {
+      when: 'Ask about touching endpoints first. Then: sort by start to merge, sort by end to keep the most non-overlapping, count overlaps for rooms.',
+      problems: ['insert-interval', 'merge-intervals', 'non-overlapping-intervals', 'meeting-rooms-ii', 'minimum-interval-to-include-each-query'],
+    },
+    inWork: [
+      'Calendars and booking systems: free/busy slots, double-booking checks',
+      'Merging IP ranges or incident time windows',
+      'Timelines in video and subtitle editors',
+      'Reserving rooms, servers or equipment over time',
+    ],
+    quiz: [
+      {
+        question: 'Why sort by end time to keep the most non-overlapping intervals?',
+        answer: 'The interval that ends first leaves the most room for the rest; swapping it into any optimal solution never makes it worse.',
+      },
+      { question: 'After sorting by start, how do you test overlap with the last merged interval?', answer: '`start <= last_end`.' },
+      { question: 'Minimum meeting rooms in one sentence?', answer: 'The maximum number of meetings happening at once — tracked with a min-heap of end times.' },
+    ],
+    source: { label: 'Tech Interview Handbook: Interval', url: `${TIH}/interval/` },
+    extraSource: { label: 'heapq — Heap queue algorithm', url: `${PY}/library/heapq.html` },
   },
   'Math & Geometry': {
-    source: { label: 'math — Mathematical functions', url: `${PY}/library/math.html` },
+    summary:
+      'A handful of reusable tricks: transform matrices in place, walk boundaries, exponentiate by squaring, and handle digits and distances without floating-point traps.',
+    recognize: ['Rotate, spiral or zero out a matrix', 'Power, or multiplying big numbers given as strings', 'Digits of a number, detecting a cycle (Happy Number)', 'Points and distances'],
     points: [
-      'Matrix tricks: rotate = transpose + reverse each row; walk a spiral with four boundaries.',
-      'Fast power: square the base and halve the exponent → O(log n).',
-      'Digit problems: `n % 10` gives the last digit, `n // 10` drops it.',
+      'Rotate 90° clockwise in place = transpose, then reverse each row.',
+      'Spiral order: shrink four boundaries (top, bottom, left, right) after walking each side.',
+      'Fast power: xⁿ = (x^(n/2))² — halve the exponent each step, O(log n). Negative n: use 1/x.',
+      'Digit loops: `n % 10` is the last digit, `n // 10` drops it. Repeating states mean a cycle — detect it with a set or fast/slow pointers.',
+      'Compare squared distances instead of calling `sqrt`; avoid `==` on floats.',
     ],
-    example: `def rotate(matrix):
+    complexity: [
+      { op: 'In-place matrix transforms', cost: 'O(rows × cols)', note: 'O(1) extra' },
+      { op: 'Fast power', cost: 'O(log n)' },
+      { op: 'Digit loop', cost: 'O(number of digits)' },
+    ],
+    example: `def rotate(matrix):                          # 90° clockwise, in place
     n = len(matrix)
     for i in range(n):
         for j in range(i + 1, n):
-            matrix[i][j], matrix[j][i] = matrix[j][i], matrix[i][j]
+            matrix[i][j], matrix[j][i] = matrix[j][i], matrix[i][j]   # transpose
     for row in matrix:
-        row.reverse()`,
+        row.reverse()
+
+def spiral(matrix):
+    out = []
+    top, bottom, left, right = 0, len(matrix) - 1, 0, len(matrix[0]) - 1
+    while top <= bottom and left <= right:
+        out += [matrix[top][c] for c in range(left, right + 1)]
+        top += 1
+        out += [matrix[r][right] for r in range(top, bottom + 1)]
+        right -= 1
+        if top <= bottom:
+            out += [matrix[bottom][c] for c in range(right, left - 1, -1)]
+            bottom -= 1
+        if left <= right:
+            out += [matrix[r][left] for r in range(bottom, top - 1, -1)]
+            left += 1
+    return out
+
+def fast_pow(x, n):
+    if n < 0:
+        x, n = 1 / x, -n
+    result = 1
+    while n:
+        if n & 1:
+            result *= x                      # odd exponent: take one x
+        x *= x                               # square the base
+        n >>= 1                              # halve the exponent
+    return result
+
+m = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+print(spiral(m))                             # [1, 2, 3, 6, 9, 8, 7, 4, 5]
+rotate(m)
+print(m)                                     # [[7, 4, 1], [8, 5, 2], [9, 6, 3]]
+print(fast_pow(2, 10), fast_pow(2, -2))      # 1024 0.25`,
+    pitfalls: [
+      { title: 'Set Matrix Zeroes while scanning', fix: 'New zeros spread to the whole matrix. Record zero rows/columns first, or use the first row and column as markers.' },
+      { title: 'Spiral on a non-square matrix', fix: 'Re-check the boundaries before the bottom and left passes.' },
+      { title: 'Floating-point comparisons', fix: 'Compare squared integer distances; never `==` two floats.' },
+      { title: 'Overflow questions', fix: 'Python ints never overflow, but interviewers may ask about 32-bit limits in other languages — mention them.' },
+    ],
+    interview: {
+      when: 'These are about clean index handling. Name the trick (transpose + reverse, four boundaries, square-and-halve) and dry-run a 3 × 3 by hand.',
+      problems: ['rotate-image', 'spiral-matrix', 'set-matrix-zeroes', 'happy-number', 'powx-n', 'multiply-strings'],
+    },
+    inWork: [
+      'Rotating and flipping images is a matrix transform',
+      'Cryptography uses fast modular exponentiation: `pow(x, n, mod)`',
+      'Games and maps: collision and nearest-point checks with squared distances',
+      'Grid layouts and pagination index arithmetic',
+    ],
+    quiz: [
+      { question: 'Rotate an n × n matrix 90° clockwise in place?', answer: 'Transpose (swap across the main diagonal), then reverse every row.' },
+      { question: 'Why is fast power O(log n)?', answer: 'Each step halves the exponent while squaring the base, so the number of steps is the number of bits in n.' },
+      { question: 'Closest points without `sqrt`?', answer: 'Compare squared distances x² + y². `sqrt` preserves the order, so it is unnecessary.' },
+    ],
+    source: { label: 'Tech Interview Handbook: Matrix', url: `${TIH}/matrix/` },
+    extraSource: { label: 'Tech Interview Handbook: Math', url: `${TIH}/math/` },
   },
   'Bit Manipulation': {
-    source: { label: 'Python reference: Binary bitwise operations', url: `${PY}/reference/expressions.html#binary-bitwise-operations` },
+    summary:
+      'Treat integers as rows of bits: XOR cancels pairs, masks test and set single bits, and shifts multiply or divide by two.',
+    recognize: ['"Every element appears twice except one"', 'Count set bits, "power of two?"', 'Add two numbers without `+`', 'Enumerate subsets of a small set as bitmasks'],
     points: [
-      '`&`, `|`, `^`, `<<`, `>>`. XOR cancels pairs: `x ^ x == 0`.',
-      '`n & (n - 1)` clears the lowest set bit — counts bits fast.',
-      'Python ints are unbounded; mask with `0xFFFFFFFF` to simulate 32-bit.',
+      'XOR: `x ^ x == 0`, `x ^ 0 == x`, and order does not matter — XOR everything and pairs cancel (Single Number, Missing Number).',
+      '`n & (n - 1)` clears the lowest set bit: repeat it to count ones, and `n > 0 and n & (n - 1) == 0` tests for a power of two.',
+      'Test bit i: `(n >> i) & 1`. Set it: `n | (1 << i)`. Clear it: `n & ~(1 << i)`.',
+      '`x << 1` doubles, `x >> 1` halves (rounding down).',
+      'Python ints are unbounded and negatives behave like infinite two’s complement. Mask with `0xFFFFFFFF` to simulate 32-bit (Sum of Two Integers, Reverse Bits).',
+      '`for mask in range(1 << n)` enumerates all subsets of n ≤ 20 items.',
+    ],
+    complexity: [
+      { op: 'One bit operation', cost: 'O(1)' },
+      { op: 'Count set bits with `n & (n - 1)`', cost: 'O(number of ones)' },
+      { op: 'All subsets as masks', cost: 'O(n · 2ⁿ)' },
     ],
     example: `def single_number(nums):
     res = 0
     for x in nums:
-        res ^= x
-    return res`,
+        res ^= x                             # pairs cancel out
+    return res
+
+def count_ones(n):
+    count = 0
+    while n:
+        n &= n - 1                           # drop the lowest set bit
+        count += 1
+    return count
+
+def is_power_of_two(n):
+    return n > 0 and n & (n - 1) == 0
+
+def counting_bits(n):                        # set bits for every number 0..n
+    dp = [0] * (n + 1)
+    for i in range(1, n + 1):
+        dp[i] = dp[i >> 1] + (i & 1)         # bits of i // 2, plus the last bit
+    return dp
+
+print(single_number([4, 1, 2, 1, 2]), count_ones(11), is_power_of_two(64))   # 4 3 True
+print(counting_bits(5))                      # [0, 1, 1, 2, 1, 2]`,
+    pitfalls: [
+      { title: 'Precedence in other languages', fix: 'In C, Java and JavaScript `n & 1 == 0` means `n & (1 == 0)`. Python binds `&` tighter, but add parentheses anyway.' },
+      { title: 'Shifting negative numbers in Python', fix: '`while n: n >>= 1` never ends for negative n (it stays -1). Mask with `0xFFFFFFFF` first.' },
+      { title: '`~x` as a 32-bit flip', fix: 'In Python `~x == -x - 1`. Use `x ^ 0xFFFFFFFF` for a 32-bit flip.' },
+      { title: 'Clever bit tricks in production code', fix: 'Prefer a readable expression unless performance really needs the trick — and comment it.' },
+    ],
+    interview: {
+      when: 'Know the core identities by heart (XOR cancels, `n & (n - 1)`, test / set / clear a bit). Mention Python’s unbounded ints and the 32-bit mask when it matters.',
+      problems: ['single-number', 'number-of-1-bits', 'counting-bits', 'missing-number', 'reverse-bits', 'sum-of-two-integers'],
+    },
+    inWork: [
+      'Permissions and feature flags stored as bitmasks (Unix file modes like `0o755`)',
+      'Subnetting: `ip & netmask`',
+      'Compact sets: Bloom filters and bitmap indexes in databases',
+      'Hash functions and checksums built from XOR and shifts',
+    ],
+    quiz: [
+      { question: 'How does XOR find the single number?', answer: '`x ^ x == 0` and XOR ignores order, so every pair cancels and only the unpaired value is left.' },
+      { question: 'What does `n & (n - 1)` do?', answer: 'Clears the lowest set bit. Repeating it counts the ones; a result of 0 for n > 0 means n is a power of two.' },
+      {
+        question: 'Why does `while n: n >>= 1` loop forever for a negative n in Python?',
+        answer: 'Python ints are unbounded, so shifting a negative number right converges to -1, never 0. Mask with `0xFFFFFFFF` first.',
+      },
+    ],
+    source: { label: 'Tech Interview Handbook: Binary', url: `${TIH}/binary/` },
+    extraSource: { label: 'Python reference: Binary bitwise operations', url: `${PY}/reference/expressions.html#binary-bitwise-operations` },
   },
 }
 
