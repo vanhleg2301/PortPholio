@@ -25,7 +25,12 @@ export function WeekStrip({ selectedDate, today, doneIds, onSelect }: WeekStripP
 
   return (
     <div className="flex items-center gap-1">
-      <button type="button" onClick={() => shiftWeek(-1)} aria-label="Previous week" className="p-2 -ml-2 text-muted-foreground">
+      <button
+        type="button"
+        onClick={() => shiftWeek(-1)}
+        aria-label="Previous week"
+        className="p-2 -ml-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/[0.08] transition-colors"
+      >
         <ChevronLeft className="h-5 w-5" />
       </button>
       <div className="grid grid-cols-7 flex-1 gap-1">
@@ -43,7 +48,7 @@ export function WeekStrip({ selectedDate, today, doneIds, onSelect }: WeekStripP
               aria-pressed={isSelected}
               className={cn(
                 'flex flex-col items-center gap-1 rounded-xl py-2 transition-colors',
-                isSelected ? 'bg-foreground text-background' : 'hover:bg-foreground/[0.06]',
+                isSelected ? 'bg-foreground text-background' : inPlan && 'hover:bg-foreground/[0.08]',
                 !inPlan && 'opacity-30'
               )}
             >
@@ -66,7 +71,12 @@ export function WeekStrip({ selectedDate, today, doneIds, onSelect }: WeekStripP
           )
         })}
       </div>
-      <button type="button" onClick={() => shiftWeek(1)} aria-label="Next week" className="p-2 -mr-2 text-muted-foreground">
+      <button
+        type="button"
+        onClick={() => shiftWeek(1)}
+        aria-label="Next week"
+        className="p-2 -mr-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/[0.08] transition-colors"
+      >
         <ChevronRight className="h-5 w-5" />
       </button>
     </div>

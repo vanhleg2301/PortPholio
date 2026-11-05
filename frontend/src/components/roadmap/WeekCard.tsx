@@ -29,7 +29,7 @@ export function WeekCard({ week, doneIds, today, onToggle, onOpenDay }: WeekCard
         type="button"
         onClick={() => setIsOpen((v) => !v)}
         aria-expanded={isOpen}
-        className="w-full text-left py-5 md:py-6 grid grid-cols-[1fr_auto] md:grid-cols-[180px_1fr_120px_auto] gap-x-6 gap-y-2 items-center group"
+        className="text-left py-5 md:py-6 -mx-3 px-3 w-[calc(100%+1.5rem)] rounded-xl hover:bg-foreground/[0.04] transition-colors grid grid-cols-[1fr_auto] md:grid-cols-[180px_1fr_120px_auto] gap-x-6 gap-y-2 items-center group"
       >
         <div>
           <p className="font-display font-bold uppercase tracking-tight text-lg md:text-xl">
@@ -39,7 +39,7 @@ export function WeekCard({ week, doneIds, today, onToggle, onOpenDay }: WeekCard
           <p className="text-[11px] font-mono text-muted-foreground">{range}</p>
         </div>
         <ChevronDown
-          className={cn('h-4 w-4 text-muted-foreground transition-transform md:order-last', isOpen && 'rotate-180')}
+          className={cn('h-4 w-4 text-muted-foreground group-hover:text-foreground transition-all md:order-last', isOpen && 'rotate-180')}
         />
         <p className="col-span-2 md:col-span-1 text-sm text-muted-foreground group-hover:text-foreground transition-colors">
           {week.goal}

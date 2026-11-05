@@ -47,7 +47,7 @@ export function TodayView({ date, today, doneIds, isOwner, notes, isNotesReady, 
           <h2 className="font-display font-bold text-2xl leading-tight">{format(parseISO(date), 'EEEE, d MMM')}</h2>
         </div>
         {date !== today && DAY_BY_DATE.has(today) && (
-          <button type="button" onClick={() => onSelectDate(today)} className="shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-semibold">
+          <button type="button" onClick={() => onSelectDate(today)} className="shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-semibold hover:border-foreground/40 hover:bg-foreground/[0.06] transition-colors">
             Today
           </button>
         )}
@@ -88,7 +88,7 @@ export function TodayView({ date, today, doneIds, isOwner, notes, isNotesReady, 
         <button
           type="button"
           onClick={onRequestSignIn}
-          className="mt-8 w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-4 text-sm text-muted-foreground"
+          className="mt-8 w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-4 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-foreground/[0.03] transition-colors"
         >
           <Lock className="h-4 w-4" /> Sign in to tick tasks, write notes and attach files
         </button>

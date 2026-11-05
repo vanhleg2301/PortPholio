@@ -27,7 +27,7 @@ export function DayCard({ day, doneIds, isToday, onToggle, onOpen }: DayCardProp
       <button
         type="button"
         onClick={() => onOpen(day.date)}
-        className="w-full flex items-center justify-between pb-2 border-b border-border/60 group"
+        className="group -mx-2 -mt-1 w-[calc(100%+1rem)] flex items-center justify-between rounded-lg px-2 pt-1 pb-2 border-b border-border/60 hover:bg-foreground/[0.06] transition-colors"
       >
         <span className="text-xs font-semibold uppercase tracking-widest">
           {format(parseISO(day.date), 'EEE d MMM')}

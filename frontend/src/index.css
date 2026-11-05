@@ -69,6 +69,23 @@
     scroll-behavior: smooth;
   }
 
+  /* Tailwind v4 preflight resets buttons to the default arrow cursor */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  label[for],
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
   * {
     border-color: var(--border);
   }

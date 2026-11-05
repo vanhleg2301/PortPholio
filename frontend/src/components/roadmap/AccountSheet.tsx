@@ -63,7 +63,7 @@ export function AccountSheet({ isOpen, session, isOwner, onClose, onSignIn, onSi
                 <button
                   type="button"
                   onClick={() => void onSignOut().then(onClose)}
-                  className="mt-6 w-full rounded-2xl border border-border py-3.5 text-sm font-semibold"
+                  className="mt-6 w-full rounded-2xl border border-border py-3.5 text-sm font-semibold hover:border-foreground/40 hover:bg-foreground/[0.06] transition-colors"
                 >
                   Sign out
                 </button>
@@ -75,7 +75,7 @@ export function AccountSheet({ isOpen, session, isOwner, onClose, onSignIn, onSi
                 <button
                   type="button"
                   onClick={() => void handleSignIn()}
-                  className="mt-6 w-full flex items-center justify-center gap-3 rounded-2xl bg-foreground text-background py-3.5 text-sm font-semibold"
+                  className="mt-6 w-full flex items-center justify-center gap-3 rounded-2xl bg-foreground text-background py-3.5 text-sm font-semibold hover:bg-foreground/85 transition-colors"
                 >
                   <GoogleIcon /> Continue with Google
                 </button>

@@ -45,7 +45,10 @@ export function NoteEditor({ day, initialContent, isSaving, onSave }: NoteEditor
   }
 
   const tabClass = (active: boolean) =>
-    cn('px-3 py-1.5 rounded-full text-xs font-semibold transition-colors', active ? 'bg-foreground text-background' : 'text-muted-foreground')
+    cn(
+      'px-3 py-1.5 rounded-full text-xs font-semibold transition-colors',
+      active ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.08]'
+    )
 
   return (
     <div className="rounded-2xl border border-border bg-card/40">
@@ -70,7 +73,7 @@ export function NoteEditor({ day, initialContent, isSaving, onSave }: NoteEditor
             {isSaving ? 'Saving…' : isDirty ? 'Unsaved' : savedContent ? 'Saved' : ''}
           </span>
           {draft && (
-            <button type="button" onClick={handleExport} aria-label="Download note as .md" className="p-1.5 text-muted-foreground hover:text-foreground">
+            <button type="button" onClick={handleExport} aria-label="Download note as .md" className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/[0.08] transition-colors">
               <Download className="h-4 w-4" />
             </button>
           )}
@@ -78,7 +81,7 @@ export function NoteEditor({ day, initialContent, isSaving, onSave }: NoteEditor
             type="button"
             onClick={() => void handleSave()}
             disabled={!isDirty || isSaving}
-            className="rounded-full bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+            className="rounded-full bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-40 disabled:hover:bg-emerald-500"
           >
             Save
           </button>

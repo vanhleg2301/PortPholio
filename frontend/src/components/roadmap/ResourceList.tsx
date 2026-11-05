@@ -71,7 +71,7 @@ export function ResourceList({ day, resources }: ResourceListProps) {
                 <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{r.title}</span>
               )}
               <span className="text-[11px] text-muted-foreground">{formatSize(r.size_bytes)}</span>
-              <button type="button" onClick={() => handleDelete(r)} aria-label={`Delete ${r.title}`} className="p-1.5 text-muted-foreground hover:text-hard">
+              <button type="button" onClick={() => handleDelete(r)} aria-label={`Delete ${r.title}`} className="p-1.5 rounded-full text-muted-foreground hover:text-hard hover:bg-hard/10 transition-colors">
                 <Trash2 className="h-4 w-4" />
               </button>
             </li>
@@ -84,24 +84,24 @@ export function ResourceList({ day, resources }: ResourceListProps) {
           <input type="text" inputMode="url" required autoFocus value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste a link" className={inputClass} />
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title (optional)" className={inputClass} />
           <div className="flex gap-2">
-            <button type="submit" disabled={addLink.isPending} className="flex-1 rounded-xl bg-foreground text-background py-2.5 text-sm font-semibold disabled:opacity-50">
+            <button type="submit" disabled={addLink.isPending} className="flex-1 rounded-xl bg-foreground text-background py-2.5 text-sm font-semibold hover:bg-foreground/85 transition-colors disabled:opacity-50">
               {addLink.isPending ? 'Adding…' : 'Add link'}
             </button>
-            <button type="button" onClick={() => setIsLinkFormOpen(false)} className="rounded-xl border border-border px-4 text-sm">
+            <button type="button" onClick={() => setIsLinkFormOpen(false)} className="rounded-xl border border-border px-4 text-sm hover:border-foreground/40 hover:bg-foreground/[0.06] transition-colors">
               Cancel
             </button>
           </div>
         </form>
       ) : (
         <div className="grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => setIsLinkFormOpen(true)} className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-sm text-muted-foreground hover:text-foreground">
+          <button type="button" onClick={() => setIsLinkFormOpen(true)} className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-foreground/[0.04] transition-colors">
             <Plus className="h-4 w-4" /> Link
           </button>
           <button
             type="button"
             onClick={() => fileInput.current?.click()}
             disabled={uploadFile.isPending}
-            className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-foreground/[0.04] transition-colors disabled:opacity-50"
           >
             <Paperclip className="h-4 w-4" /> {uploadFile.isPending ? 'Uploading…' : 'File'}
           </button>

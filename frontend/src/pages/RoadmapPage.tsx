@@ -75,7 +75,11 @@ export default function RoadmapPage() {
     <div className="min-h-[100dvh] bg-background">
       <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
-          <Link to="/" className="flex items-center gap-2.5 min-w-0" aria-label="Back to portfolio">
+          <Link
+            to="/"
+            className="flex items-center gap-2.5 min-w-0 -ml-2 rounded-full py-1 pl-1 pr-3 hover:bg-foreground/[0.06] transition-colors"
+            aria-label="Back to portfolio"
+          >
             <span className="h-8 w-8 shrink-0 rounded-full bg-foreground text-background text-[10px] font-bold flex items-center justify-center">
               HV
             </span>
@@ -85,7 +89,7 @@ export default function RoadmapPage() {
             type="button"
             onClick={() => setIsAccountOpen(true)}
             aria-label={session ? 'Account' : 'Sign in'}
-            className="shrink-0 h-9 w-9 rounded-full overflow-hidden border border-border flex items-center justify-center"
+            className="shrink-0 h-9 w-9 rounded-full overflow-hidden border border-border flex items-center justify-center hover:border-foreground/50 hover:bg-foreground/[0.06] transition-colors"
           >
             {avatarUrl ? (
               <img src={avatarUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />

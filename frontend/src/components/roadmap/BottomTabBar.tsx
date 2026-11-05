@@ -26,7 +26,7 @@ export function BottomTabBar({ active, onChange }: BottomTabBarProps) {
             aria-current={active === id ? 'page' : undefined}
             className={cn(
               'flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold transition-colors',
-              active === id ? 'text-foreground' : 'text-muted-foreground'
+              active === id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]'
             )}
           >
             <Icon className="h-5 w-5" strokeWidth={active === id ? 2.4 : 1.8} />
