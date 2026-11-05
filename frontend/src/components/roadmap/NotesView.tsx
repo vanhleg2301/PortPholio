@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { format, parseISO } from 'date-fns'
 import { ArrowRight, FileText, Link2, Lock, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { listContainer, listItem } from '@/lib/motion'
+import { appear, listContainer, listItem } from '@/lib/motion'
 import { TOPICS, TOPIC_ORDER, type NoteTopic } from '@/data/roadmap/topics'
 import type { RoadmapNote } from '@/hooks/useRoadmapNotes'
 import type { RoadmapResource } from '@/hooks/useRoadmapResources'
@@ -23,13 +23,14 @@ export function NotesView({ isOwner, isLoading, notes, resources, onOpenDay, onR
 
   if (!isOwner) {
     return (
-      <button
+      <motion.button
+        {...appear()}
         type="button"
         onClick={onRequestSignIn}
         className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-10 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-foreground/[0.03] transition-colors"
       >
         <Lock className="h-4 w-4" /> Notes are private. Sign in to see them.
-      </button>
+      </motion.button>
     )
   }
 
@@ -50,7 +51,7 @@ export function NotesView({ isOwner, isLoading, notes, resources, onOpenDay, onR
 
   return (
     <div>
-      <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-2.5 hover:border-foreground/30 focus-within:border-foreground/50 transition-colors">
+      <motion.label {...appear()} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2.5 hover:border-foreground/30 focus-within:border-foreground/50 transition-colors">
         <Search className="h-4 w-4 text-muted-foreground" />
         <input
           type="search"
@@ -59,10 +60,10 @@ export function NotesView({ isOwner, isLoading, notes, resources, onOpenDay, onR
           placeholder="Search notes and resources"
           className="flex-1 bg-transparent text-base outline-none"
         />
-      </label>
+      </motion.label>
 
       {usedTopics.length > 0 && (
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+        <motion.div {...appear(1)} className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
           <button type="button" onClick={() => setTopic('all')} className={chip(topic === 'all')}>
             All · {notes.length}
           </button>
@@ -71,7 +72,7 @@ export function NotesView({ isOwner, isLoading, notes, resources, onOpenDay, onR
               {TOPICS[t].label} · {notes.filter((n) => n.topic === t).length}
             </button>
           ))}
-        </div>
+        </motion.div>
       )}
 
       {isLoading && <div className="mt-4 h-32 rounded-2xl bg-foreground/[0.04] animate-pulse" />}

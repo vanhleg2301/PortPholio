@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { DayCard } from '@/components/roadmap/DayCard'
 import { ProgressBar } from '@/components/roadmap/ProgressBar'
 import { getProgress, toPercent } from '@/lib/roadmapStats'
+import { appear } from '@/lib/motion'
 import type { RoadmapWeek } from '@/data/roadmap/types'
 
 interface WeekCardProps {
@@ -60,7 +61,8 @@ export function WeekCard({ week, doneIds, today, onToggle, onOpenDay }: WeekCard
             className="overflow-hidden"
           >
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 pb-8">
-              {week.days.map((day) => (
+              {week.days.map((day, i) => (
+                <motion.div key={day.date} {...appear(i)}>
                 <DayCard
                   key={day.date}
                   day={day}
@@ -69,6 +71,7 @@ export function WeekCard({ week, doneIds, today, onToggle, onOpenDay }: WeekCard
                   onToggle={onToggle}
                   onOpen={onOpenDay}
                 />
+                </motion.div>
               ))}
             </div>
           </motion.div>

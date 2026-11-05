@@ -64,13 +64,13 @@ export function DayNotes({ day, notes, suggestedTopics }: DayNotesProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <AnimatePresence initial={false}>
-      {notes.map((note) => (
+      <AnimatePresence>
+      {notes.map((note, i) => (
         <motion.div
           key={note.id}
           layout="position"
           initial={{ opacity: 0, y: 14, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
+          animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.28, ease: EASE_OUT, delay: Math.min(i, 8) * 0.04 } }}
           exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
           transition={{ duration: 0.28, ease: EASE_OUT }}
         >

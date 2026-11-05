@@ -61,13 +61,13 @@ export function ResourceList({ day, resources }: ResourceListProps) {
     <div className="rounded-2xl border border-border bg-card/40 p-3">
       {resources.length > 0 && (
         <ul className="divide-y divide-border/50 mb-2">
-          <AnimatePresence initial={false}>
-          {resources.map((r) => (
+          <AnimatePresence>
+          {resources.map((r, i) => (
             <motion.li
               key={r.id}
               layout="position"
               initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
+              animate={{ opacity: 1, x: 0, transition: { duration: 0.24, delay: Math.min(i, 8) * 0.04 } }}
               exit={{ opacity: 0, x: 10, transition: { duration: 0.15 } }}
               transition={{ duration: 0.22 }}
               className="flex items-center gap-3 py-2"

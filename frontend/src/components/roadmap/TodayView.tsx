@@ -10,7 +10,7 @@ import type { RoadmapNote } from '@/hooks/useRoadmapNotes'
 import type { NoteTopic } from '@/data/roadmap/topics'
 import type { RoadmapResource } from '@/hooks/useRoadmapResources'
 import { DAY_BY_DATE, getWeekForDate } from '@/lib/roadmapStats'
-import { listContainer, slide } from '@/lib/motion'
+import { appear, listContainer, section, slide } from '@/lib/motion'
 
 interface TodayViewProps {
   date: string
@@ -40,7 +40,7 @@ export function TodayView({ date, today, doneIds, isOwner, notes, isNotesReady, 
 
   // Slide direction follows the calendar: later day comes in from the right.
   const [lastDate, setLastDate] = useState(date)
-  const [direction, setDirection] = useState(1)
+  const [direction, setDirection] = useState(0)
   if (date !== lastDate) {
     setDirection(date > lastDate ? 1 : -1)
     setLastDate(date)
@@ -50,61 +50,75 @@ export function TodayView({ date, today, doneIds, isOwner, notes, isNotesReady, 
     <div>
       <WeekStrip selectedDate={date} today={today} doneIds={doneIds} onSelect={onSelectDate} />
 
-      <AnimatePresence mode="wait" initial={false} custom={direction}>
-      <motion.div key={date} custom={direction} variants={slide} initial="enter" animate="center" exit="exit">
-      <div className="mt-5 flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-            {week?.label}
-            {date === today ? ' · Today' : ''}
-          </p>
-          <h2 className="font-display font-bold text-2xl leading-tight">{format(parseISO(date), 'EEEE, d MMM')}</h2>
-        </div>
-        {date !== today && DAY_BY_DATE.has(today) && (
-          <button type="button" onClick={() => onSelectDate(today)} className="shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-semibold hover:border-foreground/40 hover:bg-foreground/[0.06] transition-colors">
-            Today
-          </button>
-        )}
-      </div>
-      {week && <p className="mt-1 text-sm text-muted-foreground">{week.goal}</p>}
-
-      <SectionTitle>{tasks.length === 0 ? 'Tasks' : `Tasks · ${done}/${tasks.length}`}</SectionTitle>
-      {tasks.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Rest day. Recharge.</p>
-      ) : (
-        <motion.ul
-          variants={listContainer}
-          initial="hidden"
-          animate="show"
-          className="rounded-2xl border border-border bg-card/40 px-4 divide-y divide-border/50"
-        >
-          {tasks.map((task) => (
-            <TaskItem key={task.id} task={task} isDone={doneIds.has(task.id)} onToggle={onToggle} />
-          ))}
-        </motion.ul>
-      )}
-
-      {isOwner ? (
-        <>
-          <SectionTitle>Notes</SectionTitle>
-          {isNotesReady ? (
-            <DayNotes key={date} day={date} notes={dayNotes} suggestedTopics={suggestedTopics} />
-          ) : (
-            <div className="h-24 rounded-2xl bg-foreground/[0.04] animate-pulse" />
+      <AnimatePresence mode="wait" custom={direction}>
+        <motion.div key={date} custom={direction} variants={slide} initial="enter" animate="center" exit="exit">
+          <motion.div variants={section} className="mt-5 flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                {week?.label}
+                {date === today ? ' · Today' : ''}
+              </p>
+              <h2 className="font-display font-bold text-2xl leading-tight">{format(parseISO(date), 'EEEE, d MMM')}</h2>
+            </div>
+            {date !== today && DAY_BY_DATE.has(today) && (
+              <button
+                type="button"
+                onClick={() => onSelectDate(today)}
+                className="shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-semibold hover:border-foreground/40 hover:bg-foreground/[0.06] transition-colors"
+              >
+                Today
+              </button>
+            )}
+          </motion.div>
+          {week && (
+            <motion.p variants={section} className="mt-1 text-sm text-muted-foreground">
+              {week.goal}
+            </motion.p>
           )}
-          <SectionTitle>Resources</SectionTitle>
-          <ResourceList day={date} resources={dayResources} />
-        </>
-      ) : (
-        <button
-          type="button"
-          onClick={onRequestSignIn}
-          className="mt-8 w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-4 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-foreground/[0.03] transition-colors"
-        >
-          <Lock className="h-4 w-4" /> Sign in to tick tasks, write notes and attach files
-        </button>
-      )}
-      </motion.div>
+
+          <motion.section variants={section} layout="position">
+            <SectionTitle>{tasks.length === 0 ? 'Tasks' : `Tasks · ${done}/${tasks.length}`}</SectionTitle>
+            {tasks.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Rest day. Recharge.</p>
+            ) : (
+              <motion.ul variants={listContainer} className="rounded-2xl border border-border bg-card/40 px-4 divide-y divide-border/50">
+                {tasks.map((task) => (
+                  <TaskItem key={task.id} task={task} isDone={doneIds.has(task.id)} onToggle={onToggle} />
+                ))}
+              </motion.ul>
+            )}
+          </motion.section>
+
+          {isOwner ? (
+            <>
+              <motion.section variants={section} layout="position">
+                <SectionTitle>Notes</SectionTitle>
+                <AnimatePresence mode="wait" initial={false}>
+                  {isNotesReady ? (
+                    <motion.div key="notes" {...appear()}>
+                      <DayNotes day={date} notes={dayNotes} suggestedTopics={suggestedTopics} />
+                    </motion.div>
+                  ) : (
+                    <motion.div key="skeleton" exit={{ opacity: 0 }} className="h-24 rounded-2xl bg-foreground/[0.04] animate-pulse" />
+                  )}
+                </AnimatePresence>
+              </motion.section>
+              <motion.section variants={section} layout="position">
+                <SectionTitle>Resources</SectionTitle>
+                <ResourceList day={date} resources={dayResources} />
+              </motion.section>
+            </>
+          ) : (
+            <motion.button
+              variants={section}
+              type="button"
+              onClick={onRequestSignIn}
+              className="mt-8 w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-4 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-foreground/[0.03] transition-colors"
+            >
+              <Lock className="h-4 w-4" /> Sign in to tick tasks, write notes and attach files
+            </motion.button>
+          )}
+        </motion.div>
       </AnimatePresence>
     </div>
   )

@@ -34,10 +34,10 @@ function SectionLabel({ eyebrow, title }: { eyebrow: string; title: string }) {
 export function PlanView({ doneIds, today, onToggle, onOpenDay }: PlanViewProps) {
   return (
     <div>
-      <section>
+      <motion.section {...reveal}>
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Daily completion</p>
         <ActivityHeatmap doneIds={doneIds} today={today} />
-      </section>
+      </motion.section>
 
       <motion.section {...reveal} className="mt-12">
         <SectionLabel eyebrow="GOAL · 31 OCT 2027" title="Targets" />

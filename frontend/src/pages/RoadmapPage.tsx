@@ -22,7 +22,7 @@ import {
   getTodayIso,
   toPercent,
 } from '@/lib/roadmapStats'
-import { SPRING, fadeSwap } from '@/lib/motion'
+import { EASE_OUT, SPRING, fadeSwap } from '@/lib/motion'
 
 // Re-mounts on change so a new value rolls in instead of snapping.
 function RollingValue({ value }: { value: string }) {
@@ -95,7 +95,11 @@ export default function RoadmapPage() {
   return (
     <MotionConfig reducedMotion="user">
     <div className="min-h-[100dvh] bg-background">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl pt-[env(safe-area-inset-top)]">
+      <motion.header
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: EASE_OUT }}
+        className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
           <Link
             to="/"
@@ -134,7 +138,7 @@ export default function RoadmapPage() {
             <RollingValue value={`${streak}`} /> streak
           </span>
         </div>
-      </header>
+      </motion.header>
 
       <main className="mx-auto max-w-3xl px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]">
         <AnimatePresence mode="wait" initial={false}>
