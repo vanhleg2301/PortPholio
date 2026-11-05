@@ -14,6 +14,10 @@ export interface TaskReference {
   summary?: string
   // Signals in a problem statement that point to this pattern.
   recognize?: string[]
+  recognizeTitle?: string
+  tableTitle?: string
+  // Language of `example` for highlighting (default python).
+  exampleLang?: string
   // Where this shows up in real engineering work.
   inWork?: string[]
   // How it works under the hood.

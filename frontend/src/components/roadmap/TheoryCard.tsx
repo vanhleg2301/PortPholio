@@ -125,7 +125,7 @@ export function TheoryCard({ reference, isOpenByDefault = true }: TheoryCardProp
           >
             <div className="border-t border-sky-500/15 px-4 pb-4 pt-4">
               {reference.recognize && (
-                <Section icon={ScanSearch} title="Spot it when you see">
+                <Section icon={ScanSearch} title={reference.recognizeTitle ?? 'Spot it when you see'}>
                   <div className="flex flex-wrap gap-2">
                     {reference.recognize.map((signal) => (
                       <span key={signal} className="rounded-lg bg-sky-500/10 px-2.5 py-1.5 text-xs leading-snug text-sky-800 dark:text-sky-200">
@@ -150,7 +150,7 @@ export function TheoryCard({ reference, isOpenByDefault = true }: TheoryCardProp
               </Section>
 
               {reference.complexity && (
-                <Section icon={Gauge} title="Cost">
+                <Section icon={Gauge} title={reference.tableTitle ?? 'Cost'}>
                   <div className="overflow-hidden rounded-xl border border-border">
                     <table className="w-full text-sm">
                       <tbody className="divide-y divide-border/60">
@@ -173,7 +173,7 @@ export function TheoryCard({ reference, isOpenByDefault = true }: TheoryCardProp
 
               {reference.example && (
                 <Section icon={BookOpen} title="Example">
-                  <MarkdownPreview content={`\`\`\`python\n${reference.example}\n\`\`\``} />
+                  <MarkdownPreview content={`\`\`\`${reference.exampleLang ?? 'python'}\n${reference.example}\n\`\`\``} />
                 </Section>
               )}
 

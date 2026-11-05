@@ -1,5 +1,5 @@
 import { createProblemTask, getCategorySlugs } from './neetcode'
-import { PYTHON_REFERENCES } from './references'
+import { CS_REFERENCES, PYTHON_REFERENCES } from './references'
 import type { PhaseId, RoadmapDay, RoadmapPhase, RoadmapTask, RoadmapWeek, TaskKind, TaskLink, TaskReference, TaskSeed } from './types'
 
 // ── Link helpers ──────────────────────────
@@ -164,6 +164,8 @@ interface WeekSpec {
   dailyDsa?: TaskSeed
   saturday?: TaskSeed[]
   sunday?: TaskSeed[]
+  // Theory card attached to every CS task of the week that has none.
+  csReference?: TaskReference
 }
 
 const weekSpecs: WeekSpec[] = [
@@ -190,6 +192,7 @@ const weekSpecs: WeekSpec[] = [
   {
     label: 'Week 1',
     phaseId: 'p1',
+    csReference: CS_REFERENCES.latencyTcp,
     start: '2026-11-16',
     end: '2026-11-22',
     goal: 'Arrays & Hashing done. Understand latency and how TCP works.',
@@ -204,6 +207,7 @@ const weekSpecs: WeekSpec[] = [
   {
     label: 'Week 2',
     phaseId: 'p1',
+    csReference: CS_REFERENCES.udpTls,
     start: '2026-11-23',
     end: '2026-11-29',
     goal: 'Two Pointers + Sliding Window done. Understand UDP and the TLS handshake.',
@@ -218,6 +222,7 @@ const weekSpecs: WeekSpec[] = [
   {
     label: 'Week 3',
     phaseId: 'p1',
+    csReference: CS_REFERENCES.httpDns,
     start: '2026-11-30',
     end: '2026-12-06',
     goal: 'Stack done. Understand HTTP/1.1, HTTP/2 and DNS.',
@@ -233,6 +238,7 @@ const weekSpecs: WeekSpec[] = [
   {
     label: 'Week 4',
     phaseId: 'p1',
+    csReference: CS_REFERENCES.processes,
     start: '2026-12-07',
     end: '2026-12-13',
     goal: 'Binary Search done. Understand processes and how the OS runs them.',
@@ -247,6 +253,7 @@ const weekSpecs: WeekSpec[] = [
   {
     label: 'Week 5',
     phaseId: 'p1',
+    csReference: CS_REFERENCES.scheduling,
     start: '2026-12-14',
     end: '2026-12-20',
     goal: 'Linked List done. Understand CPU scheduling.',
@@ -260,6 +267,7 @@ const weekSpecs: WeekSpec[] = [
   {
     label: 'Week 6',
     phaseId: 'p1',
+    csReference: CS_REFERENCES.virtualMemory,
     start: '2026-12-21',
     end: '2026-12-27',
     goal: 'Trees part 1. Understand virtual memory.',
@@ -285,6 +293,7 @@ const weekSpecs: WeekSpec[] = [
   {
     label: 'Week 8',
     phaseId: 'p1',
+    csReference: CS_REFERENCES.threadsLocks,
     start: '2027-01-04',
     end: '2027-01-10',
     goal: 'Heap done. Understand threads and locks.',
@@ -299,6 +308,7 @@ const weekSpecs: WeekSpec[] = [
   {
     label: 'Week 9',
     phaseId: 'p1',
+    csReference: CS_REFERENCES.conditionDeadlock,
     start: '2027-01-11',
     end: '2027-01-17',
     goal: 'Backtracking done. Understand condition variables, semaphores and deadlock.',
@@ -313,6 +323,7 @@ const weekSpecs: WeekSpec[] = [
   {
     label: 'Week 10',
     phaseId: 'p1',
+    csReference: CS_REFERENCES.indexes,
     start: '2027-01-18',
     end: '2027-01-24',
     goal: 'Graphs part 1. Understand B-tree indexes.',
@@ -327,6 +338,7 @@ const weekSpecs: WeekSpec[] = [
   {
     label: 'Week 11',
     phaseId: 'p1',
+    csReference: CS_REFERENCES.transactions,
     start: '2027-01-25',
     end: '2027-01-31',
     goal: 'Graphs done. Understand transactions, ACID and isolation levels.',
@@ -358,6 +370,7 @@ const weekSpecs: WeekSpec[] = [
   {
     label: 'Week 14',
     phaseId: 'p1',
+    csReference: CS_REFERENCES.walReplication,
     start: '2027-02-15',
     end: '2027-02-21',
     goal: 'Advanced Graphs done. Understand storage engines, WAL and replication.',
@@ -769,7 +782,10 @@ function buildWeek(spec: WeekSpec): RoadmapWeek {
       ]
       weekdayIndex++
     }
-    return { date, tasks: assignIds(date, seeds) }
+    const withTheory = seeds.map((seed) =>
+      seed.kind === 'cs' && !seed.reference && spec.csReference ? { ...seed, reference: spec.csReference } : seed
+    )
+    return { date, tasks: assignIds(date, withTheory) }
   })
 
   return {

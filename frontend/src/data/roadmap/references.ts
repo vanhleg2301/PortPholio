@@ -1572,3 +1572,687 @@ print(counting_bits(5))                      # [0, 1, 1, 2, 1, 2]`,
 export const CATEGORY_REFERENCES: Record<string, TaskReference> = Object.fromEntries(
   Object.entries(CATEGORY_NOTES).map(([category, ref]) => [category, { title: `${category}: the pattern`, ...ref }])
 )
+
+// ── CS fundamentals (Phase 1): networking, operating systems, databases ──
+const HPBN = 'https://hpbn.co'
+const OSTEP = 'https://pages.cs.wisc.edu/~remzi/OSTEP'
+const PG = 'https://www.postgresql.org/docs/current'
+const NEED_IT = 'You need this when'
+
+export const CS_REFERENCES: Record<string, TaskReference> = {
+  latencyTcp: {
+    title: 'Latency, bandwidth and TCP',
+    summary:
+      'Latency — how long one round trip takes — dominates most web performance, not bandwidth. TCP spends round trips setting up and ramping up before data flows fast.',
+    recognizeTitle: NEED_IT,
+    recognize: [
+      'A page is slow even on fast Wi-Fi',
+      'Interview: "what happens when you type a URL?"',
+      'Choosing between many small requests and one batched request',
+      'Debugging timeouts, retries and slow first requests',
+    ],
+    points: [
+      'Latency = propagation (distance; light in fibre covers ~200,000 km/s) + transmission + processing + queuing. You cannot buy your way past the speed of light — only move servers closer (CDNs, regions).',
+      'TCP opens with a three-way handshake (SYN, SYN-ACK, ACK): one full round trip before any data. TLS adds one more round trip with TLS 1.3, two with TLS 1.2.',
+      'Flow control: the receiver advertises how much it can buffer, so a fast sender cannot overwhelm a slow receiver.',
+      'Congestion control: a new connection starts with a small window (about 10 segments ≈ 14 KB) that roughly doubles every round trip (slow start). Fresh connections are slow, so reuse them.',
+      'TCP delivers an ordered byte stream: one lost packet holds back everything behind it (head-of-line blocking) — the reason HTTP/3 moved to QUIC over UDP.',
+    ],
+    tableTitle: 'Numbers to know',
+    complexity: [
+      { op: 'Light in fibre', cost: '~5 µs per km', note: 'one way' },
+      { op: 'Round trip in the same data centre', cost: '~0.5 ms' },
+      { op: 'Round trip across continents', cost: '~100–200 ms' },
+      { op: 'TCP handshake', cost: '1 RTT', note: 'before any data' },
+      { op: 'TLS 1.3 / TLS 1.2 handshake', cost: '+1 RTT / +2 RTT' },
+      { op: 'Initial congestion window', cost: '~14 KB', note: '10 segments' },
+    ],
+    exampleLang: 'bash',
+    example: `# Where does the time go for one HTTPS request?
+curl -o /dev/null -s -w "dns        %{time_namelookup}s
+connect    %{time_connect}s
+tls        %{time_appconnect}s
+first byte %{time_starttransfer}s
+total      %{time_total}s
+" https://example.com`,
+    pitfalls: [
+      { title: '"Faster internet makes the page faster"', fix: 'More bandwidth barely helps small requests; round trips dominate. Cut round trips instead.' },
+      { title: 'A new connection per request', fix: 'You pay the handshake and slow start every time. Reuse connections (keep-alive, connection pools).' },
+      { title: 'Treating TCP as messages', fix: 'TCP is a byte stream. Frame your messages (length prefix or delimiter).' },
+      { title: 'Chatty APIs', fix: 'N sequential calls cost N round trips. Batch them, or run them in parallel.' },
+    ],
+    interview: {
+      when: 'For "what happens when you type a URL" and "why is this slow?", count round trips: DNS + TCP + TLS + request. Quantifying that is what separates a strong answer.',
+      problems: [],
+    },
+    inWork: [
+      'Connection pools in database drivers and HTTP clients',
+      'Placing servers and CDNs close to users',
+      'Batching API calls to cut round trips',
+      'Reading the timing breakdown in browser DevTools',
+    ],
+    quiz: [
+      {
+        question: 'How many round trips before the first HTTP byte on a new HTTPS connection with TLS 1.3?',
+        answer: 'About two: one for the TCP handshake and one for TLS 1.3, then the request goes out — plus a DNS lookup if the name is not cached.',
+      },
+      {
+        question: 'Why is a brand-new TCP connection slow even on a fast link?',
+        answer: 'Slow start: the congestion window begins around 14 KB and grows each round trip, so early transfers are limited by round trips, not bandwidth.',
+      },
+      { question: 'What is head-of-line blocking in TCP?', answer: 'One lost packet holds back all later data on that connection until it is retransmitted, because TCP delivers bytes in order.' },
+    ],
+    source: { label: 'HPBN: Primer on latency and bandwidth', url: `${HPBN}/primer-on-latency-and-bandwidth/` },
+    extraSource: { label: 'HPBN: Building blocks of TCP', url: `${HPBN}/building-blocks-of-tcp/` },
+  },
+  udpTls: {
+    title: 'UDP and TLS',
+    summary:
+      'UDP is transport without guarantees — no handshake, no ordering, no retransmission. TLS is the layer that makes a connection private and proves who the server is, using certificates.',
+    recognizeTitle: NEED_IT,
+    recognize: [
+      'Choosing a transport for calls, games, live video or DNS',
+      'Explaining HTTPS — "is this connection secure?"',
+      'Fixing certificate errors',
+      'Interview: "TCP vs UDP?"',
+    ],
+    points: [
+      'UDP sends independent datagrams: no setup, no ordering, no retransmission, no built-in congestion control. The application decides what to do about loss — ideal when late data is useless (voice, video, games) or for tiny request/response like DNS.',
+      'QUIC (HTTP/3) builds reliability and TLS 1.3 on top of UDP to avoid TCP’s head-of-line blocking and extra handshakes.',
+      'TLS provides encryption (privacy), authentication (the certificate proves the server’s identity) and integrity (tampering is detected).',
+      'Handshake: the server sends its certificate chain; both sides run an ephemeral key exchange (ECDHE) to agree on a session key; then fast symmetric encryption (AES-GCM, ChaCha20) protects the data. Slow asymmetric crypto is only used to set things up.',
+      'The client checks that the chain leads to a trusted CA, that the hostname matches and that the certificate has not expired. Ephemeral keys give forward secrecy: a stolen private key cannot decrypt past traffic.',
+    ],
+    tableTitle: 'Compare',
+    complexity: [
+      { op: 'TCP', cost: 'ordered, reliable', note: 'handshake, congestion control' },
+      { op: 'UDP', cost: 'no guarantees', note: 'no setup, app handles loss' },
+      { op: 'TLS 1.2 handshake', cost: '2 RTT' },
+      { op: 'TLS 1.3 handshake', cost: '1 RTT', note: '0-RTT on resumption' },
+      { op: 'Symmetric vs asymmetric crypto', cost: 'symmetric ≫ faster', note: 'used for the data' },
+    ],
+    exampleLang: 'bash',
+    example: `# The certificate chain, TLS version and cipher a server negotiates
+openssl s_client -connect example.com:443 -servername example.com </dev/null 2>/dev/null \\
+  | grep -E "subject=|issuer=|Protocol|Cipher"
+
+# DNS: the classic UDP request/response (falls back to TCP for large answers)
+dig example.com +short`,
+    pitfalls: [
+      { title: '"UDP is unreliable, so it is bad"', fix: 'It is a choice: you add exactly the reliability you need (QUIC, WebRTC).' },
+      { title: '`verify=False` to make an error go away', fix: 'That removes authentication — anyone can impersonate the server. Fix the chain or hostname instead.' },
+      { title: '"HTTPS hides everything"', fix: 'The domain still leaks through DNS and the TLS SNI field, and sizes/timing can reveal information.' },
+      { title: 'Expired certificates', fix: 'A classic cause of outages. Automate renewal (Let’s Encrypt / ACME) and monitor expiry.' },
+    ],
+    interview: {
+      when: 'For "TCP vs UDP" give one use case each and the trade-off. For HTTPS, walk the handshake: certificate check → key exchange → symmetric encryption, and note TLS 1.3 needs one round trip.',
+      problems: [],
+    },
+    inWork: [
+      'Setting up HTTPS certificates and auto-renewal on servers and load balancers',
+      'WebRTC/UDP for calls versus HTTP for APIs',
+      'Debugging "certificate has expired" and "hostname mismatch"',
+      'Mutual TLS between internal services',
+    ],
+    quiz: [
+      { question: 'Why are video calls usually built on UDP?', answer: 'A late packet is useless; waiting for TCP retransmission causes freezes. UDP lets the app skip or conceal losses.' },
+      { question: 'Why does TLS use asymmetric crypto only during the handshake?', answer: 'It is slow. It authenticates the server and agrees on a shared key; fast symmetric encryption then protects the data.' },
+      { question: 'What does forward secrecy protect against?', answer: 'With ephemeral key exchange, stealing the server’s private key later cannot decrypt sessions that were recorded earlier.' },
+    ],
+    source: { label: 'HPBN: Transport Layer Security', url: `${HPBN}/transport-layer-security-tls/` },
+    extraSource: { label: 'HPBN: Building blocks of UDP', url: `${HPBN}/building-blocks-of-udp/` },
+  },
+  httpDns: {
+    title: 'HTTP and DNS: what happens when you type a URL',
+    summary:
+      'A URL triggers DNS (name → IP), a TCP + TLS connection, then an HTTP request and response. HTTP/2 multiplexes many requests over one connection, and caching avoids requests altogether.',
+    recognizeTitle: NEED_IT,
+    recognize: [
+      'Interview: "what happens when you type a URL?"',
+      'Designing REST APIs: methods, status codes, caching',
+      'Pages that are slow or show stale content',
+      'A DNS change that "does not work yet"',
+    ],
+    points: [
+      'DNS: browser and OS caches → recursive resolver → root → TLD (`.com`) → authoritative server. Every answer is cached for its TTL — which is why changes take time to spread.',
+      'An HTTP message is a method, path, headers and optional body. GET is safe and idempotent; PUT and DELETE are idempotent; POST is not — retrying it can create duplicates.',
+      'Status codes: 2xx success, 3xx redirect, 4xx the client’s fault, 5xx the server’s fault.',
+      'HTTP/1.1 reuses connections but sends one request at a time on each, so browsers open about 6 connections per host. HTTP/2 multiplexes many streams over one connection with compressed headers. HTTP/3 does the same over QUIC to avoid TCP head-of-line blocking.',
+      'Caching: `Cache-Control: max-age` lets clients reuse a response; `ETag` + `If-None-Match` revalidates and returns `304 Not Modified`; CDNs cache at the edge near users.',
+    ],
+    tableTitle: 'Status codes worth knowing',
+    complexity: [
+      { op: '200 / 201 / 204', cost: 'OK / Created / No Content' },
+      { op: '301 / 302 / 304', cost: 'Moved / Found / Not Modified' },
+      { op: '400 / 401 / 403 / 404', cost: 'Bad request / Not authenticated / Not allowed / Not found' },
+      { op: '409 / 422 / 429', cost: 'Conflict / Invalid data / Too many requests' },
+      { op: '500 / 502 / 503 / 504', cost: 'Server error / Bad gateway / Unavailable / Gateway timeout' },
+    ],
+    exampleLang: 'bash',
+    example: `dig +trace example.com                  # walk DNS: root -> .com -> authoritative
+curl -sI https://example.com            # status line and headers only
+curl -s -o /dev/null -w "%{http_version}\\n" https://www.google.com   # 2 = HTTP/2`,
+    pitfalls: [
+      { title: '401 vs 403', fix: '401: "who are you?" (not authenticated). 403: "I know you, but you are not allowed."' },
+      { title: 'Side effects behind GET', fix: 'Crawlers and prefetchers will trigger them. Use POST, and give retried POSTs an idempotency key.' },
+      { title: 'Lowering the DNS TTL at migration time', fix: 'Resolvers still hold the old TTL. Lower it days before the switch.' },
+      { title: 'Caching private data in a shared cache', fix: 'Mark user-specific responses `Cache-Control: private` or `no-store`.' },
+    ],
+    interview: {
+      when: 'The URL answer: DNS → TCP → TLS → HTTP request → server, app and database → response → render, with caching at every layer. For API questions add idempotency and the right status codes.',
+      problems: [],
+    },
+    inWork: [
+      'Designing REST APIs: methods, status codes, idempotency keys',
+      'Cache headers and CDN rules',
+      'DNS records for deployments (A, CNAME, TXT) and safe migrations',
+      'Reading the network waterfall in DevTools',
+    ],
+    quiz: [
+      { question: 'Why can a DNS change take hours to show up?', answer: 'Resolvers cache the old answer for the record’s TTL and keep serving it until that expires.' },
+      {
+        question: 'What does HTTP/2 multiplexing solve, and what remains?',
+        answer: 'Many requests share one connection without queueing behind each other. TCP-level head-of-line blocking remains — HTTP/3 over QUIC removes it.',
+      },
+      { question: 'Which methods are idempotent, and why does it matter?', answer: 'GET, PUT, DELETE (and HEAD, OPTIONS). They are safe to retry; retrying a POST can create duplicates.' },
+    ],
+    source: { label: 'MDN: An overview of HTTP', url: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview' },
+    extraSource: { label: 'HPBN: HTTP/2', url: `${HPBN}/http2/` },
+  },
+  processes: {
+    title: 'Processes and the process API',
+    summary:
+      'A process is a running program with its own memory, registers and open files. The OS time-shares the CPU between processes by switching contexts, and creates them with fork + exec.',
+    recognizeTitle: NEED_IT,
+    recognize: [
+      'Interview: "process vs thread?"',
+      'Running worker processes (gunicorn, Node cluster, multiprocessing)',
+      'Zombie processes, or a container that will not stop cleanly',
+      'Spawning commands from code or CI',
+    ],
+    points: [
+      'A process = program + state: its address space (code, heap, stack), registers including the program counter, open file descriptors and a PID.',
+      'Limited direct execution: your code runs directly on the CPU for speed, but privileged work goes through system calls that trap into the kernel, and a timer interrupt lets the OS take the CPU back.',
+      'A context switch saves one process’s registers and loads another’s. The switch itself takes microseconds; the bigger cost is cold caches and TLB afterwards.',
+      '`fork()` copies the process (copy-on-write keeps it cheap), `exec()` replaces the program, `wait()` collects the child’s exit status. A shell is literally fork + exec + wait.',
+      'States: running, ready, blocked on I/O. A zombie has exited but has not been waited on yet.',
+    ],
+    tableTitle: 'Process vs thread',
+    complexity: [
+      { op: 'Memory', cost: 'process: private', note: 'thread: shared' },
+      { op: 'A crash', cost: 'process: isolated', note: 'thread: takes the process down' },
+      { op: 'Communication', cost: 'process: IPC, pipes, sockets', note: 'thread: shared variables + locks' },
+      { op: 'Creation and switching', cost: 'process: heavier', note: 'thread: lighter' },
+    ],
+    example: `import os, subprocess, sys
+
+print(os.getpid() > 0)                       # True: every process has a PID
+child = subprocess.run([sys.executable, "-c", "print(6 * 7)"],
+                       capture_output=True, text=True)   # spawn + wait
+print(child.returncode, child.stdout.strip())  # 0 42`,
+    pitfalls: [
+      { title: 'Treating processes like threads', fix: 'Processes do not share memory; pass data through pipes, queues or sockets.' },
+      { title: 'Never waiting on children', fix: 'They become zombies. `subprocess.run` waits for you; with `Popen`, call `wait()`.' },
+      { title: 'Forking after starting threads', fix: 'Only the calling thread is copied and locks may be stuck held. Prefer the `spawn` start method.' },
+      { title: 'Ignoring SIGTERM in containers', fix: 'Your app may be PID 1 and must shut down gracefully on SIGTERM, or it gets killed hard.' },
+    ],
+    interview: {
+      when: 'Process vs thread is close to guaranteed: isolation and crash safety versus cheap sharing. Mention the context-switch cost and that Python uses processes to sidestep the GIL for CPU-bound work.',
+      problems: [],
+    },
+    inWork: [
+      'Web servers with worker processes (gunicorn, PHP-FPM, Node cluster)',
+      '`multiprocessing` for CPU-bound Python jobs',
+      'Shells, CI runners and cron spawning commands',
+      'Graceful shutdown on SIGTERM in Docker and Kubernetes',
+    ],
+    quiz: [
+      { question: 'What does `fork()` return?', answer: '0 in the child and the child’s PID in the parent (−1 on error): one call, two returns.' },
+      { question: 'Why is a context switch not free?', answer: 'Saving registers is cheap, but the next process starts with cold caches and TLB entries, which slows it down.' },
+      { question: 'What is a zombie process?', answer: 'A child that has exited but whose parent has not called `wait()` yet; its entry lingers until it is reaped.' },
+    ],
+    source: { label: 'OSTEP ch.4: The abstraction — the process', url: `${OSTEP}/cpu-intro.pdf` },
+    extraSource: { label: 'OSTEP ch.5: Process API', url: `${OSTEP}/cpu-api.pdf` },
+  },
+  scheduling: {
+    title: 'CPU scheduling',
+    summary:
+      'The scheduler decides which ready job runs next. Every policy trades turnaround time (finish fast) against response time (react fast) and fairness.',
+    recognizeTitle: NEED_IT,
+    recognize: [
+      'Interview: "how does the OS decide what runs?"',
+      'Latency spikes on a busy server',
+      'Choosing worker or thread-pool sizes',
+      'Background jobs starving interactive work',
+    ],
+    points: [
+      'Turnaround = completion − arrival; response = first run − arrival. Batch work cares about the first, users about the second.',
+      'FIFO suffers the convoy effect: short jobs wait behind a long one. Shortest-job-first minimises turnaround but needs job lengths and can starve long jobs.',
+      'Round robin gives every job a short time slice: great response time, worse turnaround. A shorter slice means more context-switch overhead.',
+      'MLFQ learns from behaviour: a job that burns its whole slice drops in priority (CPU-bound); one that gives up the CPU for I/O stays high (interactive). A periodic boost prevents starvation.',
+      'Proportional share (lottery, stride, Linux CFS) gives each job a fair fraction of CPU time.',
+    ],
+    tableTitle: 'Policies',
+    complexity: [
+      { op: 'FIFO', cost: 'simple', note: 'convoy effect' },
+      { op: 'SJF / STCF', cost: 'best turnaround', note: 'needs lengths, starves long jobs' },
+      { op: 'Round robin', cost: 'best response', note: 'worse turnaround' },
+      { op: 'MLFQ', cost: 'learns job type', note: 'needs priority boosts' },
+      { op: 'CFS (Linux)', cost: 'fair share', note: 'by virtual runtime' },
+    ],
+    example: `def avg_response_fifo(jobs):          # all jobs arrive at t = 0
+    t = total = 0
+    for length in jobs:
+        total += t                    # a job responds when it first runs
+        t += length
+    return total / len(jobs)
+
+def avg_response_round_robin(jobs, time_slice=1):
+    return sum(i * time_slice for i in range(len(jobs))) / len(jobs)
+
+jobs = [100, 10, 10]
+print(avg_response_fifo(jobs), avg_response_round_robin(jobs))   # 70.0 1.0`,
+    pitfalls: [
+      { title: 'More threads = faster', fix: 'Beyond the number of cores, CPU-bound work only adds context switches. Size pools to cores for CPU work.' },
+      { title: 'Optimising averages only', fix: 'Users feel the tail (p99). A policy with a good average can still have terrible worst cases.' },
+      { title: 'Strict priorities without aging', fix: 'Low-priority work starves. Add aging or periodic boosts.' },
+      { title: 'Extreme time slices', fix: 'Too short and overhead dominates; too long and the system feels sluggish.' },
+    ],
+    interview: {
+      when: 'Explain the trade-off (turnaround vs response vs fairness) and why MLFQ approximates shortest-job-first without knowing job lengths.',
+      problems: [],
+    },
+    inWork: [
+      'Sizing worker and thread pools (≈ CPU cores for CPU-bound work)',
+      '`nice` and priorities for batch jobs on shared machines',
+      'Kubernetes CPU requests, limits and throttling',
+      'Priority queues for background jobs',
+    ],
+    quiz: [
+      { question: 'What is the convoy effect?', answer: 'Under FIFO, short jobs wait behind a long one, inflating average turnaround.' },
+      { question: 'How does MLFQ guess that a job is interactive?', answer: 'It gives up the CPU before its slice ends (waiting for I/O), so it keeps a high priority.' },
+      { question: 'Why does MLFQ periodically boost every job?', answer: 'To stop long jobs from starving and to let a job that became interactive climb back up.' },
+    ],
+    source: { label: 'OSTEP ch.7: Scheduling — introduction', url: `${OSTEP}/cpu-sched.pdf` },
+    extraSource: { label: 'OSTEP ch.8: Multi-level feedback queue', url: `${OSTEP}/cpu-sched-mlfq.pdf` },
+  },
+  virtualMemory: {
+    title: 'Virtual memory',
+    summary:
+      'Every process sees its own private address space. The OS and the hardware translate virtual addresses to physical memory page by page, which gives isolation and the illusion of more memory.',
+    recognizeTitle: NEED_IT,
+    recognize: [
+      'Interview: "what is virtual memory? a page fault?"',
+      'Out-of-memory kills (OOMKilled pods), swap thrashing',
+      'Why one process cannot read another’s memory',
+      'Memory usage (RSS) creeping up in production',
+    ],
+    points: [
+      'An address space holds code, a heap that grows up and a stack that grows down. Every address your program sees is virtual.',
+      'Paging: memory is split into fixed-size pages (commonly 4 KB). A page table maps virtual pages to physical frames, and the MMU translates on every access.',
+      'The TLB caches recent translations. A miss means walking the page table — programs with good locality stay fast.',
+      'A page fault happens when a page is not in RAM: the OS loads it (from disk or swap) or zero-fills it. Disk is about 100,000× slower than RAM; constant faulting is thrashing.',
+      'Each process has its own page table and permission bits (read/write/execute), so bugs cannot touch other processes; an invalid access becomes a segmentation fault.',
+    ],
+    tableTitle: 'Numbers to know',
+    complexity: [
+      { op: 'Typical page size', cost: '4 KB' },
+      { op: 'Main memory access', cost: '~100 ns' },
+      { op: 'SSD random read', cost: '~100 µs' },
+      { op: 'Spinning disk seek', cost: '~10 ms' },
+    ],
+    example: `import mmap, sys
+
+print(mmap.PAGESIZE)                          # 4096 on most machines
+nums = list(range(1_000_000))
+print(sys.getsizeof(nums) // 1024, "KB")      # 7812 KB: 8 bytes per pointer,
+                                              # the int objects live elsewhere`,
+    pitfalls: [
+      { title: '"Virtual memory means swap"', fix: 'It means address translation per process; swap is only one thing it enables.' },
+      { title: 'Ignoring locality', fix: 'Walking a big 2-D array column by column (in C or NumPy) misses caches and the TLB constantly.' },
+      { title: 'Container limits below the working set', fix: 'The kernel OOM-kills the process. Measure real usage before setting limits.' },
+      { title: '"Low free memory is a problem"', fix: 'The OS uses spare RAM as page cache. Look at available memory and swap activity instead.' },
+    ],
+    interview: {
+      when: 'Explain translation (page table + TLB), page faults and why they are expensive, and how this isolates processes. Tie it to a real symptom: OOM kills or thrashing.',
+      problems: [],
+    },
+    inWork: [
+      'Debugging OOMKilled pods and choosing memory limits',
+      'Reading RSS versus virtual size in `top`',
+      'Cache-friendly data layouts (arrays, NumPy) for speed',
+      'Segmentation faults in native extensions',
+    ],
+    quiz: [
+      {
+        question: 'What happens on a page fault?',
+        answer: 'The CPU traps into the OS, which finds the page (disk, swap or a zero page), puts it in a frame, updates the page table and re-runs the instruction.',
+      },
+      { question: 'What is the TLB and why does it matter?', answer: 'A small cache of virtual→physical translations; hits avoid walking the page table on every memory access.' },
+      { question: 'How does virtual memory isolate processes?', answer: 'Each process has its own page table, so its addresses map only to its own frames; touching anything else faults.' },
+    ],
+    source: { label: 'OSTEP ch.13: Address spaces', url: `${OSTEP}/vm-intro.pdf` },
+    extraSource: { label: 'OSTEP ch.18: Paging', url: `${OSTEP}/vm-paging.pdf` },
+  },
+  threadsLocks: {
+    title: 'Threads, locks and race conditions',
+    summary:
+      'Threads share one address space, so they communicate cheaply — and corrupt shared data unless a lock makes each critical section run as one indivisible step.',
+    recognizeTitle: NEED_IT,
+    recognize: [
+      'Interview: "what is a race condition and how do you fix it?"',
+      'Counters or caches updated by many requests at once',
+      'Python: threads vs asyncio vs multiprocessing',
+      'Bugs that only appear under load',
+    ],
+    points: [
+      'Threads in one process share the heap and globals; each has its own stack and registers.',
+      'A race condition is a result that depends on timing. `count += 1` is load, add, store — two threads can interleave and lose an update.',
+      'A critical section must run under mutual exclusion: `with lock:`. Locks are built on atomic hardware instructions (test-and-set, compare-and-swap).',
+      'Granularity trade-off: one big lock is simple but serialises everything; fine-grained locks scale but invite deadlock.',
+      'Python’s GIL lets one thread run bytecode at a time, so threads help I/O-bound work but not CPU-bound work — and the GIL does NOT make `+=` atomic.',
+    ],
+    tableTitle: 'Which tool in Python',
+    complexity: [
+      { op: 'Many slow network or DB calls', cost: 'threads or asyncio' },
+      { op: 'CPU-heavy work', cost: 'processes', note: 'the GIL blocks thread speed-ups' },
+      { op: 'Shared counter or cache', cost: 'lock, or a thread-safe structure' },
+      { op: 'Hand work between threads', cost: '`queue.Queue`', note: 'locking built in' },
+    ],
+    example: `import threading
+
+count = 0
+lock = threading.Lock()
+
+def add(n):
+    global count
+    for _ in range(n):
+        with lock:                 # without the lock, updates can be lost
+            count += 1             # read, add, write: three steps
+
+threads = [threading.Thread(target=add, args=(100_000,)) for _ in range(4)]
+for t in threads:
+    t.start()
+for t in threads:
+    t.join()
+print(count)                       # 400000`,
+    pitfalls: [
+      { title: '"The GIL makes my code thread-safe"', fix: 'Threads switch between bytecodes, so multi-step operations still interleave. Use locks.' },
+      { title: 'Doing I/O while holding a lock', fix: 'Everyone else waits. Keep critical sections tiny.' },
+      { title: 'Releasing a lock manually', fix: 'An exception skips the release. Use `with lock:`.' },
+      { title: 'Module-level mutable state in web apps', fix: 'Shared across requests and threads, and not shared across worker processes. Use a database or cache.' },
+    ],
+    interview: {
+      when: 'Define a race condition with the `count += 1` example, fix it with a lock, then discuss lock granularity — and the GIL for Python roles.',
+      problems: [],
+    },
+    inWork: [
+      'Thread pools for I/O: HTTP calls, database queries',
+      'Thread-safe caches and counters in services',
+      'Choosing asyncio, threads or processes in Python',
+      'Database row locks are the same idea at a larger scale',
+    ],
+    quiz: [
+      { question: 'Why is `count += 1` not thread-safe?', answer: 'It is load, add, store; another thread can run in between, and one update overwrites the other.' },
+      { question: 'Does the GIL remove the need for locks?', answer: 'No. It switches threads between bytecodes, so compound operations can still interleave.' },
+      { question: 'Threads or processes for CPU-heavy Python work?', answer: 'Processes: the GIL lets only one thread execute Python bytecode at a time.' },
+    ],
+    source: { label: 'OSTEP ch.26: Concurrency — an introduction', url: `${OSTEP}/threads-intro.pdf` },
+    extraSource: { label: 'OSTEP ch.28: Locks', url: `${OSTEP}/threads-locks.pdf` },
+  },
+  conditionDeadlock: {
+    title: 'Condition variables, semaphores and deadlock',
+    summary:
+      'Locks protect data; condition variables and semaphores let threads wait for something to happen. Deadlock is threads waiting on each other in a circle.',
+    recognizeTitle: NEED_IT,
+    recognize: [
+      'Producer–consumer work queues',
+      'Limiting concurrency (at most 10 database connections)',
+      'Interview: "what is deadlock and how do you prevent it?"',
+      'A service that freezes while using no CPU',
+    ],
+    points: [
+      'A condition variable’s `wait()` releases the lock and sleeps; `notify()` wakes a waiter. Always wait inside a `while` loop that re-checks the condition.',
+      'Producer–consumer (bounded buffer): producers wait while it is full, consumers wait while it is empty. In Python, `queue.Queue(maxsize=n)` does all of this for you.',
+      'A semaphore is a counter: `acquire()` waits when it is 0. Start it at N to allow at most N concurrent users (a connection limit).',
+      'Deadlock needs four conditions: mutual exclusion, hold-and-wait, no preemption, circular wait. Break one — usually circular wait, by always taking locks in one global order.',
+      'Most other concurrency bugs are atomicity violations (a check-then-act that is not protected) and order violations (assuming one thread runs first).',
+    ],
+    tableTitle: 'Tools',
+    complexity: [
+      { op: 'Lock', cost: 'one thread at a time' },
+      { op: 'Condition variable', cost: 'wait for a state change' },
+      { op: 'Semaphore(N)', cost: 'at most N at once' },
+      { op: '`queue.Queue(maxsize)`', cost: 'producer–consumer, built in' },
+      { op: 'Deadlock prevention', cost: 'one lock order', note: 'or timeouts' },
+    ],
+    example: `import queue, threading
+
+q = queue.Queue(maxsize=2)          # bounded buffer: put() waits when full
+results = []
+
+def producer():
+    for i in range(5):
+        q.put(i)
+    q.put(None)                     # sentinel: no more work
+
+def consumer():
+    while (item := q.get()) is not None:
+        results.append(item * item)
+
+threads = [threading.Thread(target=producer), threading.Thread(target=consumer)]
+for t in threads:
+    t.start()
+for t in threads:
+    t.join()
+print(results)                      # [0, 1, 4, 9, 16]`,
+    pitfalls: [
+      { title: '`if` instead of `while` around `wait()`', fix: 'You may act on a condition that is no longer true. Re-check it in a loop.' },
+      { title: 'Two locks taken in different orders', fix: 'A classic deadlock. Define one order and always follow it.' },
+      { title: 'Unbounded queues', fix: 'They hide overload until memory runs out. Bound them to get backpressure.' },
+      { title: 'No stop signal', fix: 'Consumers block forever at shutdown. Send a sentinel or use a shutdown event.' },
+    ],
+    interview: {
+      when: 'Name the four deadlock conditions and how you break circular wait (lock ordering). Sketch producer–consumer with a bounded queue.',
+      problems: [],
+    },
+    inWork: [
+      'Background job queues and worker pools',
+      'Connection pools: a semaphore of N connections',
+      'Backpressure in streaming pipelines',
+      'Database deadlocks: two transactions locking rows in opposite order',
+    ],
+    quiz: [
+      {
+        question: 'Why wait on a condition variable inside a `while` loop?',
+        answer: 'When you wake up, the condition may be false again (another thread got there first, or a spurious wake-up), so re-check before continuing.',
+      },
+      { question: 'The four conditions for deadlock?', answer: 'Mutual exclusion, hold-and-wait, no preemption and circular wait. Remove any one and deadlock cannot happen.' },
+      { question: 'How do you cap an API client at 10 concurrent requests?', answer: 'A semaphore starting at 10: acquire before each request, release after it.' },
+    ],
+    source: { label: 'OSTEP ch.30: Condition variables', url: `${OSTEP}/threads-cv.pdf` },
+    extraSource: { label: 'OSTEP ch.32: Common concurrency bugs', url: `${OSTEP}/threads-bugs.pdf` },
+  },
+  indexes: {
+    title: 'Indexes and query plans',
+    summary:
+      'An index is a sorted structure (usually a B-tree) that lets the database jump straight to matching rows in O(log n) instead of scanning the whole table — paid for with slower writes and extra storage.',
+    recognizeTitle: NEED_IT,
+    recognize: [
+      'A slow query whose plan shows a sequential scan',
+      'Deciding which columns to index',
+      'Interview: "how does an index work, and when should you not add one?"',
+      'Pagination that gets slower as the table grows',
+    ],
+    points: [
+      'A B-tree index keeps keys sorted in a balanced tree whose leaves point to rows: equality lookups and range scans (`BETWEEN`, `ORDER BY`) cost O(log n) plus the matches.',
+      'Composite index (a, b) serves `WHERE a = ?` and `WHERE a = ? AND b = ?`, but not `WHERE b = ?` alone — the leftmost-prefix rule. Put equality columns first and the range column last.',
+      'Wrapping the column in a function (`lower(email)`) or using a leading wildcard (`LIKE \'%x\'`) prevents a normal B-tree from being used. Index the expression instead.',
+      'A covering index contains every column the query needs, so the database never visits the table (index-only scan).',
+      'Every INSERT, UPDATE and DELETE must update every index; low-selectivity columns (booleans) rarely help.',
+      '`EXPLAIN ANALYZE` shows the real plan: sequential vs index scan, estimated vs actual rows, and time.',
+    ],
+    complexity: [
+      { op: 'Full table scan', cost: 'O(n)' },
+      { op: 'B-tree lookup', cost: 'O(log n)' },
+      { op: 'Range scan', cost: 'O(log n + k)', note: 'k = matching rows' },
+      { op: 'Each extra index', cost: 'slower writes', note: '+ storage' },
+    ],
+    exampleLang: 'sql',
+    example: `-- 1. Why is this slow?
+EXPLAIN ANALYZE
+SELECT * FROM orders WHERE user_id = 42 ORDER BY created_at DESC LIMIT 20;
+-- Seq Scan on orders ...            (reads every row)
+
+-- 2. Equality column first, sort column second
+CREATE INDEX orders_user_created_idx ON orders (user_id, created_at DESC);
+-- Index Scan using orders_user_created_idx ...   (jumps to user 42, already sorted)`,
+    pitfalls: [
+      { title: 'Indexing every column', fix: 'Writes slow down and most indexes go unused. Index for the queries you actually run.' },
+      { title: 'Wrong column order in a composite index', fix: 'A range column first makes the columns after it useless for filtering.' },
+      { title: 'Functions or casts on an indexed column', fix: '`WHERE lower(email) = ?` skips a plain index. Create an index on `lower(email)`.' },
+      { title: 'Deep `OFFSET` pagination', fix: 'The database still walks every skipped row. Use keyset pagination: `WHERE created_at < :last_seen`.' },
+    ],
+    interview: {
+      when: 'Explain B-tree lookup cost, the leftmost-prefix rule and the write trade-off. Reading an EXPLAIN plan out loud is a strong practical signal.',
+      problems: [],
+    },
+    inWork: [
+      'Fixing slow API endpoints with the right index',
+      'Postgres/Supabase: indexes on foreign keys and on columns used by RLS policies',
+      'Keyset pagination for infinite scroll',
+      'Unique indexes to enforce "no duplicates"',
+    ],
+    quiz: [
+      {
+        question: 'Index on (user_id, created_at): does `WHERE created_at > now() - interval \'1 day\'` use it well?',
+        answer: 'No: `created_at` is the second column and the index is sorted by `user_id` first (leftmost-prefix rule).',
+      },
+      { question: 'Why can too many indexes hurt?', answer: 'Every write has to update each index, costing I/O and storage, while low-selectivity indexes barely help reads.' },
+      { question: 'What is a covering index?', answer: 'An index containing every column the query needs, so the answer comes from the index alone without reading the table.' },
+    ],
+    source: { label: 'Use The Index, Luke: Anatomy of an index', url: 'https://use-the-index-luke.com/sql/anatomy' },
+    extraSource: { label: 'PostgreSQL: Using EXPLAIN', url: `${PG}/using-explain.html` },
+  },
+  transactions: {
+    title: 'Transactions, ACID and isolation levels',
+    summary:
+      'A transaction groups operations so they all happen or none do. Isolation levels decide which anomalies concurrent transactions may see, in exchange for speed.',
+    recognizeTitle: NEED_IT,
+    recognize: [
+      'Money, stock or bookings that must never double-spend',
+      'Interview: "what is ACID? what are the isolation levels?"',
+      'Two requests overwriting each other (lost update)',
+      'Reports that do not add up while data is changing',
+    ],
+    points: [
+      'ACID: Atomicity (all or nothing), Consistency (constraints always hold), Isolation (concurrent transactions do not interfere — to a chosen degree), Durability (a commit survives a crash).',
+      'Anomalies: dirty read (seeing uncommitted data), non-repeatable read (a row changes between two reads), phantom (a query returns new rows), lost update (two read-modify-writes overwrite each other), write skew.',
+      'Levels: Read Uncommitted, Read Committed (the Postgres default), Repeatable Read, Serializable. Postgres runs Repeatable Read as a snapshot, and Serializable aborts conflicting transactions — so you must retry.',
+      'MVCC: a write creates a new row version and each reader keeps its snapshot, so readers do not block writers.',
+      'Preventing lost updates: an atomic `UPDATE … SET qty = qty - 1 WHERE qty > 0`, `SELECT … FOR UPDATE`, a version column (optimistic locking), or Serializable plus retries.',
+    ],
+    tableTitle: 'Isolation levels (PostgreSQL)',
+    complexity: [
+      { op: 'Read Committed', cost: 'no dirty reads', note: 'the default' },
+      { op: 'Repeatable Read', cost: 'one snapshot per transaction', note: 'no non-repeatable reads or phantoms' },
+      { op: 'Serializable', cost: 'as if run one at a time', note: 'may abort → retry' },
+    ],
+    exampleLang: 'sql',
+    example: `-- Lost update: two requests run this at the same moment
+SELECT stock FROM products WHERE id = 1;        -- both read 1
+UPDATE products SET stock = 0 WHERE id = 1;     -- both "sell" the last item
+
+-- Safe: let the database check and change in one atomic statement
+UPDATE products
+SET stock = stock - 1
+WHERE id = 1 AND stock > 0
+RETURNING stock;                                -- no row returned = sold out`,
+    pitfalls: [
+      { title: 'Read-modify-write in application code', fix: 'Two requests interleave and one update is lost. Do it in one atomic statement or lock the row.' },
+      { title: 'Serializable without retries', fix: 'Serialization failures are expected behaviour. Retry the whole transaction.' },
+      { title: 'Long-running transactions', fix: 'They hold locks and old snapshots, causing blocking and table bloat. Keep them short.' },
+      { title: 'Assuming the ORM wraps the request in a transaction', fix: 'Many default to autocommit per statement. Open a transaction explicitly.' },
+    ],
+    interview: {
+      when: 'Give ACID in one line each, name the anomalies, and show a concrete fix for a lost update (atomic UPDATE or SELECT … FOR UPDATE).',
+      problems: [],
+    },
+    inWork: [
+      'Payments, inventory and seat booking',
+      'Postgres functions (Supabase RPC) for atomic multi-step changes',
+      'Retrying serialization failures in background jobs',
+      'Idempotency keys plus unique constraints against double charges',
+    ],
+    quiz: [
+      {
+        question: 'What is a lost update, and one way to prevent it?',
+        answer: 'Two transactions read the same value and both write back, one overwriting the other. Use an atomic conditional UPDATE, SELECT … FOR UPDATE, or a version check.',
+      },
+      {
+        question: 'What does Postgres do at Serializable that it does not do at Repeatable Read?',
+        answer: 'It detects transactions that could not have run in some serial order and aborts one of them — the application has to retry it.',
+      },
+      { question: 'Why don’t readers block writers in Postgres?', answer: 'MVCC: an update creates a new row version while readers keep reading the version from their snapshot.' },
+    ],
+    source: { label: 'PostgreSQL: Transaction isolation', url: `${PG}/transaction-iso.html` },
+    extraSource: { label: 'CMU 15-445 Database Systems', url: 'https://15445.courses.cs.cmu.edu/' },
+  },
+  walReplication: {
+    title: 'Storage, write-ahead logging and replication',
+    summary:
+      'Databases make commits durable by appending them to a write-ahead log first, then ship that log to replicas — the source of read scaling, failover and replication lag.',
+    recognizeTitle: NEED_IT,
+    recognize: [
+      'Interview: "how does a database survive a crash?"',
+      '"I just saved it but I cannot see it" with read replicas',
+      'Backups and point-in-time recovery',
+      'Scaling reads versus scaling writes',
+    ],
+    points: [
+      'Data lives in fixed-size pages on disk (8 KB in Postgres), cached in a memory buffer pool. Rewriting random pages on every commit would be slow.',
+      'Write-ahead log: before changing a data page, append a log record and flush it. After a crash, replay the log (redo). Sequential appends are fast, so commits are cheap and durable.',
+      'Checkpoints write dirty pages to disk so the log needed for recovery stays short.',
+      'Replication streams the log to standbys. Asynchronous is fast but can lose the latest commits on failover; synchronous loses nothing but every commit waits for a replica.',
+      'Replicas scale reads, not writes, and they lag — so read-your-own-writes may fail. Read from the primary right after a write.',
+      'B-tree engines update pages in place (good reads); LSM-tree engines (RocksDB, Cassandra) append and compact (good writes).',
+    ],
+    tableTitle: 'Trade-offs',
+    complexity: [
+      { op: 'Asynchronous replication', cost: 'fast commits', note: 'may lose recent commits on failover' },
+      { op: 'Synchronous replication', cost: 'no loss', note: '+ one network round trip per commit' },
+      { op: 'Read replicas', cost: 'scale reads', note: 'not writes; data may lag' },
+      { op: 'Base backup + archived WAL', cost: 'point-in-time recovery' },
+    ],
+    exampleLang: 'sql',
+    example: `-- On the primary: who is replicating, and how far behind?
+SELECT client_addr, state, replay_lag
+FROM pg_stat_replication;
+
+-- On any server: am I a read replica?
+SELECT pg_is_in_recovery();          -- true on a standby`,
+    pitfalls: [
+      { title: 'Reading from a replica right after writing', fix: 'You get stale data. Send those reads to the primary.' },
+      { title: 'Treating replicas as backups', fix: 'A bad DELETE replicates instantly. Keep real backups with point-in-time recovery.' },
+      { title: 'Turning off fsync for speed', fix: 'A crash can then lose or corrupt committed data.' },
+      { title: 'Expecting replicas to scale writes', fix: 'Every write still goes to the primary; only partitioning or sharding spreads writes.' },
+    ],
+    interview: {
+      when: 'Explain WAL → crash recovery, then the sync-vs-async replication trade-off and replication lag. That is the backbone of most "design the data layer" follow-ups.',
+      problems: [],
+    },
+    inWork: [
+      'Read replicas for reporting and analytics',
+      'Point-in-time recovery after a bad migration',
+      'Failover planning: how much data you may lose (RPO) and how fast you recover (RTO)',
+      'Change data capture reads the WAL (Debezium, Supabase Realtime)',
+    ],
+    quiz: [
+      { question: 'Why write to a log before updating the data pages?', answer: 'Sequential appends are fast to flush; after a crash, replaying the log restores every committed change.' },
+      { question: 'Asynchronous vs synchronous replication?', answer: 'Async: fast commits, but the newest commits can be lost on failover. Sync: no loss, but each commit waits for a replica.' },
+      { question: 'Why might a user not see the comment they just posted?', answer: 'The read hit a replica that has not replayed the write yet — replication lag.' },
+    ],
+    source: { label: 'PostgreSQL: Write-ahead logging', url: `${PG}/wal-intro.html` },
+    extraSource: { label: 'PostgreSQL: High availability and replication', url: `${PG}/high-availability.html` },
+  },
+}
