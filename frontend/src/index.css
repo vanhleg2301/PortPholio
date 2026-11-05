@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -137,3 +139,14 @@
 .markdown table { border-collapse: collapse; display: block; overflow-x: auto; }
 .markdown th, .markdown td { border: 1px solid var(--border); padding: 0.3em 0.6em; }
 .markdown input[type="checkbox"] { margin-right: 0.4em; }
+
+/* Code highlighting in notes (rehype-highlight / highlight.js classes) */
+.markdown .hljs-comment, .markdown .hljs-quote { color: var(--muted-foreground); font-style: italic; }
+.markdown .hljs-keyword, .markdown .hljs-selector-tag, .markdown .hljs-built_in { color: #c678dd; }
+.markdown .hljs-string, .markdown .hljs-attr, .markdown .hljs-template-variable { color: #22a06b; }
+.markdown .hljs-number, .markdown .hljs-literal { color: #d19a66; }
+.markdown .hljs-title, .markdown .hljs-title.function_, .markdown .hljs-section { color: #3b82f6; }
+.markdown .hljs-type, .markdown .hljs-class .hljs-title { color: #e5a00d; }
+.markdown .hljs-meta, .markdown .hljs-variable { color: #ef4444; }
+.markdown .contains-task-list { list-style: none; padding-left: 0.25em; }
+.markdown hr { border-color: var(--border); margin: 1.2em 0; }

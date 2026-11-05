@@ -1,16 +1,7 @@
 import { Check, ArrowUpRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { RoadmapTask, TaskKind } from '@/data/roadmap/types'
-
-const KIND_LABEL: Record<TaskKind, string> = {
-  python: 'Python',
-  dsa: 'DSA',
-  cs: 'CS',
-  sd: 'System Design',
-  ai: 'AI',
-  review: 'Review',
-  career: 'Career',
-}
+import { TOPICS } from '@/data/roadmap/topics'
+import type { RoadmapTask } from '@/data/roadmap/types'
 
 const DIFFICULTY_CLASS = {
   easy: 'text-easy',
@@ -48,7 +39,7 @@ export function TaskItem({ task, isDone, onToggle }: TaskItemProps) {
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2">
           <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-            {KIND_LABEL[task.kind]}
+            {TOPICS[task.kind].label}
           </span>
           {task.difficulty && (
             <span className={cn('text-[10px] font-semibold uppercase tracking-widest', DIFFICULTY_CLASS[task.difficulty])}>

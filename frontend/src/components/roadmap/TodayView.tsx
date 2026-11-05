@@ -1,10 +1,11 @@
 import { format, parseISO } from 'date-fns'
 import { Lock } from 'lucide-react'
-import { NoteEditor } from '@/components/roadmap/NoteEditor'
+import { DayNotes } from '@/components/roadmap/DayNotes'
 import { ResourceList } from '@/components/roadmap/ResourceList'
 import { TaskItem } from '@/components/roadmap/TaskItem'
 import { WeekStrip } from '@/components/roadmap/WeekStrip'
-import { useSaveNote, type RoadmapNote } from '@/hooks/useRoadmapNotes'
+import type { RoadmapNote } from '@/hooks/useRoadmapNotes'
+import type { NoteTopic } from '@/data/roadmap/topics'
 import type { RoadmapResource } from '@/hooks/useRoadmapResources'
 import { DAY_BY_DATE, getWeekForDate } from '@/lib/roadmapStats'
 
@@ -28,10 +29,10 @@ function SectionTitle({ children }: { children: string }) {
 export function TodayView({ date, today, doneIds, isOwner, notes, isNotesReady, resources, onSelectDate, onToggle, onRequestSignIn }: TodayViewProps) {
   const day = DAY_BY_DATE.get(date)
   const week = getWeekForDate(date)
-  const saveNote = useSaveNote()
   const tasks = day?.tasks ?? []
   const done = tasks.filter((t) => doneIds.has(t.id)).length
-  const note = notes.find((n) => n.day === date)
+  const dayNotes = notes.filter((n) => n.day === date)
+  const suggestedTopics = [...new Set(tasks.map((t): NoteTopic => t.kind))]
   const dayResources = resources.filter((r) => r.day === date)
 
   return (
@@ -69,17 +70,9 @@ export function TodayView({ date, today, doneIds, isOwner, notes, isNotesReady, 
         <>
           <SectionTitle>Notes</SectionTitle>
           {isNotesReady ? (
-          <NoteEditor
-            key={date}
-            day={date}
-            initialContent={note?.content ?? ''}
-            isSaving={saveNote.isPending}
-            onSave={async (content) => {
-              await saveNote.mutateAsync({ day: date, content })
-            }}
-          />
+            <DayNotes key={date} day={date} notes={dayNotes} suggestedTopics={suggestedTopics} />
           ) : (
-            <div className="h-40 rounded-2xl bg-foreground/[0.04] animate-pulse" />
+            <div className="h-24 rounded-2xl bg-foreground/[0.04] animate-pulse" />
           )}
           <SectionTitle>Resources</SectionTitle>
           <ResourceList day={date} resources={dayResources} />
