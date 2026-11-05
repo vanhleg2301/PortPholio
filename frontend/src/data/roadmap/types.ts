@@ -7,11 +7,20 @@ export interface TaskLink {
   url: string
 }
 
+// Short "theory" card shown under a task: key points + one official source to read.
+export interface TaskReference {
+  title: string
+  source: TaskLink
+  points: string[]
+  example?: string
+}
+
 export interface TaskSeed {
   kind: TaskKind
   title: string
   links: TaskLink[]
   difficulty?: ProblemDifficulty
+  reference?: TaskReference
 }
 
 export interface RoadmapTask extends TaskSeed {

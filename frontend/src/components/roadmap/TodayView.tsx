@@ -5,6 +5,7 @@ import { Lock } from 'lucide-react'
 import { DayNotes } from '@/components/roadmap/DayNotes'
 import { ResourceList } from '@/components/roadmap/ResourceList'
 import { TaskItem } from '@/components/roadmap/TaskItem'
+import { TheoryCard } from '@/components/roadmap/TheoryCard'
 import { WeekStrip } from '@/components/roadmap/WeekStrip'
 import type { RoadmapNote } from '@/hooks/useRoadmapNotes'
 import type { NoteTopic } from '@/data/roadmap/topics'
@@ -37,6 +38,7 @@ export function TodayView({ date, today, doneIds, isOwner, notes, isNotesReady, 
   const dayNotes = notes.filter((n) => n.day === date)
   const suggestedTopics = [...new Set(tasks.map((t): NoteTopic => t.kind))]
   const dayResources = resources.filter((r) => r.day === date)
+  const references = [...new Map(tasks.flatMap((t) => (t.reference ? [[t.reference.title, t.reference] as const] : []))).values()]
 
   // Slide direction follows the calendar: later day comes in from the right.
   const [lastDate, setLastDate] = useState(date)
@@ -83,11 +85,22 @@ export function TodayView({ date, today, doneIds, isOwner, notes, isNotesReady, 
             ) : (
               <motion.ul variants={listContainer} className="rounded-2xl border border-border bg-card/40 px-4 divide-y divide-border/50">
                 {tasks.map((task) => (
-                  <TaskItem key={task.id} task={task} isDone={doneIds.has(task.id)} onToggle={onToggle} />
+                  <TaskItem key={task.id} task={task} isDone={doneIds.has(task.id)} onToggle={onToggle} showTheoryToggle={false} />
                 ))}
               </motion.ul>
             )}
           </motion.section>
+
+          {references.length > 0 && (
+            <motion.section variants={section} layout="position">
+              <SectionTitle>Theory</SectionTitle>
+              <div className="flex flex-col gap-3">
+                {references.map((ref, i) => (
+                  <TheoryCard key={ref.title} reference={ref} isOpenByDefault={i === 0} />
+                ))}
+              </div>
+            </motion.section>
+          )}
 
           {isOwner ? (
             <>

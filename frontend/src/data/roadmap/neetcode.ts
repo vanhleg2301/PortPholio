@@ -1,3 +1,4 @@
+import { CATEGORY_REFERENCES } from './references'
 import type { ProblemDifficulty, TaskSeed } from './types'
 
 interface NeetCodeProblem {
@@ -225,6 +226,7 @@ export function createProblemTask(slug: string): TaskSeed {
     kind: 'dsa',
     title: `${problem.title} · ${problem.category}`,
     difficulty: problem.difficulty,
+    reference: CATEGORY_REFERENCES[problem.category],
     links: problem.isPremium
       ? [
           { label: 'NeetCode (free)', url: 'https://neetcode.io/practice' },

@@ -1,6 +1,7 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
+import { keepLineBreaks } from '@/lib/noteSections'
 
 interface MarkdownPreviewProps {
   content: string
@@ -16,7 +17,7 @@ export function MarkdownPreview({ content }: MarkdownPreviewProps) {
           a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
         }}
       >
-        {content}
+        {keepLineBreaks(content)}
       </ReactMarkdown>
     </div>
   )

@@ -1,9 +1,11 @@
 import { createProblemTask, getCategorySlugs } from './neetcode'
-import type { PhaseId, RoadmapDay, RoadmapPhase, RoadmapTask, RoadmapWeek, TaskKind, TaskLink, TaskSeed } from './types'
+import { PYTHON_REFERENCES } from './references'
+import type { PhaseId, RoadmapDay, RoadmapPhase, RoadmapTask, RoadmapWeek, TaskKind, TaskLink, TaskReference, TaskSeed } from './types'
 
 // ── Link helpers ──────────────────────────
 const link = (label: string, url: string): TaskLink => ({ label, url })
 const task = (kind: TaskKind, title: string, ...links: TaskLink[]): TaskSeed => ({ kind, title, links })
+const withReference = (seed: TaskSeed, reference: TaskReference): TaskSeed => ({ ...seed, reference })
 
 const LINKS = {
   coddy: 'https://coddy.tech/',
@@ -172,16 +174,16 @@ const weekSpecs: WeekSpec[] = [
     end: '2026-11-15',
     goal: 'Python syntax and the built-ins used in interviews. First 3 problems solved.',
     study: [
-      task('python', 'Coddy: variables, strings, lists', link('Coddy', LINKS.coddy)),
-      task('python', 'Coddy: dicts, sets, loops, functions', link('Coddy', LINKS.coddy)),
-      task('python', 'Watch Python for Coding Interviews (first half)', link('Video', LINKS.pyVideo)),
-      task('python', 'Watch Python for Coding Interviews (second half)', link('Video', LINKS.pyVideo)),
-      task('python', 'Rewrite from memory: heapq, deque, Counter, defaultdict, sorted(key=...)', link('collections', LINKS.pyCollections), link('heapq', LINKS.pyHeapq)),
+      withReference(task('python', 'Coddy: variables, strings, lists', link('Coddy', LINKS.coddy)), PYTHON_REFERENCES.basics),
+      withReference(task('python', 'Coddy: dicts, sets, loops, functions', link('Coddy', LINKS.coddy)), PYTHON_REFERENCES.collections),
+      withReference(task('python', 'Watch Python for Coding Interviews (first half)', link('Video', LINKS.pyVideo)), PYTHON_REFERENCES.basics),
+      withReference(task('python', 'Watch Python for Coding Interviews (second half)', link('Video', LINKS.pyVideo)), PYTHON_REFERENCES.interviewToolkit),
+      withReference(task('python', 'Rewrite from memory: heapq, deque, Counter, defaultdict, sorted(key=...)', link('collections', LINKS.pyCollections), link('heapq', LINKS.pyHeapq)), PYTHON_REFERENCES.interviewToolkit),
       task('python', 'Create NeetCode and LeetCode accounts', link('NeetCode', LINKS.neetcode), link('LeetCode', LINKS.leetcode)),
       ...problems('Arrays & Hashing', 0, 3),
     ],
-    saturday: [task('python', 'Python practice: 5 Coddy challenges', link('Coddy', LINKS.coddy))],
-    sunday: [askClaude('python', 'Quiz: Claude asks 10 questions on Python built-ins')],
+    saturday: [withReference(task('python', 'Python practice: 5 Coddy challenges', link('Coddy', LINKS.coddy)), PYTHON_REFERENCES.basics)],
+    sunday: [withReference(askClaude('python', 'Quiz: Claude asks 10 questions on Python built-ins'), PYTHON_REFERENCES.interviewToolkit)],
   },
 
   // Phase 1

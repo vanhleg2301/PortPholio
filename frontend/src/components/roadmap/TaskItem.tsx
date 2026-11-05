@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Check, ArrowUpRight } from 'lucide-react'
+import { Check, ArrowUpRight, BookOpen } from 'lucide-react'
+import { TheoryCard } from '@/components/roadmap/TheoryCard'
 import { cn } from '@/lib/utils'
 import { EASE_OUT, SPRING, listItem } from '@/lib/motion'
 import { TOPICS } from '@/data/roadmap/topics'
@@ -15,9 +17,12 @@ interface TaskItemProps {
   task: RoadmapTask
   isDone: boolean
   onToggle: (taskId: string, isDone: boolean) => void
+  showTheoryToggle?: boolean
 }
 
-export function TaskItem({ task, isDone, onToggle }: TaskItemProps) {
+export function TaskItem({ task, isDone, onToggle, showTheoryToggle = true }: TaskItemProps) {
+  const [isTheoryOpen, setIsTheoryOpen] = useState(false)
+
   return (
     <motion.li variants={listItem} className="flex items-start gap-3 py-3">
       <motion.button
@@ -80,8 +85,37 @@ export function TaskItem({ task, isDone, onToggle }: TaskItemProps) {
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </a>
             ))}
+            {showTheoryToggle && task.reference && (
+              <button
+                type="button"
+                onClick={() => setIsTheoryOpen((v) => !v)}
+                aria-expanded={isTheoryOpen}
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                  isTheoryOpen ? 'bg-sky-500/20 text-sky-700 dark:text-sky-300' : 'bg-sky-500/10 text-sky-700 dark:text-sky-300 hover:bg-sky-500/20'
+                )}
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                Theory
+              </button>
+            )}
           </div>
         )}
+        <AnimatePresence initial={false}>
+          {isTheoryOpen && task.reference && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.28, ease: EASE_OUT }}
+              className="overflow-hidden"
+            >
+              <div className="pt-3">
+                <TheoryCard reference={task.reference} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.li>
   )
