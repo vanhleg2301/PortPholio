@@ -12,6 +12,7 @@ import { EASE_OUT } from '@/lib/motion'
 import { NEETCODE_150_TOTAL } from '@/data/roadmap/neetcode'
 import { TOPICS } from '@/data/roadmap/topics'
 import { useRoadmapProgress } from '@/hooks/useRoadmapProgress'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatMinutes, useStudySessions } from '@/hooks/useStudySessions'
 
 const reveal = {
@@ -39,6 +40,7 @@ function SectionHeader({ num, title }: { num: string; title: string }) {
 }
 
 export default function JourneyPage() {
+  useDocumentTitle('Road to Big Tech · Hoang Cao Viet Anh')
   const today = getTodayIso()
   const { data: rows = [], isLoading } = useRoadmapProgress()
   const { data: sessions = [] } = useStudySessions()

@@ -16,6 +16,7 @@ import { PlanView } from '@/components/roadmap/PlanView'
 import { TodayView } from '@/components/roadmap/TodayView'
 import { NEETCODE_150_TOTAL } from '@/data/roadmap/neetcode'
 import { useOwnerSession } from '@/hooks/useOwnerSession'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useRoadmapNotes } from '@/hooks/useRoadmapNotes'
 import { useRoadmapProgress, useToggleTask } from '@/hooks/useRoadmapProgress'
 import { useRoadmapResources } from '@/hooks/useRoadmapResources'
@@ -52,6 +53,7 @@ function RollingValue({ value }: { value: string }) {
 }
 
 export default function RoadmapPage() {
+  useDocumentTitle('Road to Big Tech · Study plan')
   const today = getTodayIso()
   const [tab, setTab] = useState<RoadmapTab>('today')
   const [selectedDate, setSelectedDate] = useState(() => clampToPlan(today))
