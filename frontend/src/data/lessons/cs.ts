@@ -8,26 +8,31 @@ export const CS_LESSONS: Lesson[] = [
     id: 'net-latency-tcp',
     title: 'Latency, bandwidth and TCP',
     summary:
-      'Why the web feels slow even on fast connections: round trips, not bandwidth, dominate. Walk through what TCP and TLS do before your first byte arrives, and how slow start throttles every new connection.',
+      'Why the web feels slow even on a fast connection: the number of round trips matters more than bandwidth. See what TCP and TLS do before your first byte arrives, and how slow start holds back every new connection.',
     minutes: 60,
+    videos: [
+      { label: 'ByteByteGo: What happens when you type a URL into your browser?', url: 'https://www.youtube.com/watch?v=AlkDbnbv7dk' },
+      { label: 'Hussein Nasser: TCP vs UDP Crash Course', url: 'https://www.youtube.com/watch?v=qqRYkcta6IE' },
+      { label: 'Ben Eater: TCP connection walkthrough', url: 'https://www.youtube.com/watch?v=F27PLin3TV0' },
+    ],
     blocks: [
       {
         type: 'text',
         md: md(
           '## Two different numbers',
-          '- **Bandwidth**: how much data per second the pipe carries (e.g. 100 Mbit/s).',
-          '- **Latency**: how long one trip takes. The **round-trip time (RTT)** is there and back.',
+          '- [[bandwidth|**Bandwidth**]]: how much data the line carries per second (for example 100 Mbit/s).',
+          '- [[latency|**Latency**]]: how long one trip takes. The [[rtt|**round-trip time (RTT)**]] is the time to go there and come back.',
           '',
-          'For small transfers — most API calls and web pages — **latency dominates**. Doubling bandwidth barely helps a 20 KB response; halving the round trips does.',
+          'For small transfers — most API calls and web pages — **latency matters most**. Double the bandwidth, and a 20 KB response is almost as slow as before. Cut the round trips in half, and it is much faster.',
           '',
           'Latency has four parts:',
           '',
           '| Delay | Cause | You can reduce it by |',
           '| --- | --- | --- |',
-          '| Propagation | distance; light in fibre ≈ 200,000 km/s | moving servers closer (regions, CDN) |',
+          '| [[propagation delay|Propagation]] | distance; light in [[fiber|fibre]] ≈ 200,000 km/s | moving servers closer ([[region|regions]], [[cdn|CDN]]) |',
           '| Transmission | pushing bits onto the wire | more bandwidth, smaller payloads |',
           '| Processing | routers, your server | faster code, caching |',
-          '| Queuing | congestion | less traffic, better routing |',
+          '| Queuing | [[congestion]] | less traffic, better routing |',
         ),
       },
       {
@@ -49,11 +54,11 @@ for route, km in [("Hanoi - Singapore", 2_200), ("Hanoi - Frankfurt", 8_900), ("
         type: 'text',
         md: md(
           '## What happens before the first byte',
-          'A new HTTPS connection costs several round trips before any useful data flows:',
+          'A new HTTPS connection needs several round trips before any useful data moves:',
           '',
-          '1. **DNS** lookup (if not cached) — the name becomes an IP.',
-          '2. **TCP three-way handshake** — `SYN`, `SYN-ACK`, `ACK`: **1 RTT**.',
-          '3. **TLS handshake** — **1 RTT** with TLS 1.3 (2 with TLS 1.2).',
+          '1. [[dns|**DNS**]] lookup (if it is not [[cache|cached]]) — the name becomes an IP address.',
+          '2. **TCP three-way [[handshake]]** — `SYN`, `SYN-ACK`, `ACK`: **1 RTT**.',
+          '3. [[tls|**TLS**]] handshake — **1 RTT** with TLS 1.3 (2 with TLS 1.2).',
           '4. The HTTP request and the first bytes of the response — **1 RTT**.',
         ),
       },
@@ -77,13 +82,13 @@ for route, km in [("Hanoi - Singapore", 2_200), ("Hanoi - Frankfurt", 8_900), ("
       {
         type: 'text',
         md: md(
-          '## TCP keeps things reliable — at a price',
-          '- **Reliable and ordered**: lost packets are retransmitted, bytes arrive in order.',
-          '- **Flow control**: the receiver advertises how much it can buffer, so a fast sender can’t overwhelm it.',
-          '- **Congestion control / slow start**: a new connection starts with a small window (about **10 packets ≈ 14 KB**) and **doubles it every round trip** until it hits loss or the limit. A fresh connection is therefore slow, even on a fast link.',
-          '- **Head-of-line blocking**: one lost packet holds back everything behind it, because TCP delivers bytes in order. HTTP/3 moves to QUIC over UDP partly to avoid this.',
+          '## TCP is reliable — but it has a cost',
+          '- **Reliable and in order**: if a [[packet]] is lost, TCP sends it again ([[retransmission]]). Bytes always arrive in the right order.',
+          '- [[flow control|**Flow control**]]: the receiver says how much data it can hold in its [[buffer]], so a fast sender cannot flood it.',
+          '- [[congestion control|**Congestion control**]] and [[slow start|**slow start**]]: a new connection starts with a small [[congestion window|window]] (about **10 packets ≈ 14 KB**). It **doubles the window every round trip** until a packet is lost or it reaches the limit. So a new connection is slow, even on a fast line.',
+          '- [[head-of-line blocking|**Head-of-line blocking**]]: one lost packet holds back everything behind it, because TCP must deliver bytes in order. This is one reason why HTTP/3 uses [[quic|QUIC]] over UDP.',
           '',
-          'The practical lesson: **reuse connections** (keep-alive, connection pools) and **cut round trips** (batch requests, cache, put servers close to users).',
+          'What this means in practice: **reuse connections** ([[keep-alive]], [[connection pool|connection pools]]) and **cut round trips** (batch requests, [[cache]], put servers close to users).',
         ),
       },
       {
@@ -108,7 +113,7 @@ for size in [10, 50, 200, 1_000]:
       {
         type: 'callout',
         tone: 'interview',
-        md: 'For “what happens when you type a URL?” or “why is this slow?”, **count the round trips** (DNS + TCP + TLS + request) and multiply by the RTT. That one calculation makes the answer concrete.',
+        md: 'For “What happens when you type a URL?” or “Why is this slow?”, **count the round trips** (DNS + TCP + TLS + request) and multiply by the RTT. This one sum makes your answer clear and concrete.',
       },
       {
         type: 'exercise',

@@ -1,13 +1,15 @@
-import { useState, type ReactNode } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, ArrowUpRight, Check, Clock, Info, Lightbulb, Target, TriangleAlert, type LucideIcon } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { ArrowLeft, ArrowUpRight, Check, ClipboardCheck, Clock, Info, Languages, Lightbulb, PlayCircle, Target, TriangleAlert, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CodeCell } from '@/components/learn/CodeCell'
+import { InlineText } from '@/components/learn/InlineText'
+import { Reveal } from '@/components/learn/Reveal'
 import { MermaidDiagram } from '@/components/learn/MermaidDiagram'
 import { MarkdownPreview } from '@/components/roadmap/MarkdownPreview'
 import { QuizItem } from '@/components/roadmap/TheoryCard'
-import { EASE_OUT, listContainer, listItem } from '@/lib/motion'
-import { getExerciseIds } from '@/data/lessons'
+import { listContainer, listItem } from '@/lib/motion'
+import { getExerciseIds, getLessonTerms } from '@/data/lessons'
+import { GLOSSARY } from '@/data/lessons/glossary'
 import type { CalloutTone, Lesson, LessonBlock } from '@/data/lessons/types'
 
 const CALLOUT: Record<CalloutTone, { icon: LucideIcon; label: string; className: string }> = {
@@ -22,41 +24,17 @@ interface LessonViewProps {
   passed: Set<string>
   savedCode: Map<string, string>
   isTaskDone: boolean | null
+  // The lesson's test is not passed yet, so the task cannot be ticked from here.
+  isTestPending: boolean
+  onOpenTest: () => void
   onBack: () => void
   onToggleDone: (isDone: boolean) => void
   onSaveCode: (key: string, code: string) => void
   onPassed: (itemId: string) => void
 }
 
-function Reveal({ label, children }: { label: string; children: ReactNode }) {
-  const [isOpen, setIsOpen] = useState(false)
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setIsOpen((v) => !v)}
-        className="rounded-full bg-foreground/[0.06] px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-foreground/[0.12] hover:text-foreground transition-colors"
-      >
-        {isOpen ? `Hide ${label.toLowerCase()}` : label}
-      </button>
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.22, ease: EASE_OUT }}
-            className="overflow-hidden"
-          >
-            <div className="pt-2">{children}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
-
-export function LessonView({ lesson, isOwner, passed, savedCode, isTaskDone, onBack, onToggleDone, onSaveCode, onPassed }: LessonViewProps) {
+export function LessonView({ lesson, isOwner, passed, savedCode, isTaskDone, isTestPending, onOpenTest, onBack, onToggleDone, onSaveCode, onPassed }: LessonViewProps) {
+  const terms = getLessonTerms(lesson).filter((key) => GLOSSARY[key])
   const exerciseIds = getExerciseIds(lesson)
   const passedCount = exerciseIds.filter((id) => passed.has(`${lesson.id}:${id}`)).length
   const codeKey = (blockId: string) => `${lesson.id}:${blockId}`
@@ -64,7 +42,7 @@ export function LessonView({ lesson, isOwner, passed, savedCode, isTaskDone, onB
   function renderBlock(block: LessonBlock) {
     switch (block.type) {
       case 'text':
-        return <MarkdownPreview content={block.md} />
+        return <MarkdownPreview content={block.md} withGlossary />
       case 'callout': {
         const style = CALLOUT[block.tone]
         return (
@@ -73,7 +51,7 @@ export function LessonView({ lesson, isOwner, passed, savedCode, isTaskDone, onB
               <style.icon className="h-3.5 w-3.5" /> {style.label}
             </p>
             <div className="text-foreground">
-              <MarkdownPreview content={block.md} />
+              <MarkdownPreview content={block.md} withGlossary />
             </div>
           </div>
         )
@@ -98,7 +76,7 @@ export function LessonView({ lesson, isOwner, passed, savedCode, isTaskDone, onB
             <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Exercise</p>
             <h3 className="mt-1 font-display text-lg font-bold">{block.title}</h3>
             <div className="mt-1 mb-3">
-              <MarkdownPreview content={block.prompt} />
+              <MarkdownPreview content={block.prompt} withGlossary />
             </div>
             <CodeCell
               label="Your solution"
@@ -160,13 +138,57 @@ export function LessonView({ lesson, isOwner, passed, savedCode, isTaskDone, onB
         </p>
         <h1 className="mt-1 font-display text-3xl font-bold leading-tight">{lesson.title}</h1>
         <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{lesson.summary}</p>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Words with a <span className="underline decoration-sky-500/70 decoration-dotted decoration-2 underline-offset-4">dotted line</span> are technical terms — tap one to see what it means.
+        </p>
       </motion.div>
+
+      {lesson.videos && lesson.videos.length > 0 && (
+        <motion.div variants={listItem} className="mt-6">
+          <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            <PlayCircle className="h-3.5 w-3.5" /> Best videos
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {lesson.videos.map((v) => (
+              <a
+                key={v.url}
+                href={v.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-500/20 dark:text-red-300 transition-colors"
+              >
+                <PlayCircle className="h-3.5 w-3.5" /> {v.label}
+              </a>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {lesson.blocks.map((block, i) => (
         <motion.div key={i} variants={listItem} className="mt-6">
           {renderBlock(block)}
         </motion.div>
       ))}
+
+      {terms.length > 0 && (
+        <motion.section variants={listItem} className="mt-10 border-t border-border pt-6">
+          <p className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            <Languages className="h-3.5 w-3.5" /> Words in this lesson
+          </p>
+          <dl className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
+            {terms.map((key) => (
+              <div key={key} className="text-sm">
+                <dt className="font-semibold">
+                  {key} <span className="font-normal text-muted-foreground">· {GLOSSARY[key].vi}</span>
+                </dt>
+                <dd className="text-muted-foreground">
+                  <InlineText text={GLOSSARY[key].en} />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </motion.section>
+      )}
 
       <motion.footer variants={listItem} className="mt-10 border-t border-border pt-6">
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Further reading</p>
@@ -184,7 +206,16 @@ export function LessonView({ lesson, isOwner, passed, savedCode, isTaskDone, onB
           ))}
         </div>
 
-        {isTaskDone !== null && (
+        {isTaskDone === false && isTestPending ? (
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.98 }}
+            onClick={onOpenTest}
+            className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 py-3.5 text-sm font-semibold text-white hover:bg-violet-600/85 transition-colors"
+          >
+            <ClipboardCheck className="h-4 w-4" /> Take the day test to finish this lesson
+          </motion.button>
+        ) : isTaskDone !== null && (
           <motion.button
             type="button"
             whileTap={{ scale: 0.98 }}

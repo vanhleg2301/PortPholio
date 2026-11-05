@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { format, parseISO } from 'date-fns'
-import { Lock, Timer } from 'lucide-react'
+import { CalendarCheck, CircleCheck, Lock, Timer } from 'lucide-react'
+import { ChoiceTest } from '@/components/learn/ChoiceTest'
+import { LessonTestCard } from '@/components/learn/LessonTestCard'
+import { LESSON_BY_ID, LESSON_TESTS, isLessonTestPassed } from '@/data/lessons'
+import { WEEK_TEST_LESSON, WEEK_TEST_SIZE, getTestedLessonIds, getWeekTestQuestions, isTaskLocked, isWeekTestPassed } from '@/lib/testGate'
 import { DayNotes } from '@/components/roadmap/DayNotes'
 import { ResourceList } from '@/components/roadmap/ResourceList'
 import { TaskItem } from '@/components/roadmap/TaskItem'
@@ -37,6 +41,11 @@ interface TodayViewProps {
   onOpenLesson: (task: RoadmapTask) => void
   // On desktop the week list and the notes/resources live in side columns.
   isDesktop: boolean
+  // "lessonId:itemId" keys of passed exercises and test parts.
+  passed: Set<string>
+  savedCode: Map<string, string>
+  onSaveCode: (key: string, code: string) => void
+  onTestPassed: (lessonId: string, itemId: string) => void
 }
 
 function SectionTitle({ children }: { children: string }) {
@@ -61,6 +70,10 @@ export function TodayView({
   focusMinutes,
   onOpenLesson,
   isDesktop,
+  passed,
+  savedCode,
+  onSaveCode,
+  onTestPassed,
 }: TodayViewProps) {
   const day = DAY_BY_DATE.get(date)
   const week = getWeekForDate(date)
@@ -72,6 +85,10 @@ export function TodayView({
   const pendingReviews = reviews.filter((r) => !r.completed_at)
   const scheduledTaskIds = new Set(pendingReviews.map((r) => r.task_id))
   const dueReviews = pendingReviews.filter((r) => (date === today ? r.due_date <= today : r.due_date === date))
+  const testedLessonIds = getTestedLessonIds(tasks)
+  const passedTests = testedLessonIds.filter((id) => isLessonTestPassed(id, passed)).length
+  const hasWeekTest = Boolean(week) && tasks.some((t) => t.isWeekTest)
+  const weekTestQuestions = week && hasWeekTest ? getWeekTestQuestions(week) : []
   const references = [...new Map(tasks.flatMap((t) => (t.reference ? [[t.reference.title, t.reference] as const] : []))).values()]
 
   // Slide direction follows the calendar: later day comes in from the right.
@@ -140,11 +157,67 @@ export function TodayView({
                     isReviewScheduled={scheduledTaskIds.has(task.id)}
                     onToggleReview={isOwner && task.difficulty ? () => onToggleReview(task, scheduledTaskIds.has(task.id)) : undefined}
                     onOpenLesson={onOpenLesson}
+                    isLocked={isOwner && isTaskLocked(task, passed)}
                   />
                 ))}
               </motion.ul>
             )}
           </motion.section>
+
+          {testedLessonIds.length > 0 && (
+            <motion.section variants={section} layout="position" id="day-test" className="scroll-mt-20">
+              <SectionTitle>{`Day test · ${isOwner ? `${passedTests}/${testedLessonIds.length} passed` : `${testedLessonIds.length}`}`}</SectionTitle>
+              <p className="mb-3 text-sm text-muted-foreground">
+                Study the lessons first, then test yourself here. A lesson can be ticked only after its test is passed.
+              </p>
+              <div className="flex flex-col gap-3">
+                {testedLessonIds.map((id, i) => {
+                  const lesson = LESSON_BY_ID.get(id)
+                  if (!lesson) return null
+                  return (
+                    <LessonTestCard
+                      key={id}
+                      lesson={lesson}
+                      test={LESSON_TESTS[id]}
+                      isOwner={isOwner}
+                      passed={passed}
+                      savedCode={savedCode}
+                      isOpenByDefault={i === 0 && !isLessonTestPassed(id, passed)}
+                      onSaveCode={onSaveCode}
+                      onPassed={(itemId) => onTestPassed(id, itemId)}
+                    />
+                  )
+                })}
+              </div>
+            </motion.section>
+          )}
+
+          {week && weekTestQuestions.length > 0 && (
+            <motion.section variants={section} layout="position" id="day-test" className="scroll-mt-20">
+              <SectionTitle>Week test</SectionTitle>
+              <div className="rounded-2xl border border-violet-500/30 bg-violet-500/[0.04] p-4">
+                <p className="flex items-center gap-2 font-semibold">
+                  {isWeekTestPassed(week.id, passed) ? (
+                    <CircleCheck className="h-5 w-5 text-emerald-500" />
+                  ) : (
+                    <CalendarCheck className="h-5 w-5 text-violet-500" />
+                  )}
+                  {Math.min(WEEK_TEST_SIZE, weekTestQuestions.length)} mixed questions from {week.label}
+                </p>
+                <p className="mt-1 mb-4 text-sm text-muted-foreground">
+                  New questions are drawn at random on every attempt. Try it without opening the lessons — that is how memory gets stronger.
+                </p>
+                <ChoiceTest
+                  questions={weekTestQuestions}
+                  sampleSize={WEEK_TEST_SIZE}
+                  isPassed={isWeekTestPassed(week.id, passed)}
+                  onPass={() => {
+                    if (isOwner) onTestPassed(WEEK_TEST_LESSON, week.id)
+                  }}
+                />
+              </div>
+            </motion.section>
+          )}
 
           {references.length > 0 && (
             <motion.section variants={section} layout="position">

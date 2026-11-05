@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Check, ArrowUpRight, BookOpen, CalendarClock, GraduationCap, RotateCcw } from 'lucide-react'
+import { Check, ArrowUpRight, BookOpen, CalendarClock, GraduationCap, Lock, RotateCcw } from 'lucide-react'
 import { TheoryCard } from '@/components/roadmap/TheoryCard'
 import { cn } from '@/lib/utils'
 import { EASE_OUT, SPRING, listItem } from '@/lib/motion'
@@ -22,9 +22,12 @@ interface TaskItemProps {
   isReviewScheduled?: boolean
   onToggleReview?: () => void
   onOpenLesson?: (task: RoadmapTask) => void
+  // Lesson / week-test tasks stay locked until their in-app test is passed.
+  isLocked?: boolean
 }
 
-export function TaskItem({ task, isDone, onToggle, showTheoryToggle = true, isReviewScheduled = false, onToggleReview, onOpenLesson }: TaskItemProps) {
+export function TaskItem({ task, isDone, onToggle, showTheoryToggle = true, isReviewScheduled = false, onToggleReview, onOpenLesson, isLocked = false }: TaskItemProps) {
+  const showLock = isLocked && !isDone
   const [isTheoryOpen, setIsTheoryOpen] = useState(false)
 
   return (
@@ -43,9 +46,11 @@ export function TaskItem({ task, isDone, onToggle, showTheoryToggle = true, isRe
           transition={{ duration: 0.3, ease: EASE_OUT }}
           className={cn(
             'h-6 w-6 rounded-md border-[1.5px] flex items-center justify-center transition-colors duration-200',
-            isDone ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-foreground/30 hover:border-foreground'
+            isDone ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-foreground/30 hover:border-foreground',
+            showLock && 'border-dashed text-muted-foreground'
           )}
         >
+          {showLock && <Lock className="h-3 w-3" />}
           <AnimatePresence initial={false}>
             {isDone && (
               <motion.span
@@ -75,6 +80,7 @@ export function TaskItem({ task, isDone, onToggle, showTheoryToggle = true, isRe
         <p className={cn('text-[15px] leading-snug mt-0.5 transition-colors duration-300', isDone && 'text-muted-foreground line-through decoration-foreground/30')}>
           {task.title}
         </p>
+        {showLock && <p className="mt-0.5 text-xs text-muted-foreground">{task.isWeekTest ? 'Pass the week test below to tick this.' : 'Pass the day test below to tick this.'}</p>}
         {(task.links.length > 0 || (task.lessonId && onOpenLesson)) && (
           <div className="flex flex-wrap gap-2 mt-2">
             {task.lessonId && onOpenLesson && (

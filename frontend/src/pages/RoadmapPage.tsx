@@ -8,7 +8,8 @@ import { FocusSheet } from '@/components/roadmap/FocusSheet'
 import { DesktopSidebar } from '@/components/roadmap/DesktopSidebar'
 import { SidePanel } from '@/components/roadmap/SidePanel'
 import { LessonView } from '@/components/learn/LessonView'
-import { LESSON_BY_ID } from '@/data/lessons'
+import { LESSON_BY_ID, LESSON_TESTS, isLessonTestPassed } from '@/data/lessons'
+import { WEEK_TEST_LESSON, isTaskLocked } from '@/lib/testGate'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { useLessonProgress, useMarkExercisePassed, useSaveCode, useSavedCode } from '@/hooks/useLessonData'
 import { formatClock, useFocusTimer } from '@/hooks/useFocusTimer'
@@ -97,6 +98,8 @@ export default function RoadmapPage() {
   const lessonTaskId = lessonTask?.title.startsWith('Lesson:') ? lessonTask.id : null
 
   const doneIds = useMemo(() => new Set(rows.map((r) => r.task_id)), [rows])
+  const passedItems = useMemo(() => lessonProgress.data ?? new Set<string>(), [lessonProgress.data])
+  const savedCode = useMemo(() => savedCodeQuery.data ?? new Map<string, string>(), [savedCodeQuery.data])
   const activity = useMemo(() => getActivityDates(rows.map((r) => r.completed_at)), [rows])
   const overall = toPercent(getProgress(ALL_TASKS, doneIds))
   const solved = getNeetCodeSolved(doneIds)
@@ -124,7 +127,38 @@ export default function RoadmapPage() {
       setIsAccountOpen(true)
       return
     }
+    const task = ALL_TASKS.find((t) => t.id === taskId)
+    if (isDone && task && isTaskLocked(task, passedItems)) {
+      setToast(task.isWeekTest ? 'Pass the week test first' : 'Pass the day test first')
+      goToTest(taskId.slice(0, 10))
+      return
+    }
     toggle.mutate({ taskId, isDone }, { onError: (err) => setToast(`Save failed: ${err.message}`) })
+  }
+
+  // Opens the Today page of `date` and scrolls to its test section.
+  function goToTest(date: string) {
+    if (lesson) navigate('/roadmap')
+    setTab('today')
+    setSelectedDate(date)
+    setTimeout(() => document.getElementById('day-test')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 450)
+  }
+
+  function handleTestPassed(lessonId: string, itemId: string) {
+    markPassed.mutate(
+      { lessonId, itemId },
+      {
+        onError: (err) => setToast(`Could not save: ${err.message}`),
+        onSuccess: () => {
+          if (lessonId === WEEK_TEST_LESSON) {
+            setToast('Week test passed — you can tick it now')
+            return
+          }
+          const next = new Set(passedItems).add(`${lessonId}:${itemId}`)
+          setToast(isLessonTestPassed(lessonId, next) ? 'Test passed — you can tick the lesson now' : 'Part passed')
+        },
+      }
+    )
   }
 
   function handleToggleReview(task: RoadmapTask, isScheduled: boolean) {
@@ -309,9 +343,13 @@ export default function RoadmapPage() {
                 <LessonView
                   lesson={lesson}
                   isOwner={isOwner}
-                  passed={lessonProgress.data ?? new Set<string>()}
-                  savedCode={savedCodeQuery.data ?? new Map<string, string>()}
+                  passed={passedItems}
+                  savedCode={savedCode}
                   isTaskDone={lessonTaskId ? doneIds.has(lessonTaskId) : null}
+                  isTestPending={isOwner && Boolean(LESSON_TESTS[lesson.id]) && !isLessonTestPassed(lesson.id, passedItems)}
+                  onOpenTest={() => {
+                    if (lessonTaskId) goToTest(lessonTaskId.slice(0, 10))
+                  }}
                   onBack={closeLesson}
                   onToggleDone={(isDone) => {
                     if (lessonTaskId) handleToggle(lessonTaskId, isDone)
@@ -344,6 +382,10 @@ export default function RoadmapPage() {
             focusMinutes={minutesByDay.get(selectedDate) ?? 0}
             onOpenLesson={openLesson}
             isDesktop={isDesktop}
+            passed={passedItems}
+            savedCode={savedCode}
+            onSaveCode={handleSaveCode}
+            onTestPassed={handleTestPassed}
           />
         )}
         {tab === 'plan' && (

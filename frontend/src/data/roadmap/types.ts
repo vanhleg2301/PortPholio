@@ -41,6 +41,8 @@ export interface TaskSeed {
   reference?: TaskReference
   // In-app lesson that teaches this task (data/lessons).
   lessonId?: string
+  // Ticked only after the in-app week test (mixed questions from the week's lessons) is passed.
+  isWeekTest?: boolean
 }
 
 export interface RoadmapTask extends TaskSeed {

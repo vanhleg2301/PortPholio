@@ -2,28 +2,37 @@ import type { Lesson } from './types'
 
 const md = (...lines: string[]) => lines.join('\n')
 const TIH = 'https://www.techinterviewhandbook.org/algorithms'
+const yt = (label: string, id: string) => ({ label, url: `https://www.youtube.com/watch?v=${id}` })
 
 export const DSA_LESSONS: Lesson[] = [
   {
     id: 'dsa-arrays-hashing',
     title: 'Arrays & Hashing',
     summary:
-      'The first optimisation for almost every array problem: remember what you have seen in a hash map so each element is answered in O(1). Plus the two array tricks this week needs — prefix/suffix products and length-prefixed encoding.',
+      'The first way to speed up almost every array problem: remember what you have seen in a hash map, so you can answer for each item in O(1). Plus two array tricks you need this week: prefix/suffix products and length-prefixed encoding.',
     minutes: 60,
+    videos: [
+      yt('NeetCode: Group Anagrams', 'vzdNOK2oB2E'),
+      yt('NeetCode: Top K Frequent Elements (bucket sort)', 'YPTqKIgVk-k'),
+      yt('NeetCode: Encode and Decode Strings', 'B1k_sxOSgv8'),
+      yt('NeetCode: Product of Array Except Self', 'bNvIQI2wAjk'),
+      yt('NeetCode: Valid Sudoku', 'TjFXEUCMqI8'),
+      yt('NeetCode: Longest Consecutive Sequence', 'P6RZZMu_maU'),
+    ],
     blocks: [
       {
         type: 'text',
         md: md(
           '## The core move: trade memory for time',
-          'A brute-force answer usually compares every pair — two nested loops, **O(n²)**. If you can phrase the question as *“have I already seen what I need?”*, a hash map (dict) or set answers it in **O(1)**, so one pass is enough: **O(n) time for O(n) memory**.',
+          'A [[brute force]] answer usually compares every pair — two loops inside each other, **O(n²)**. If you can ask the question as *“have I already seen what I need?”*, a [[hash map]] (dict) or set answers it in **O(1)**. Then one pass is enough: **O(n) time, but O(n) memory**. This is a [[trade-off]]: you pay with memory to save time.',
           '',
           'The real skill is choosing **what to use as the key**:',
           '',
           '| Question | Key | Example |',
           '| --- | --- | --- |',
           '| Seen this value before? | the value (a set) | Contains Duplicate |',
-          '| Seen the number I need? | the complement `target - x` | Two Sum |',
-          '| Which items belong together? | a canonical form | Group Anagrams |',
+          '| Seen the number I need? | the [[complement]] `target - x` | Two Sum |',
+          '| Which items belong together? | a [[canonical form]] | Group Anagrams |',
           '| How often does it appear? | value → count | Top K Frequent |',
         ),
       },
@@ -43,9 +52,9 @@ export const DSA_LESSONS: Lesson[] = [
         type: 'text',
         md: md(
           '## Canonical keys: grouping things that “look the same”',
-          'Anagrams contain the same letters, so give every word the same **key**: its sorted letters (`"eat" → "aet"`), or a tuple of 26 letter counts. Then group with a `defaultdict(list)`.',
+          '[[anagram|Anagrams]] have the same letters, so give each of them the same **key**: its sorted letters (`"eat" → "aet"`), or a tuple of 26 letter counts. Then group with a `defaultdict(list)`.',
           '',
-          'Sorting each word costs O(k log k); counting letters costs O(k). With n words that is O(n·k log k) or O(n·k).',
+          'Sorting each word costs O(k log k). Counting its letters costs O(k). With n words, that is O(n·k log k) or O(n·k).',
         ),
       },
       {
@@ -68,7 +77,7 @@ print(list(groups.values()))           # [['eat', 'tea', 'ate'], ['tan', 'nat'],
         type: 'text',
         md: md(
           '## Bucket sort: top-k in O(n)',
-          'Sorting counts costs O(n log n). But a count can never exceed n, so make **buckets indexed by count**: `buckets[c]` holds every value that appears `c` times. Walking the buckets from high to low gives the most frequent values first — O(n) overall.',
+          'Sorting the counts costs O(n log n). But a count can never be bigger than n. So make a list of **buckets, one for each count**: `buckets[c]` holds every value that appears `c` times. Walk the buckets from high to low and you get the most frequent values first — O(n) in total. This is [[bucket sort]].',
         ),
       },
       {
@@ -86,7 +95,7 @@ print(buckets)                         # [[], [3], [2], [1], [], [], []]`,
         type: 'text',
         md: md(
           '## Prefix and suffix passes',
-          '“Product of everything except index i” without division: the answer is *(product of everything left of i) × (product of everything right of i)*. One left-to-right pass collects the left products, one right-to-left pass multiplies in the right products — O(n) time, O(1) extra space besides the output.',
+          '“Product of everything except index i”, without division: the answer is *(product of everything left of i) × (product of everything right of i)*. One pass from left to right collects the left products (the [[prefix]]). One pass from right to left multiplies in the right products (the [[suffix]]). O(n) time, and O(1) extra memory apart from the output.',
           '',
           '| i | 0 | 1 | 2 | 3 |',
           '| --- | --- | --- | --- | --- |',
@@ -99,7 +108,7 @@ print(buckets)                         # [[], [3], [2], [1], [], [], []]`,
       {
         type: 'callout',
         tone: 'interview',
-        md: 'State the trade-off before coding: *“Brute force is O(n²). With a hash map it is O(n) time and O(n) memory.”* Then expect the follow-up “can you use less memory?” — the answer is usually sorting first.',
+        md: 'Say the trade-off before you code: *“Brute force is O(n²). With a hash map it is O(n) time and O(n) memory.”* Then expect the next question: “Can you use less memory?” The answer is usually: sort first.',
       },
       {
         type: 'exercise',
@@ -154,7 +163,7 @@ def top_k_frequent(nums, k):
         type: 'exercise',
         id: 'encode-decode',
         title: 'Encode and Decode Strings',
-        prompt: 'Turn a list of strings into one string and back. Strings may contain **any** character, including `#` and digits, so a plain separator breaks. Use a **length prefix**: `"4#lint"`.',
+        prompt: 'Turn a list of strings into one string, and back again. The strings can contain **any** character, also `#` and digits, so a simple [[delimiter|separator]] does not work. Put the **length in front** of each string: `"4#lint"`.',
         starter: `def encode(strs):
     # your code here
     pass
@@ -254,7 +263,7 @@ def is_valid_sudoku(board):
         tests: `assert longest_consecutive([100, 4, 200, 1, 3, 2]) == 4
 assert longest_consecutive([0, 3, 7, 2, 5, 8, 4, 6, 0, 1]) == 9
 assert longest_consecutive([]) == 0`,
-        hint: 'Put everything in a set. Only start counting at `x` when `x - 1` is not in the set — then each run is walked once.',
+        hint: 'Put everything in a set. Only start counting at `x` when `x - 1` is not in the set. Then you walk each run only once.',
         solution: `def longest_consecutive(nums):
     values = set(nums)
     best = 0

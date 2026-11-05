@@ -3,36 +3,38 @@ import type { Lesson } from './types'
 const PY = 'https://docs.python.org/3'
 const md = (...lines: string[]) => lines.join('\n')
 const CODDY = { label: 'Coddy — extra practice', url: 'https://coddy.tech/' }
+const yt = (label: string, id: string) => ({ label, url: `https://www.youtube.com/watch?v=${id}` })
 
 export const PYTHON_LESSONS: Lesson[] = [
   {
     id: 'py-variables',
     title: 'Variables, numbers and types',
-    summary: 'Names point at objects; objects carry their type. Learn the four basic types, Python’s arithmetic and the aliasing rule that causes half of all beginner bugs.',
+    summary: 'A variable is a name that points to an object, and the object knows its own type. Learn the four basic types, how Python does maths, and one rule about shared objects that causes many beginner bugs.',
     minutes: 35,
+    videos: [yt('Corey Schafer: Integers and Floats (20 min)', 'khKv-8q7YmY')],
     blocks: [
       {
         type: 'text',
         md: md(
           '## Names point at objects',
-          'In Python a variable is **a name bound to an object**, not a box that contains a value. `x = 5` creates an `int` object and sticks the label `x` on it.',
+          'In Python, a variable is **a name that points to an [[object]]**. It is not a box with a value inside. `x = 5` makes an `int` object and puts the label `x` on it.',
           '',
-          'The **type belongs to the object**, not to the name. That is why the same name can later point at a string — Python is *dynamically typed*.',
+          'The **type belongs to the object**, not to the name. So the same name can point to a string later. We say Python is [[dynamically typed]].',
           '',
-          'The four basic types you will use every day:',
+          'You will use these four basic types every day:',
           '',
           '| Type | Example | Notes |',
           '| --- | --- | --- |',
-          '| `int` | `42`, `-7`, `10**18` | whole numbers, **never overflow** |',
-          '| `float` | `3.14`, `1e-9` | decimals, *approximate* |',
-          '| `str` | `"hello"` | text, immutable |',
-          '| `bool` | `True`, `False` | result of comparisons |',
+          '| `int` | `42`, `-7`, `10**18` | whole numbers, **never [[overflow]]** |',
+          '| `float` | `3.14`, `1e-9` | decimal numbers, *not exact* |',
+          '| `str` | `"hello"` | text, [[immutable]] |',
+          '| `bool` | `True`, `False` | the result of a comparison |',
         ),
       },
       {
         type: 'code',
         id: 'types',
-        caption: 'Run it, then change the values and run again.',
+        caption: 'Run it. Then change the values and run it again.',
         code: `x = 5
 price = 19.99
 name = "An"
@@ -47,16 +49,16 @@ print(int("42") + 1, str(42) + "!", float("3.5"))      # 43 42! 3.5`,
       {
         type: 'text',
         md: md(
-          '## Arithmetic you will use in interviews',
-          '- `/` always gives a float; `//` is **floor** division (rounds down, even for negatives).',
-          '- `%` is the remainder: `n % 2 == 0` tests even numbers, `n % 10` is the last digit.',
-          '- `divmod(a, b)` returns `(a // b, a % b)` in one go.',
-          '- Never compare floats with `==` — compare with a tolerance (`abs(a - b) < 1e-9`).',
+          '## Maths you will use in interviews',
+          '- `/` always gives a float. `//` is [[floor division]]: it rounds **down**, also for negative numbers.',
+          '- `%` gives the [[remainder]]. `n % 2 == 0` checks for even numbers. `n % 10` is the last digit.',
+          '- `divmod(a, b)` gives `(a // b, a % b)` in one step.',
+          '- Never compare floats with `==`. Check that the difference is very small instead (`abs(a - b) < 1e-9`). This small number is called a [[tolerance]].',
         ),
       },
       {
         type: 'diagram',
-        caption: 'Two names, one list: changing it through b is visible through a.',
+        caption: 'Two names, one list: if you change it through b, you also see the change through a.',
         mermaid: `flowchart LR
   a([a]) --> L["list object: [1, 2, 3, 4]"]
   b([b]) --> L
@@ -74,14 +76,24 @@ print(c)         # [1, 2, 3]
 print(a is b, a is c, a == c + [4])   # True False True`,
       },
       {
+        type: 'text',
+        md: md(
+          '## `is` or `==`?',
+          '- `==` asks: **do they have the same value?**',
+          '- `is` asks: **are they the same object?** Use it mainly for `x is None`.',
+          '',
+          'Two names for one object is called [[aliasing]]. It is safe with immutable objects, because nobody can change them. It is risky with [[mutable]] objects.',
+        ),
+      },
+      {
         type: 'callout',
         tone: 'warning',
-        md: 'Mutable objects (`list`, `dict`, `set`) can change in place, so every name pointing at them sees the change. Immutable ones (`int`, `float`, `str`, `tuple`) can’t — “changing” them creates a new object.',
+        md: 'Mutable objects (`list`, `dict`, `set`) can change **in place**, so every name that points to them sees the change. Immutable objects (`int`, `float`, `str`, `tuple`) cannot change. When you “change” them, Python makes a new object.',
       },
       {
         type: 'callout',
         tone: 'interview',
-        md: 'Python `int` has arbitrary precision: `2 ** 100` just works. In Java/C++ the same code overflows — mention it when an interviewer asks about integer limits.',
+        md: 'A Python `int` has [[arbitrary precision]]: `2 ** 100` just works. In Java or C++ the same code would overflow. Say this when an interviewer asks about integer limits.',
       },
       {
         type: 'exercise',
@@ -95,7 +107,7 @@ print(a is b, a is c, a == c + [4])   # True False True`,
 assert minutes_to_hm(0) == (0, 0)
 assert minutes_to_hm(59) == (0, 59)
 assert minutes_to_hm(600) == (10, 0)`,
-        hint: 'Hours are how many whole 60s fit; minutes are what is left over.',
+        hint: 'Hours = how many full 60s fit in the number. Minutes = what is left.',
         solution: `def minutes_to_hm(total):
     return divmod(total, 60)`,
       },
@@ -103,7 +115,7 @@ assert minutes_to_hm(600) == (10, 0)`,
         type: 'exercise',
         id: 'last-digit-sum',
         title: 'Sum of digits',
-        prompt: 'Return the sum of the digits of a non-negative integer, using `% 10` and `// 10` (no strings).',
+        prompt: 'Return the sum of the digits of a non-negative integer. Use `% 10` and `// 10` (no strings).',
         starter: `def digit_sum(n):
     # your code here
     pass`,
@@ -111,7 +123,7 @@ assert minutes_to_hm(600) == (10, 0)`,
 assert digit_sum(7) == 7
 assert digit_sum(1234) == 10
 assert digit_sum(10 ** 20) == 1`,
-        hint: 'Loop while n > 0: add n % 10, then drop the last digit with n //= 10.',
+        hint: 'Loop while n > 0: add n % 10, then remove the last digit with n //= 10.',
         solution: `def digit_sum(n):
     total = 0
     while n > 0:
@@ -124,7 +136,7 @@ assert digit_sum(10 ** 20) == 1`,
         items: [
           { question: 'What do `7 // 2` and `-7 // 2` give?', answer: '`3` and `-4`: floor division always rounds down.' },
           { question: '`a = [1]; b = a; b.append(2)` — what is `a`?', answer: '`[1, 2]`: `a` and `b` are two names for the same list.' },
-          { question: 'Why is `0.1 + 0.2 == 0.3` False?', answer: 'Floats are stored in binary and are approximate; compare with a tolerance instead.' },
+          { question: 'Why is `0.1 + 0.2 == 0.3` False?', answer: 'Floats are stored in binary, so they are not exact. Compare with a tolerance instead.' },
         ],
       },
     ],
@@ -137,21 +149,22 @@ assert digit_sum(10 ** 20) == 1`,
   {
     id: 'py-strings',
     title: 'Strings',
-    summary: 'Strings are immutable sequences of characters. Indexing, slicing and a dozen methods solve most string problems — and joining beats concatenating in loops.',
+    summary: 'A string is an immutable sequence of characters. Indexing, slicing and about ten methods solve most string problems. And join() is much faster than adding strings in a loop.',
     minutes: 35,
+    videos: [yt('Corey Schafer: Strings (22 min)', 'k9TUPpGqYTo')],
     blocks: [
       {
         type: 'text',
         md: md(
           '## Indexing and slicing',
-          'A string is a sequence: every character has an index from `0`, and negative indexes count from the end.',
+          'A string is a [[sequence]]. Every character has an [[index]] that starts at `0`. Negative indexes count from the end.',
           '',
           '| `s = "python"` | p | y | t | h | o | n |',
           '| --- | --- | --- | --- | --- | --- | --- |',
           '| index | 0 | 1 | 2 | 3 | 4 | 5 |',
           '| negative | -6 | -5 | -4 | -3 | -2 | -1 |',
           '',
-          '`s[start:stop:step]` takes characters from `start` up to **but not including** `stop`. Missing parts default to the beginning, the end and `1`. `s[::-1]` reverses.',
+          '[[slicing|Slice]] with `s[start:stop:step]`. It takes characters from `start` up to `stop`, **but `stop` is not included**. If you leave a part out, Python uses the start, the end and `1`. `s[::-1]` gives the string backwards.',
         ),
       },
       {
@@ -166,10 +179,12 @@ print(len(s), "th" in s, s.find("th"), s.find("x"))  # 6 True 2 -1`,
         md: md(
           '## Methods that solve most problems',
           '- Cleaning: `strip()`, `lower()`, `upper()`, `replace(a, b)`',
-          '- Splitting and joining: `"a b c".split()` → list, `" ".join(words)` → string',
-          '- Checks: `isalnum()`, `isdigit()`, `isalpha()`, `startswith()`, `endswith()`',
-          '- Characters ↔ numbers: `ord("a") == 97`, `chr(97) == "a"` (handy for 26-letter counts)',
-          '- Formatting: f-strings, `f"{name} has {n} items"`',
+          '- Splitting and joining: `"a b c".split()` gives a list, `" ".join(words)` gives a string',
+          '- Checks: `isalnum()` (letter or digit), `isdigit()`, `isalpha()`, `startswith()`, `endswith()`',
+          '- Characters and numbers: `ord("a") == 97`, `chr(97) == "a"`. This is useful for counting 26 letters.',
+          '- Formatting: [[f-string|f-strings]], `f"{name} has {n} items"`',
+          '',
+          'Every method **returns a new string**. The old string never changes, because strings are [[immutable]].',
         ),
       },
       {
@@ -187,13 +202,13 @@ print(f"{name} solved {n} problems")          # An solved 3 problems`,
       {
         type: 'callout',
         tone: 'warning',
-        md: 'Strings are immutable: `s += "x"` builds a brand-new string each time, so doing it in a loop can be O(n²). Collect pieces in a list and call `"".join(parts)` once.',
+        md: 'Strings are immutable, so `s += "x"` builds a **brand-new string** every time. In a loop this can cost O(n²) ([[big o|Big O]]). Put the pieces in a list and call `"".join(parts)` once at the end.',
       },
       {
         type: 'exercise',
         id: 'valid-palindrome',
         title: 'Valid palindrome',
-        prompt: 'Return `True` if `s` reads the same forwards and backwards, **ignoring case and every character that is not a letter or digit**. (This is NeetCode’s *Valid Palindrome*.)',
+        prompt: 'Return `True` if `s` is a [[palindrome]] — it reads the same forwards and backwards. **Ignore case and every character that is not a letter or digit.** (This is NeetCode’s *Valid Palindrome*.)',
         starter: `def is_palindrome(s):
     # your code here
     pass`,
@@ -201,7 +216,7 @@ print(f"{name} solved {n} problems")          # An solved 3 problems`,
 assert is_palindrome("race a car") is False
 assert is_palindrome(" ") is True
 assert is_palindrome("0P") is False`,
-        hint: 'Build a cleaned string with `"".join(ch.lower() for ch in s if ch.isalnum())`, then compare it with its reverse.',
+        hint: 'Build a clean string with `"".join(ch.lower() for ch in s if ch.isalnum())`, then compare it with its reverse.',
         solution: `def is_palindrome(s):
     clean = "".join(ch.lower() for ch in s if ch.isalnum())
     return clean == clean[::-1]`,
@@ -210,7 +225,7 @@ assert is_palindrome("0P") is False`,
         type: 'exercise',
         id: 'reverse-words',
         title: 'Reverse the words',
-        prompt: 'Return the words of `s` in reverse order, separated by single spaces (extra spaces anywhere are dropped).',
+        prompt: 'Return the words of `s` in reverse order, with one space between them. Remove extra spaces.',
         starter: `def reverse_words(s):
     # your code here
     pass`,
@@ -225,7 +240,7 @@ assert reverse_words("a good   example") == "example good a"`,
         type: 'exercise',
         id: 'letter-counts',
         title: '26-letter counts',
-        prompt: 'Return a list of 26 counts — how many times each letter `a`–`z` appears in a lowercase string. Use `ord()`.',
+        prompt: 'Return a list of 26 counts: how many times each letter `a`–`z` appears in a lowercase string. Use `ord()`.',
         starter: `def letter_counts(s):
     # your code here
     pass`,
@@ -233,7 +248,7 @@ assert reverse_words("a good   example") == "example good a"`,
 assert len(counts) == 26
 assert counts[0] == 3 and counts[1] == 1 and counts[13] == 2, counts
 assert sum(letter_counts("")) == 0`,
-        hint: 'Start with `[0] * 26`, then add 1 at index `ord(ch) - ord("a")`.',
+        hint: 'Start with `[0] * 26`. Add 1 at index `ord(ch) - ord("a")`.',
         solution: `def letter_counts(s):
     counts = [0] * 26
     for ch in s:
@@ -243,9 +258,9 @@ assert sum(letter_counts("")) == 0`,
       {
         type: 'quiz',
         items: [
-          { question: 'What is `"python"[1:4]`?', answer: '`"yth"`: from index 1 up to, but not including, 4.' },
-          { question: 'Can you do `s[0] = "P"`?', answer: 'No — strings are immutable. Build a new one: `"P" + s[1:]`.' },
-          { question: 'Fastest way to build a long string from many pieces?', answer: 'Append the pieces to a list and call `"".join(parts)` once.' },
+          { question: 'What is `"python"[1:4]`?', answer: '`"yth"`: from index 1 up to 4, but 4 is not included.' },
+          { question: 'Can you write `s[0] = "P"`?', answer: 'No — strings are immutable. Build a new one: `"P" + s[1:]`.' },
+          { question: 'What is the fastest way to build a long string from many pieces?', answer: 'Add the pieces to a list and call `"".join(parts)` once.' },
         ],
       },
     ],
@@ -258,31 +273,32 @@ assert sum(letter_counts("")) == 0`,
   {
     id: 'py-lists',
     title: 'Lists and tuples',
-    summary: 'Lists are resizable arrays — fast at the end, slow at the front. Tuples are fixed records you can unpack and use as dict keys.',
+    summary: 'A list is an array that can grow. It is fast at the end and slow at the front. A tuple is a fixed group of values: you can unpack it and use it as a dict key.',
     minutes: 40,
+    videos: [yt('Corey Schafer: Lists, Tuples, and Sets (30 min)', 'W8KRzm-HUcc')],
     blocks: [
       {
         type: 'text',
         md: md(
           '## A list is a dynamic array',
-          'A list stores references side by side in memory with spare room at the end. That layout explains every cost you need to know:',
+          'A list is a [[dynamic array]]. It keeps [[reference|references]] to its items next to each other in memory, with some free space at the end. This one fact explains every cost you need to know:',
           '',
           '| Operation | Cost | Why |',
           '| --- | --- | --- |',
           '| `a[i]`, `a[i] = x` | O(1) | jump straight to the slot |',
-          '| `a.append(x)`, `a.pop()` | O(1)* | work at the end (*amortised) |',
-          '| `a.insert(0, x)`, `a.pop(0)` | O(n) | every item shifts |',
-          '| `x in a` | O(n) | scans one by one |',
-          '| `a.sort()` | O(n log n) | Timsort |',
+          '| `a.append(x)`, `a.pop()` | O(1)* | work at the end (*[[amortized]]) |',
+          '| `a.insert(0, x)`, `a.pop(0)` | O(n) | every item must move |',
+          '| `x in a` | O(n) | checks items one by one |',
+          '| `a.sort()` | O(n log n) | Python uses [[timsort|Timsort]] |',
         ),
       },
       {
         type: 'diagram',
-        caption: 'Why append is O(1) on average: copying happens rarely, and the capacity grows geometrically.',
+        caption: 'Why append is O(1) on average: copying happens rarely, because the size grows by a factor each time.',
         mermaid: `flowchart TD
-  A["append(x)"] --> B{"spare room left?"}
+  A["append(x)"] --> B{"free space left?"}
   B -- yes --> C["write x into the next slot: O(1)"]
-  B -- no --> D["allocate a bigger array"]
+  B -- no --> D["get a bigger array"]
   D --> E["copy all items once: O(n)"]
   E --> C`,
       },
@@ -293,11 +309,12 @@ assert sum(letter_counts("")) == 0`,
 nums.append(1)
 nums.insert(0, 9)
 print(nums)                            # [9, 5, 3, 8, 1]
-print(nums.pop(), nums)                # 1 [9, 5, 3, 8]
+last = nums.pop()
+print(last, nums)                      # 1 [9, 5, 3, 8]
 
-print(sorted(nums), nums)              # [3, 5, 8, 9] [9, 5, 3, 8]  (sorted() copies)
+print(sorted(nums), nums)              # [3, 5, 8, 9] [9, 5, 3, 8]  (sorted() makes a copy)
 nums.sort(reverse=True)
-print(nums)                            # [9, 8, 5, 3]  (sort() changes in place)
+print(nums)                            # [9, 8, 5, 3]  (sort() changes the list itself)
 
 words = ["kiwi", "fig", "banana"]
 print(sorted(words, key=len))          # ['fig', 'kiwi', 'banana']
@@ -308,9 +325,9 @@ for i, w in enumerate(words):
         type: 'text',
         md: md(
           '## Tuples and unpacking',
-          'A tuple is an immutable list: `point = (3, 4)`. Use it for small fixed records, for returning several values, and as dict keys (lists can’t be keys).',
+          'A tuple is a list that cannot change: `point = (3, 4)`. Use it for small fixed groups of values, to return several values from a function, and as dict keys (a list cannot be a key).',
           '',
-          'Unpacking assigns several names at once: `x, y = point`, and swapping needs no temp variable: `a, b = b, a`.',
+          '[[Unpacking]] gives several names at once: `x, y = point`. To swap two values you do not need a temporary variable: `a, b = b, a`.',
         ),
       },
       {
@@ -331,13 +348,13 @@ print(list(zip([1, 2, 3], "abc")))           # [(1, 'a'), (2, 'b'), (3, 'c')]`,
       {
         type: 'callout',
         tone: 'warning',
-        md: '`grid = [[0] * 3] * 3` creates **three references to the same row**. Use `[[0] * 3 for _ in range(3)]` for a real 2-D grid.',
+        md: '`grid = [[0] * 3] * 3` makes **three references to the same row**. Change one row and all three change. Use `[[0] * 3 for _ in range(3)]` for a real 2-D grid.',
       },
       {
         type: 'exercise',
         id: 'running-sum',
         title: 'Running sum',
-        prompt: 'Return a new list where item `i` is the sum of `nums[0..i]`. This “prefix sum” trick appears in many array problems.',
+        prompt: 'Return a new list where item `i` is the sum of `nums[0..i]`. This [[prefix sum]] trick appears in many array problems.',
         starter: `def running_sum(nums):
     # your code here
     pass`,
@@ -345,7 +362,7 @@ print(list(zip([1, 2, 3], "abc")))           # [(1, 'a'), (2, 'b'), (3, 'c')]`,
 assert running_sum([]) == []
 assert running_sum([5]) == [5]
 assert running_sum([3, -1, 2]) == [3, 2, 4]`,
-        hint: 'Keep a running `total` and append it after adding each number.',
+        hint: 'Keep a running `total`. Add each number to it, then append the total.',
         solution: `def running_sum(nums):
     out, total = [], 0
     for x in nums:
@@ -357,7 +374,7 @@ assert running_sum([3, -1, 2]) == [3, 2, 4]`,
         type: 'exercise',
         id: 'rotate-right',
         title: 'Rotate right by k',
-        prompt: 'Return a new list rotated right by `k` steps: `[1, 2, 3, 4, 5]`, `k = 2` → `[4, 5, 1, 2, 3]`. `k` may be larger than the length.',
+        prompt: 'Return a new list moved right by `k` steps: `[1, 2, 3, 4, 5]`, `k = 2` → `[4, 5, 1, 2, 3]`. `k` can be bigger than the length.',
         starter: `def rotate_right(nums, k):
     # your code here
     pass`,
@@ -365,7 +382,7 @@ assert running_sum([3, -1, 2]) == [3, 2, 4]`,
 assert rotate_right([1, 2, 3], 3) == [1, 2, 3]
 assert rotate_right([1, 2, 3], 4) == [3, 1, 2]
 assert rotate_right([], 5) == []`,
-        hint: 'Reduce k with `k % len(nums)` (careful with an empty list), then glue two slices.',
+        hint: 'Make k smaller with `k % len(nums)` (be careful with an empty list). Then join two slices.',
         solution: `def rotate_right(nums, k):
     if not nums:
         return []
@@ -376,7 +393,7 @@ assert rotate_right([], 5) == []`,
         type: 'exercise',
         id: 'second-largest',
         title: 'Second largest distinct value',
-        prompt: 'Return the second largest **distinct** value, or `None` if there isn’t one. Do it in one pass, without sorting.',
+        prompt: 'Return the second largest **different** value, or `None` if there is none. Do it in one pass, without sorting.',
         starter: `def second_largest(nums):
     # your code here
     pass`,
@@ -384,7 +401,7 @@ assert rotate_right([], 5) == []`,
 assert second_largest([7, 7]) is None
 assert second_largest([]) is None
 assert second_largest([-1, -5, -3]) == -3`,
-        hint: 'Track `first` and `second` (start at `None`). Skip numbers equal to `first`.',
+        hint: 'Keep `first` and `second` (start with `None`). Skip numbers that are equal to `first`.',
         solution: `def second_largest(nums):
     first = second = None
     for x in nums:
@@ -397,9 +414,9 @@ assert second_largest([-1, -5, -3]) == -3`,
       {
         type: 'quiz',
         items: [
-          { question: 'Why is `nums.pop(0)` slow on a long list?', answer: 'Every remaining item shifts one slot left: O(n). Use `collections.deque` for queues.' },
-          { question: '`sorted(a)` vs `a.sort()`?', answer: '`sorted` returns a new list and leaves `a` alone; `a.sort()` sorts in place and returns `None`.' },
-          { question: 'Why can a tuple be a dict key but a list can’t?', answer: 'Keys must be hashable (unchangeable). Tuples are immutable; lists are not.' },
+          { question: 'Why is `nums.pop(0)` slow on a long list?', answer: 'Every other item must move one slot left: O(n). Use `collections.deque` for queues.' },
+          { question: '`sorted(a)` or `a.sort()`?', answer: '`sorted` returns a new list and does not change `a`. `a.sort()` changes `a` itself and returns `None`.' },
+          { question: 'Why can a tuple be a dict key, but a list cannot?', answer: 'Keys must be hashable (they never change). Tuples are immutable; lists are not.' },
         ],
       },
     ],
@@ -412,16 +429,19 @@ assert second_largest([-1, -5, -3]) == -3`,
   {
     id: 'py-dicts-sets',
     title: 'Dicts and sets',
-    summary: 'Hash tables give O(1) average lookups. Most “make it faster” interview answers are a dict or a set.',
+    summary: 'Hash tables find things in O(1) time on average. Most “make it faster” answers in interviews use a dict or a set.',
     minutes: 40,
+    videos: [yt('Corey Schafer: Dictionaries (10 min)', 'daefaLgNkw0'), yt('NeetCode: Contains Duplicate', '3OamzN90kPg'), yt('NeetCode: Two Sum', 'KLlXCFG5TnA')],
     blocks: [
       {
         type: 'text',
         md: md(
           '## How a hash table finds things',
-          '`hash(key)` turns the key into a number that picks a slot, so Python jumps straight to it instead of scanning. That is why `key in d` is O(1) on average while `x in some_list` is O(n).',
+          'A dict and a set are [[hash table|hash tables]]. `hash(key)` turns the key into a number, and that number chooses a slot. So Python jumps straight to the slot. It does not check items one by one. That is why `key in d` is O(1) on average, but `x in some_list` is O(n).',
           '',
-          'Keys must be **hashable** — they can never change: `str`, `int`, `tuple` work; `list`, `dict`, `set` don’t.',
+          'Keys must be [[hashable]], which means they can never change: `str`, `int` and `tuple` work; `list`, `dict` and `set` do not.',
+          '',
+          'Sometimes two keys get the same slot. This is a [[collision]]. Python handles it for you, but many collisions make lookups slower. That is why we say O(1) **on average**, not always.',
         ),
       },
       {
@@ -461,20 +481,20 @@ print(a | b, a & b, a - b)             # {1, 2, 3, 4} {2, 3} {1}`,
       {
         type: 'callout',
         tone: 'interview',
-        md: 'Say the trade-off out loud: “Brute force checks every pair in O(n²). A hash map makes it O(n) at the cost of O(n) extra memory.”',
+        md: 'Say the [[trade-off]] out loud: “Brute force checks every pair, so it is O(n²). A hash map makes it O(n), but it uses O(n) extra memory.”',
       },
       {
         type: 'exercise',
         id: 'contains-duplicate',
         title: 'Contains duplicate',
-        prompt: 'Return `True` if any value appears at least twice. Aim for O(n). (NeetCode’s *Contains Duplicate*.)',
+        prompt: 'Return `True` if any value appears two or more times. Aim for O(n). (NeetCode’s *Contains Duplicate*.)',
         starter: `def contains_duplicate(nums):
     # your code here
     pass`,
         tests: `assert contains_duplicate([1, 2, 3, 1]) is True
 assert contains_duplicate([1, 2, 3, 4]) is False
 assert contains_duplicate([]) is False`,
-        hint: 'Keep a `seen` set; or compare `len(set(nums))` with `len(nums)`.',
+        hint: 'Keep a `seen` set. Or compare `len(set(nums))` with `len(nums)`.',
         solution: `def contains_duplicate(nums):
     seen = set()
     for x in nums:
@@ -487,14 +507,14 @@ assert contains_duplicate([]) is False`,
         type: 'exercise',
         id: 'first-unique',
         title: 'First unique character',
-        prompt: 'Return the index of the first character that appears exactly once in `s`, or `-1`.',
+        prompt: 'Return the index of the first character that appears only once in `s`, or `-1`.',
         starter: `def first_unique(s):
     # your code here
     pass`,
         tests: `assert first_unique("leetcode") == 0
 assert first_unique("loveleetcode") == 2
 assert first_unique("aabb") == -1`,
-        hint: 'Two passes: count every character, then find the first with count 1.',
+        hint: 'Two passes: count every character, then find the first one with count 1.',
         solution: `def first_unique(s):
     counts = {}
     for ch in s:
@@ -508,14 +528,14 @@ assert first_unique("aabb") == -1`,
         type: 'exercise',
         id: 'two-sum',
         title: 'Two Sum',
-        prompt: 'Return the indexes `[i, j]` of two numbers that add up to `target` (exactly one answer exists, `i < j`). One pass with a dict. (NeetCode’s *Two Sum*.)',
+        prompt: 'Return the indexes `[i, j]` of two numbers that add up to `target` (there is exactly one answer, `i < j`). Use one pass with a dict. (NeetCode’s *Two Sum*.)',
         starter: `def two_sum(nums, target):
     # your code here
     pass`,
         tests: `assert two_sum([2, 7, 11, 15], 9) == [0, 1]
 assert two_sum([3, 2, 4], 6) == [1, 2]
 assert two_sum([3, 3], 6) == [0, 1]`,
-        hint: 'For each `x`, check whether `target - x` is already in a dict of value → index. Check before you store.',
+        hint: 'For each `x`, check if `target - x` is already in a dict of value → index. Check first, then store.',
         solution: `def two_sum(nums, target):
     seen = {}
     for i, x in enumerate(nums):
@@ -526,9 +546,9 @@ assert two_sum([3, 3], 6) == [0, 1]`,
       {
         type: 'quiz',
         items: [
-          { question: 'Cost of `x in my_set` vs `x in my_list`?', answer: 'O(1) on average for the set, O(n) for the list.' },
-          { question: 'What does `d.get(k, 0)` do that `d[k]` doesn’t?', answer: 'Returns 0 when the key is missing instead of raising `KeyError`.' },
-          { question: 'Do dicts keep insertion order?', answer: 'Yes, guaranteed since Python 3.7. Sets have no order.' },
+          { question: 'Cost of `x in my_set` and of `x in my_list`?', answer: 'O(1) on average for the set, O(n) for the list.' },
+          { question: 'What does `d.get(k, 0)` do that `d[k]` does not?', answer: 'It returns 0 when the key is missing. `d[k]` raises `KeyError`.' },
+          { question: 'Do dicts keep the order you added things?', answer: 'Yes, since Python 3.7. Sets have no order.' },
         ],
       },
     ],
@@ -541,19 +561,24 @@ assert two_sum([3, 3], 6) == [0, 1]`,
   {
     id: 'py-loops-functions',
     title: 'Loops, comprehensions and functions',
-    summary: 'Write loops the Pythonic way (enumerate, zip, comprehensions) and functions that are easy to test — while avoiding the mutable-default trap.',
+    summary: 'Write loops the Python way (enumerate, zip, comprehensions). Write functions that are easy to test, and avoid the mutable default trap.',
     minutes: 40,
+    videos: [
+      yt('Corey Schafer: Loops and Iterations (11 min)', '6iF8Xb7Z3wQ'),
+      yt('Corey Schafer: Functions (22 min)', '9Os0o3wzS_I'),
+      yt('Corey Schafer: Comprehensions (13 min)', '3dt4OGnU5sM'),
+    ],
     blocks: [
       {
         type: 'text',
         md: md(
           '## Loops',
-          '- `for x in items:` walks any iterable; `range(n)` gives `0 … n-1`.',
-          '- `enumerate(items)` gives `(index, value)`; `zip(a, b)` pairs two sequences.',
-          '- `while condition:` when you don’t know the number of steps (two pointers, binary search).',
-          '- `break` leaves the loop, `continue` skips to the next round.',
+          '- `for x in items:` walks over any [[iterable]]. `range(n)` gives `0 … n-1`.',
+          '- `enumerate(items)` gives `(index, value)` pairs. `zip(a, b)` puts two sequences side by side.',
+          '- Use `while condition:` when you do not know the number of steps (two pointers, binary search).',
+          '- `break` leaves the loop. `continue` jumps to the next round.',
           '',
-          'A **comprehension** builds a collection in one expression: `[x * x for x in nums if x > 0]`. The same shape works for sets `{…}` and dicts `{k: v …}`.',
+          'A [[comprehension]] builds a collection in one line: `[x * x for x in nums if x > 0]`. The same shape works for sets `{…}` and dicts `{k: v …}`.',
         ),
       },
       {
@@ -563,7 +588,7 @@ assert two_sum([3, 3], 6) == [0, 1]`,
 squares = [x * x for x in nums if x > 0]
 print(squares)                                  # [9, 16, 25]
 
-index_of = {x: i for i, x in enumerate(nums)}   # last index wins
+index_of = {x: i for i, x in enumerate(nums)}   # the last index wins
 print(index_of)                                 # {3: 0, -1: 3, 4: 2, 5: 4}
 
 for name, score in zip(["an", "binh"], [9, 7]):
@@ -576,18 +601,18 @@ print([v for row in matrix for v in row])       # [1, 2, 3, 4]`,
         type: 'text',
         md: md(
           '## Functions',
-          '`def name(params):` … `return value`. A function without `return` returns `None`.',
+          '`def name(params):` … `return value`. A function with no `return` gives back `None`.',
           '',
           '- Default values: `def greet(name, greeting="Hi")`.',
-          '- **Defaults are created once**, when the function is defined — so a mutable default (`[]`, `{}`) is shared between calls.',
-          '- Variables assigned inside a function are local. Use `nonlocal` to update a variable of an enclosing function (common in recursive helpers).',
-          '- `lambda x: x[1]` is a tiny unnamed function, mostly used as a `key=` for sorting.',
+          '- **Python creates default values only once**, when it reads the `def` line. So a mutable default (`[]`, `{}`) is **shared by all calls**.',
+          '- A variable you assign inside a function is [[local variable|local]]. Use `nonlocal` to change a variable of the outer function (you will see this in [[recursion|recursive]] helpers).',
+          '- `lambda x: x[1]` is a small function with no name ([[lambda]]). We use it mostly as `key=` when sorting.',
         ),
       },
       {
         type: 'code',
         id: 'mutable-default',
-        caption: 'Run this and see the trap, then compare with the fixed version.',
+        caption: 'Run this and see the trap. Then compare it with the fixed version.',
         code: `def add_bad(x, items=[]):
     items.append(x)
     return items
@@ -604,7 +629,7 @@ print(add_good(1), add_good(2))        # [1] [2]`,
       },
       {
         type: 'diagram',
-        caption: 'Recursion: each call waits for the smaller call, then combines.',
+        caption: 'Recursion: each call waits for a smaller call, then combines the result.',
         mermaid: `flowchart TD
   A["factorial(3)"] --> B["3 * factorial(2)"]
   B --> C["2 * factorial(1)"]
@@ -613,10 +638,17 @@ print(add_good(1), add_good(2))        # [1] [2]`,
   E --> F["3 * 2 = 6"]`,
       },
       {
+        type: 'text',
+        md: md(
+          '## Recursion in one minute',
+          'A [[recursion|recursive]] function calls itself on a smaller problem. It needs a [[base case]] — a small case it answers directly — or it never stops. Every waiting call uses memory on the [[call stack]]. Python stops at about 1,000 levels with `RecursionError`, so a loop is often safer for long inputs.',
+        ),
+      },
+      {
         type: 'exercise',
         id: 'fizzbuzz',
         title: 'FizzBuzz',
-        prompt: 'Return a list of strings for `1..n`: `"Fizz"` for multiples of 3, `"Buzz"` for 5, `"FizzBuzz"` for both, otherwise the number as a string.',
+        prompt: 'Return a list of strings for `1..n`: `"Fizz"` for multiples of 3, `"Buzz"` for multiples of 5, `"FizzBuzz"` for both, and the number as a string for the rest.',
         starter: `def fizzbuzz(n):
     # your code here
     pass`,
@@ -641,7 +673,7 @@ assert fizzbuzz(0) == []`,
         type: 'exercise',
         id: 'transpose',
         title: 'Transpose a matrix',
-        prompt: 'Return the transpose of a rectangular matrix (rows become columns) using a comprehension.',
+        prompt: 'Return the [[transpose]] of a rectangular matrix (rows become columns). Use a comprehension.',
         starter: `def transpose(matrix):
     # your code here
     pass`,
@@ -655,13 +687,13 @@ assert transpose([[7]]) == [[7]]`,
         type: 'exercise',
         id: 'fib',
         title: 'Fibonacci without recursion',
-        prompt: 'Return the n-th Fibonacci number (`fib(0) = 0`, `fib(1) = 1`) with a loop and two variables — O(n) time, O(1) memory.',
+        prompt: 'Return the n-th Fibonacci number (`fib(0) = 0`, `fib(1) = 1`). Use a loop and two variables: O(n) time, O(1) memory.',
         starter: `def fib(n):
     # your code here
     pass`,
         tests: `assert [fib(i) for i in range(8)] == [0, 1, 1, 2, 3, 5, 8, 13]
 assert fib(50) == 12586269025`,
-        hint: 'Keep `a, b = 0, 1` and update `a, b = b, a + b` n times.',
+        hint: 'Start with `a, b = 0, 1` and do `a, b = b, a + b` n times.',
         solution: `def fib(n):
     a, b = 0, 1
     for _ in range(n):
@@ -671,9 +703,9 @@ assert fib(50) == 12586269025`,
       {
         type: 'quiz',
         items: [
-          { question: 'What does a function without `return` return?', answer: '`None`.' },
-          { question: 'Why is `def f(x, acc=[])` dangerous?', answer: 'The default list is created once and shared by every call. Use `None` and create the list inside.' },
-          { question: 'Rewrite `out = []; for x in a: if x % 2: out.append(x)` as one line.', answer: '`out = [x for x in a if x % 2]`' },
+          { question: 'What does a function with no `return` give back?', answer: '`None`.' },
+          { question: 'Why is `def f(x, acc=[])` dangerous?', answer: 'Python creates the default list once, and every call shares it. Use `None` and create the list inside.' },
+          { question: 'Write `out = []; for x in a: if x % 2: out.append(x)` in one line.', answer: '`out = [x for x in a if x % 2]`' },
         ],
       },
     ],
@@ -688,6 +720,11 @@ assert fib(50) == 12586269025`,
     title: 'Interview toolkit: collections, heapq, sorted',
     summary: 'Counter, defaultdict, deque, heapq and sorted(key=…) turn many medium problems into a few lines. Learn which tool fits which problem.',
     minutes: 45,
+    videos: [
+      yt('NeetCode: Python for Coding Interviews', '0K_eZGS5NsU'),
+      yt('Corey Schafer: Sorting Lists, Tuples, and Objects (10 min)', 'D3JvDWO-BY4'),
+      yt('NeetCode: Valid Anagram', '9UtInBqnCgA'),
+    ],
     blocks: [
       {
         type: 'diagram',
@@ -711,6 +748,17 @@ assert fib(50) == 12586269025`,
     sorted with key
       intervals
       custom order`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Five tools',
+          '- `Counter`: a dict that counts things. A missing key counts as `0`.',
+          '- `defaultdict(list)`: a dict that makes an empty list the first time you use a key. Good for grouping.',
+          '- `deque`: a [[deque|double-ended queue]]. Adding or removing at **both ends** is O(1).',
+          '- `heapq`: a [[heap|min-heap]]. The smallest item is always at `h[0]`. Push and pop are O(log n).',
+          '- `sorted(items, key=…)`: sort by any rule you want.',
+        ),
       },
       {
         type: 'code',
@@ -750,19 +798,19 @@ print(-max_heap[0])                    # 8`,
         type: 'text',
         md: md(
           '## Sorting with a key',
-          '`sorted(items, key=…)` sorts by whatever the key returns, and Python’s sort is **stable** (ties keep their order). Sort by several fields with a tuple: `key=lambda p: (-p[1], p[0])` means “score descending, then name ascending”.',
+          '`sorted(items, key=…)` sorts by whatever the key function returns. Python’s sort is [[stable sort|stable]]: equal items keep their old order. To sort by several fields, return a tuple: `key=lambda p: (-p[1], p[0])` means “score from high to low, then name from A to Z”.',
         ),
       },
       {
         type: 'callout',
         tone: 'tip',
-        md: '`heapq` is a **min**-heap. For a max-heap push `-x` and read `-h[0]`. To keep the k largest items, use a **min**-heap of size k and pop whenever it grows past k.',
+        md: '`heapq` is a **min**-heap. For a max-heap, push `-x` and read `-h[0]`. To keep the k largest items, use a **min**-heap of size k, and pop when it has more than k items.',
       },
       {
         type: 'exercise',
         id: 'is-anagram',
         title: 'Valid anagram',
-        prompt: 'Return `True` if `t` is an anagram of `s`. (NeetCode’s *Valid Anagram*.)',
+        prompt: 'Return `True` if `t` is an [[anagram]] of `s`. (NeetCode’s *Valid Anagram*.)',
         starter: `def is_anagram(s, t):
     # your code here
     pass`,
@@ -779,7 +827,7 @@ def is_anagram(s, t):
         type: 'exercise',
         id: 'top-k-frequent',
         title: 'Top k frequent elements',
-        prompt: 'Return the `k` most frequent values, most frequent first. (Counts in the tests have no ties.)',
+        prompt: 'Return the `k` most frequent values, the most frequent first. (In the tests, no two counts are equal.)',
         starter: `def top_k_frequent(nums, k):
     # your code here
     pass`,
@@ -796,7 +844,7 @@ def top_k_frequent(nums, k):
         type: 'exercise',
         id: 'k-largest',
         title: 'k-th largest with a heap',
-        prompt: 'Return the k-th largest value using a **min-heap of size k** — O(n log k).',
+        prompt: 'Return the k-th largest value. Use a **min-heap of size k**: O(n log k).',
         starter: `import heapq
 
 def kth_largest(nums, k):
@@ -805,7 +853,7 @@ def kth_largest(nums, k):
         tests: `assert kth_largest([3, 2, 1, 5, 6, 4], 2) == 5
 assert kth_largest([3, 2, 3, 1, 2, 4, 5, 5, 6], 4) == 4
 assert kth_largest([1], 1) == 1`,
-        hint: 'Push every number; whenever the heap holds more than k items, pop the smallest. The answer is `h[0]`.',
+        hint: 'Push every number. When the heap has more than k items, pop the smallest. The answer is `h[0]`.',
         solution: `import heapq
 
 def kth_largest(nums, k):
@@ -819,9 +867,9 @@ def kth_largest(nums, k):
       {
         type: 'quiz',
         items: [
-          { question: 'Why `deque` instead of a list for a BFS queue?', answer: '`popleft()` is O(1); `list.pop(0)` is O(n).' },
-          { question: 'Why a MIN-heap to keep the k LARGEST items?', answer: 'Its smallest item is at the top — exactly the one to evict when something bigger arrives.' },
-          { question: 'What does `Counter("abca")["z"]` return?', answer: '`0` — a missing key counts as zero (and is not added).' },
+          { question: 'Why use `deque` and not a list for a BFS queue?', answer: '`popleft()` is O(1). `list.pop(0)` is O(n).' },
+          { question: 'Why a MIN-heap to keep the k LARGEST items?', answer: 'Its smallest item is on top — exactly the one to remove when a bigger one arrives.' },
+          { question: 'What does `Counter("abca")["z"]` return?', answer: '`0` — a missing key counts as zero (and it is not added).' },
         ],
       },
     ],
@@ -829,7 +877,6 @@ def kth_largest(nums, k):
       { label: 'collections — Container datatypes', url: `${PY}/library/collections.html` },
       { label: 'heapq — Heap queue algorithm', url: `${PY}/library/heapq.html` },
       { label: 'Sorting HOW TO', url: `${PY}/howto/sorting.html` },
-      { label: 'Video: Python for Coding Interviews (NeetCode)', url: 'https://www.youtube.com/watch?v=0K_eZGS5NsU' },
     ],
   },
 ]

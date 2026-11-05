@@ -1,5 +1,7 @@
 import { createProblemTask, getCategorySlugs } from './neetcode'
 import { CS_REFERENCES, PYTHON_REFERENCES, SD_REFERENCES } from './references'
+import { CS_LESSONS } from '../lessons/cs'
+import { DSA_LESSONS } from '../lessons/dsa'
 import { PYTHON_LESSONS } from '../lessons/python'
 import type { Lesson } from '../lessons/types'
 import type { PhaseId, RoadmapDay, RoadmapPhase, RoadmapTask, RoadmapWeek, TaskKind, TaskLink, TaskReference, TaskSeed } from './types'
@@ -8,7 +10,14 @@ import type { PhaseId, RoadmapDay, RoadmapPhase, RoadmapTask, RoadmapWeek, TaskK
 const link = (label: string, url: string): TaskLink => ({ label, url })
 const task = (kind: TaskKind, title: string, ...links: TaskLink[]): TaskSeed => ({ kind, title, links })
 const withReference = (seed: TaskSeed, reference: TaskReference): TaskSeed => ({ ...seed, reference })
-const lessonTask = (lesson: Lesson): TaskSeed => ({ kind: 'python', title: `Lesson: ${lesson.title}`, links: [], lessonId: lesson.id })
+const lessonTask = (lesson: Lesson, kind: TaskKind = 'python'): TaskSeed => ({ kind, title: `Lesson: ${lesson.title}`, links: [], lessonId: lesson.id })
+const lessonById = (lessons: Lesson[], id: string): Lesson => {
+  const found = lessons.find((l) => l.id === id)
+  if (!found) throw new Error(`Unknown lesson ${id}`)
+  return found
+}
+// Sunday task for weeks with in-app lessons: replaces the Claude quiz.
+const weekTest: TaskSeed = { kind: 'review', title: "Week test: 15 mixed questions from this week's lessons", links: [], isWeekTest: true }
 
 const LINKS = {
   coddy: 'https://coddy.tech/',
@@ -184,12 +193,12 @@ const weekSpecs: WeekSpec[] = [
     end: '2026-11-15',
     goal: 'Python syntax and the built-ins used in interviews. First 3 problems solved.',
     study: [
-      ...PYTHON_LESSONS.map(lessonTask),
+      ...PYTHON_LESSONS.map((l) => lessonTask(l)),
       task('python', 'Create NeetCode and LeetCode accounts', link('NeetCode', LINKS.neetcode), link('LeetCode', LINKS.leetcode)),
       ...problems('Arrays & Hashing', 0, 3),
     ],
     saturday: [task('python', 'Redo the lesson exercises you found hardest, without the hint'), task('python', 'Optional: 5 Coddy challenges for extra practice', link('Coddy', LINKS.coddy))],
-    sunday: [withReference(askClaude('python', 'Quiz: Claude asks 10 questions on Python built-ins'), PYTHON_REFERENCES.interviewToolkit)],
+    sunday: [withReference(weekTest, PYTHON_REFERENCES.interviewToolkit)],
   },
 
   // Phase 1
@@ -203,11 +212,11 @@ const weekSpecs: WeekSpec[] = [
     goal: 'Arrays & Hashing done. Understand latency and how TCP works.',
     dsa: problems('Arrays & Hashing', 3),
     study: [
-      hpbn('Primer on latency and bandwidth', 'primer-on-latency-and-bandwidth'),
-      hpbn('Building blocks of TCP: handshake, flow control', 'building-blocks-of-tcp'),
-      hpbn('Building blocks of TCP: congestion control, head-of-line blocking', 'building-blocks-of-tcp'),
-      askClaude('cs', 'Explain to Claude why latency matters more than bandwidth'),
+      lessonTask(lessonById(DSA_LESSONS, 'dsa-arrays-hashing'), 'dsa'),
+      lessonTask(lessonById(CS_LESSONS, 'net-latency-tcp'), 'cs'),
+      hpbn('Optional: Building blocks of TCP (deeper reading)', 'building-blocks-of-tcp'),
     ],
+    sunday: [weekTest],
   },
   {
     label: 'Week 2',

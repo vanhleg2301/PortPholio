@@ -2,6 +2,8 @@ import type { TaskLink } from '../roadmap/types'
 
 export type CalloutTone = 'tip' | 'warning' | 'interview'
 
+// Markdown in lessons and tests may mark technical words as [[word]] or [[glossary key|shown text]];
+// they render as tap-to-explain terms (see data/lessons/glossary.ts).
 export type LessonBlock =
   | { type: 'text'; md: string }
   | { type: 'callout'; tone: CalloutTone; md: string }
@@ -22,12 +24,50 @@ export type LessonBlock =
     }
   | { type: 'quiz'; items: Array<{ question: string; answer: string }> }
 
+export interface ChoiceQuestion {
+  id: string
+  question: string
+  // Python snippet shown under the question. For "What does this print?" questions
+  // the correct option is the snippet's exact output.
+  code?: string
+  options: string[]
+  answer: number
+  explain: string
+}
+
+export interface CodeQuestion {
+  id: string
+  title: string
+  prompt: string
+  starter: string
+  tests: string
+  hint?: string
+  solution: string
+}
+
+// Interview-style open question: the learner answers in their own words, then compares
+// with the key points and a model answer.
+export interface ExplainQuestion {
+  id: string
+  question: string
+  points: string[]
+  answer: string
+}
+
+export interface LessonTest {
+  choice: ChoiceQuestion[]
+  code: CodeQuestion[]
+  explain: ExplainQuestion[]
+}
+
 export interface Lesson {
   id: string
   title: string
   summary: string
   minutes: number
   blocks: LessonBlock[]
+  // Best free videos on the topic, watched before or after the lesson.
+  videos?: TaskLink[]
   // Read more / extra practice — the lesson itself is meant to be enough.
   furtherReading: TaskLink[]
 }
