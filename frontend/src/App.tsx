@@ -22,6 +22,15 @@ export default function App() {
 
   if (isResume) return <ResumePage />
 
+  // App-style page: no portfolio chrome, and kept outside the transformed motion wrapper so its fixed bars stay fixed.
+  if (location.pathname === '/roadmap') {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+        <RoadmapPage />
+      </Suspense>
+    )
+  }
+
   return (
     <HireModalProvider>
     <div className="min-h-screen flex flex-col">
@@ -37,14 +46,6 @@ export default function App() {
           >
             <Routes location={location}>
               <Route path="/" element={<HomePage />} />
-              <Route
-                path="/roadmap"
-                element={
-                  <Suspense fallback={<div className="min-h-screen" />}>
-                    <RoadmapPage />
-                  </Suspense>
-                }
-              />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </motion.div>

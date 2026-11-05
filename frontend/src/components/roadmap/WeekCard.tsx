@@ -12,10 +12,11 @@ interface WeekCardProps {
   week: RoadmapWeek
   doneIds: Set<string>
   today: string
-  onToggle?: (taskId: string, isDone: boolean) => void
+  onToggle: (taskId: string, isDone: boolean) => void
+  onOpenDay: (date: string) => void
 }
 
-export function WeekCard({ week, doneIds, today, onToggle }: WeekCardProps) {
+export function WeekCard({ week, doneIds, today, onToggle, onOpenDay }: WeekCardProps) {
   const isCurrent = today >= week.start && today <= week.end
   const [isOpen, setIsOpen] = useState(isCurrent)
   const progress = getProgress(week.days.flatMap((d) => d.tasks), doneIds)
@@ -66,6 +67,7 @@ export function WeekCard({ week, doneIds, today, onToggle }: WeekCardProps) {
                   doneIds={doneIds}
                   isToday={day.date === today}
                   onToggle={onToggle}
+                  onOpen={onOpenDay}
                 />
               ))}
             </div>

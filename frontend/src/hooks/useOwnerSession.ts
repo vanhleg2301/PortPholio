@@ -4,6 +4,7 @@ import { ROADMAP_OWNER_EMAIL, supabase } from '@/lib/supabase'
 
 export function useOwnerSession() {
   const [session, setSession] = useState<Session | null>(null)
+  const [isReady, setIsReady] = useState(!supabase)
 
   useEffect(() => {
     const client = supabase
@@ -11,6 +12,7 @@ export function useOwnerSession() {
     const loadSession = async () => {
       const { data } = await client.auth.getSession()
       setSession(data.session)
+      setIsReady(true)
     }
     void loadSession()
     const { data } = client.auth.onAuthStateChange((_event, next) => setSession(next))
@@ -19,11 +21,11 @@ export function useOwnerSession() {
 
   const isOwner = session?.user.email === ROADMAP_OWNER_EMAIL
 
-  async function signIn(email: string) {
+  async function signInWithGoogle() {
     if (!supabase) throw new Error('Supabase is not configured')
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/roadmap` },
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/roadmap` },
     })
     if (error) throw error
   }
@@ -32,5 +34,5 @@ export function useOwnerSession() {
     await supabase?.auth.signOut()
   }
 
-  return { session, isOwner, signIn, signOut }
+  return { session, isReady, isOwner, signInWithGoogle, signOut }
 }

@@ -47,9 +47,31 @@ const problems = (category: string, from?: number, to?: number) =>
   getCategorySlugs(category, from, to).map(createProblemTask)
 const askClaude = (kind: TaskKind, title: string) => task(kind, title, link('Claude', LINKS.claude))
 
+const HI = `${LINKS.helloInterview}/problem-breakdowns/`
+const SD_PRIMER = 'https://github.com/donnemartin/system-design-primer'
+
+// Free primary source per ByteByteGo chapter; ByteByteGo stays as an optional (mostly paid) extra.
+const FREE_SD_SOURCES: Record<string, TaskLink> = {
+  'scale-from-zero-to-millions-of-users': link('ByteByteGo (free chapter)', `${LINKS.bbg}scale-from-zero-to-millions-of-users`),
+  'design-a-rate-limiter': link('Hello Interview', `${HI}distributed-rate-limiter`),
+  'design-consistent-hashing': link('Hello Interview', `${LINKS.helloInterview}/core-concepts/consistent-hashing`),
+  'design-a-key-value-store': link('Hello Interview', `${HI}distributed-cache`),
+  'design-a-unique-id-generator-in-distributed-systems': link('System Design Primer', SD_PRIMER),
+  'design-a-url-shortener': link('Hello Interview', `${HI}bitly`),
+  'design-a-web-crawler': link('Hello Interview', `${HI}web-crawler`),
+  'design-a-notification-system': link('System Design Primer', SD_PRIMER),
+  'design-a-news-feed-system': link('Hello Interview', `${HI}fb-news-feed`),
+  'design-a-chat-system': link('Hello Interview', `${HI}whatsapp`),
+  'design-a-search-autocomplete-system': link('Hello Interview: Top K', `${HI}top-k`),
+  'design-youtube': link('Hello Interview', `${HI}youtube`),
+  'design-google-drive': link('Hello Interview: Dropbox', `${HI}dropbox`),
+}
+
 function sdChapter(title: string, slug: string): TaskSeed[] {
+  const free = FREE_SD_SOURCES[slug]
+  const extra = slug === 'scale-from-zero-to-millions-of-users' ? [] : [link('ByteByteGo (paid)', `${LINKS.bbg}${slug}`)]
   return [
-    task('sd', `Read: ${title}`, link('ByteByteGo', `${LINKS.bbg}${slug}`), link('Hello Interview', LINKS.helloInterview)),
+    task('sd', `Read: ${title}`, free, ...extra),
     task('sd', `Redraw ${title} from memory in 30 minutes`),
     askClaude('sd', `Walk Claude through your ${title} design and defend the trade-offs`),
   ]
@@ -373,8 +395,8 @@ const weekSpecs: WeekSpec[] = [
     goal: '2-D DP part 1. Learn estimation and the interview framework.',
     dsa: problems('2-D DP', 0, 6),
     study: [
-      task('sd', 'Read: Back-of-the-envelope estimation', link('ByteByteGo', `${LINKS.bbg}back-of-the-envelope-estimation`)),
-      task('sd', 'Read: A framework for system design interviews', link('ByteByteGo', `${LINKS.bbg}a-framework-for-system-design-interviews`)),
+      task('sd', 'Read: Numbers to know for estimation', link('Hello Interview', `${LINKS.helloInterview}/core-concepts/numbers-to-know`)),
+      task('sd', 'Read: How to deliver a system design interview', link('Hello Interview', `${LINKS.helloInterview}/in-a-hurry/delivery`)),
       task('sd', 'System Design School primer', link('Read', LINKS.sdsPrimer)),
       askClaude('sd', 'Estimate QPS and storage for a 10M-user app, check with Claude'),
     ],

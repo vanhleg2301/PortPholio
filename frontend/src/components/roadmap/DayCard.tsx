@@ -1,4 +1,5 @@
 import { format, parseISO } from 'date-fns'
+import { ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TaskItem } from '@/components/roadmap/TaskItem'
 import type { RoadmapDay } from '@/data/roadmap/types'
@@ -7,10 +8,11 @@ interface DayCardProps {
   day: RoadmapDay
   doneIds: Set<string>
   isToday: boolean
-  onToggle?: (taskId: string, isDone: boolean) => void
+  onToggle: (taskId: string, isDone: boolean) => void
+  onOpen: (date: string) => void
 }
 
-export function DayCard({ day, doneIds, isToday, onToggle }: DayCardProps) {
+export function DayCard({ day, doneIds, isToday, onToggle, onOpen }: DayCardProps) {
   const done = day.tasks.filter((t) => doneIds.has(t.id)).length
   const isComplete = day.tasks.length > 0 && done === day.tasks.length
 
@@ -22,15 +24,20 @@ export function DayCard({ day, doneIds, isToday, onToggle }: DayCardProps) {
         isComplete && 'border-emerald-500/40'
       )}
     >
-      <div className="flex items-center justify-between pb-2 border-b border-border/60">
-        <p className="text-xs font-semibold uppercase tracking-widest">
+      <button
+        type="button"
+        onClick={() => onOpen(day.date)}
+        className="w-full flex items-center justify-between pb-2 border-b border-border/60 group"
+      >
+        <span className="text-xs font-semibold uppercase tracking-widest">
           {format(parseISO(day.date), 'EEE d MMM')}
           {isToday && <span className="ml-2 text-emerald-500">Today</span>}
-        </p>
-        <span className="text-[11px] font-mono text-muted-foreground">
-          {day.tasks.length === 0 ? 'rest' : `${done}/${day.tasks.length}`}
         </span>
-      </div>
+        <span className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground group-hover:text-foreground">
+          {day.tasks.length === 0 ? 'rest' : `${done}/${day.tasks.length}`}
+          <ArrowRight className="h-3.5 w-3.5" />
+        </span>
+      </button>
       {day.tasks.length === 0 ? (
         <p className="pt-3 text-sm text-muted-foreground">Rest day.</p>
       ) : (
