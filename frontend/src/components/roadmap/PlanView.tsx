@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, startOfWeek } from 'date-fns'
+import { formatMinutes, type StudySession } from '@/hooks/useStudySessions'
 import { ActivityHeatmap } from '@/components/roadmap/ActivityHeatmap'
 import { ProgressBar } from '@/components/roadmap/ProgressBar'
 import { TaskItem } from '@/components/roadmap/TaskItem'
@@ -20,6 +21,7 @@ interface PlanViewProps {
   today: string
   onToggle: (taskId: string, isDone: boolean) => void
   onOpenDay: (date: string) => void
+  sessions: StudySession[]
 }
 
 function SectionLabel({ eyebrow, title }: { eyebrow: string; title: string }) {
@@ -31,9 +33,27 @@ function SectionLabel({ eyebrow, title }: { eyebrow: string; title: string }) {
   )
 }
 
-export function PlanView({ doneIds, today, onToggle, onOpenDay }: PlanViewProps) {
+export function PlanView({ doneIds, today, onToggle, onOpenDay, sessions }: PlanViewProps) {
+  const weekStart = format(startOfWeek(parseISO(today), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  const totalMinutes = sessions.reduce((sum, s) => sum + s.minutes, 0)
+  const weekMinutes = sessions.filter((s) => s.day >= weekStart && s.day <= today).reduce((sum, s) => sum + s.minutes, 0)
+  const studyStats = [
+    { label: 'Total focus', value: formatMinutes(totalMinutes) },
+    { label: 'This week', value: formatMinutes(weekMinutes) },
+    { label: 'Sessions', value: String(sessions.length) },
+  ]
+
   return (
     <div>
+      <motion.section {...reveal} className="mb-10 grid grid-cols-3 divide-x divide-border rounded-2xl border border-border">
+        {studyStats.map((stat) => (
+          <div key={stat.label} className="px-3 py-4 text-center">
+            <p className="font-display text-xl font-bold md:text-2xl">{stat.value}</p>
+            <p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
+          </div>
+        ))}
+      </motion.section>
+
       <motion.section {...reveal}>
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Daily completion</p>
         <ActivityHeatmap doneIds={doneIds} today={today} />

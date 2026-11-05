@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { format, parseISO } from 'date-fns'
-import { Lock } from 'lucide-react'
+import { Lock, Timer } from 'lucide-react'
 import { DayNotes } from '@/components/roadmap/DayNotes'
 import { ResourceList } from '@/components/roadmap/ResourceList'
 import { TaskItem } from '@/components/roadmap/TaskItem'
 import { TheoryCard } from '@/components/roadmap/TheoryCard'
+import { ReviewList } from '@/components/roadmap/ReviewList'
+import type { RoadmapReview } from '@/hooks/useRoadmapReviews'
+import { formatMinutes } from '@/hooks/useStudySessions'
+import type { RoadmapTask } from '@/data/roadmap/types'
 import { WeekStrip } from '@/components/roadmap/WeekStrip'
 import type { RoadmapNote } from '@/hooks/useRoadmapNotes'
 import type { NoteTopic } from '@/data/roadmap/topics'
@@ -24,13 +28,34 @@ interface TodayViewProps {
   onSelectDate: (date: string) => void
   onToggle: (taskId: string, isDone: boolean) => void
   onRequestSignIn: () => void
+  reviews: RoadmapReview[]
+  isReviewBusy: boolean
+  onToggleReview: (task: RoadmapTask, isScheduled: boolean) => void
+  onCompleteReview: (review: RoadmapReview, isStillHard: boolean) => void
+  focusMinutes: number
 }
 
 function SectionTitle({ children }: { children: string }) {
   return <h3 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2 mt-8">{children}</h3>
 }
 
-export function TodayView({ date, today, doneIds, isOwner, notes, isNotesReady, resources, onSelectDate, onToggle, onRequestSignIn }: TodayViewProps) {
+export function TodayView({
+  date,
+  today,
+  doneIds,
+  isOwner,
+  notes,
+  isNotesReady,
+  resources,
+  onSelectDate,
+  onToggle,
+  onRequestSignIn,
+  reviews,
+  isReviewBusy,
+  onToggleReview,
+  onCompleteReview,
+  focusMinutes,
+}: TodayViewProps) {
   const day = DAY_BY_DATE.get(date)
   const week = getWeekForDate(date)
   const tasks = day?.tasks ?? []
@@ -38,6 +63,9 @@ export function TodayView({ date, today, doneIds, isOwner, notes, isNotesReady, 
   const dayNotes = notes.filter((n) => n.day === date)
   const suggestedTopics = [...new Set(tasks.map((t): NoteTopic => t.kind))]
   const dayResources = resources.filter((r) => r.day === date)
+  const pendingReviews = reviews.filter((r) => !r.completed_at)
+  const scheduledTaskIds = new Set(pendingReviews.map((r) => r.task_id))
+  const dueReviews = pendingReviews.filter((r) => (date === today ? r.due_date <= today : r.due_date === date))
   const references = [...new Map(tasks.flatMap((t) => (t.reference ? [[t.reference.title, t.reference] as const] : []))).values()]
 
   // Slide direction follows the calendar: later day comes in from the right.
@@ -77,6 +105,18 @@ export function TodayView({ date, today, doneIds, isOwner, notes, isNotesReady, 
               {week.goal}
             </motion.p>
           )}
+          {focusMinutes > 0 && (
+            <motion.p variants={section} className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              <Timer className="h-3.5 w-3.5" /> Focused {formatMinutes(focusMinutes)}
+            </motion.p>
+          )}
+
+          {isOwner && dueReviews.length > 0 && (
+            <motion.section variants={section} layout="position">
+              <SectionTitle>{`Review · ${dueReviews.length}`}</SectionTitle>
+              <ReviewList reviews={dueReviews} today={today} isBusy={isReviewBusy} onComplete={onCompleteReview} />
+            </motion.section>
+          )}
 
           <motion.section variants={section} layout="position">
             <SectionTitle>{tasks.length === 0 ? 'Tasks' : `Tasks · ${done}/${tasks.length}`}</SectionTitle>
@@ -85,7 +125,15 @@ export function TodayView({ date, today, doneIds, isOwner, notes, isNotesReady, 
             ) : (
               <motion.ul variants={listContainer} className="rounded-2xl border border-border bg-card/40 px-4 divide-y divide-border/50">
                 {tasks.map((task) => (
-                  <TaskItem key={task.id} task={task} isDone={doneIds.has(task.id)} onToggle={onToggle} showTheoryToggle={false} />
+                  <TaskItem
+                    key={task.id}
+                    task={task}
+                    isDone={doneIds.has(task.id)}
+                    onToggle={onToggle}
+                    showTheoryToggle={false}
+                    isReviewScheduled={scheduledTaskIds.has(task.id)}
+                    onToggleReview={isOwner && task.difficulty ? () => onToggleReview(task, scheduledTaskIds.has(task.id)) : undefined}
+                  />
                 ))}
               </motion.ul>
             )}

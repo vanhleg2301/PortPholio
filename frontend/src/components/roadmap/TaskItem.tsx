@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Check, ArrowUpRight, BookOpen } from 'lucide-react'
+import { Check, ArrowUpRight, BookOpen, CalendarClock, RotateCcw } from 'lucide-react'
 import { TheoryCard } from '@/components/roadmap/TheoryCard'
 import { cn } from '@/lib/utils'
 import { EASE_OUT, SPRING, listItem } from '@/lib/motion'
@@ -18,9 +18,12 @@ interface TaskItemProps {
   isDone: boolean
   onToggle: (taskId: string, isDone: boolean) => void
   showTheoryToggle?: boolean
+  // Spaced repetition: only passed for problems when the owner is signed in.
+  isReviewScheduled?: boolean
+  onToggleReview?: () => void
 }
 
-export function TaskItem({ task, isDone, onToggle, showTheoryToggle = true }: TaskItemProps) {
+export function TaskItem({ task, isDone, onToggle, showTheoryToggle = true, isReviewScheduled = false, onToggleReview }: TaskItemProps) {
   const [isTheoryOpen, setIsTheoryOpen] = useState(false)
 
   return (
@@ -85,6 +88,22 @@ export function TaskItem({ task, isDone, onToggle, showTheoryToggle = true }: Ta
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </a>
             ))}
+            {onToggleReview && (
+              <button
+                type="button"
+                onClick={onToggleReview}
+                title={isReviewScheduled ? 'Cancel the scheduled reviews' : 'Schedule reviews in 3, 7 and 30 days'}
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                  isReviewScheduled
+                    ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 hover:bg-amber-500/30'
+                    : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20'
+                )}
+              >
+                {isReviewScheduled ? <CalendarClock className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                {isReviewScheduled ? 'Review set' : 'Missed it'}
+              </button>
+            )}
             {showTheoryToggle && task.reference && (
               <button
                 type="button"

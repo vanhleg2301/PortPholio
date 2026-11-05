@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
-import { Flame, UserRound } from 'lucide-react'
+import { Flame, Timer, UserRound } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
+import { cn } from '@/lib/utils'
+import { FocusSheet } from '@/components/roadmap/FocusSheet'
+import { formatClock, useFocusTimer } from '@/hooks/useFocusTimer'
+import { useCompleteReview, useRoadmapReviews, useScheduleReviews, useUnscheduleReviews, type RoadmapReview } from '@/hooks/useRoadmapReviews'
+import { useAddSession, useStudySessions } from '@/hooks/useStudySessions'
+import type { RoadmapTask } from '@/data/roadmap/types'
 import { AccountSheet } from '@/components/roadmap/AccountSheet'
 import { BottomTabBar, type RoadmapTab } from '@/components/roadmap/BottomTabBar'
 import { NotesView } from '@/components/roadmap/NotesView'
@@ -14,6 +21,7 @@ import { useRoadmapProgress, useToggleTask } from '@/hooks/useRoadmapProgress'
 import { useRoadmapResources } from '@/hooks/useRoadmapResources'
 import {
   ALL_TASKS,
+  DAY_BY_DATE,
   clampToPlan,
   getActivityDates,
   getNeetCodeSolved,
@@ -55,12 +63,27 @@ export default function RoadmapPage() {
   const notesQuery = useRoadmapNotes(isOwner)
   const resourcesQuery = useRoadmapResources(isOwner)
   const toggle = useToggleTask()
+  const reviewsQuery = useRoadmapReviews(isOwner)
+  const scheduleReviews = useScheduleReviews()
+  const unscheduleReviews = useUnscheduleReviews()
+  const completeReview = useCompleteReview()
+  const { data: sessions = [] } = useStudySessions()
+  const addSession = useAddSession()
+  const focus = useFocusTimer()
+  const [isFocusOpen, setIsFocusOpen] = useState(false)
 
   const doneIds = useMemo(() => new Set(rows.map((r) => r.task_id)), [rows])
   const activity = useMemo(() => getActivityDates(rows.map((r) => r.completed_at)), [rows])
   const overall = toPercent(getProgress(ALL_TASKS, doneIds))
   const solved = getNeetCodeSolved(doneIds)
   const streak = getStreak(activity)
+  const minutesByDay = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const s of sessions) map.set(s.day, (map.get(s.day) ?? 0) + s.minutes)
+    return map
+  }, [sessions])
+  const todayTasks = DAY_BY_DATE.get(today)?.tasks ?? []
+  const runningTask = focus.timer?.taskId ? ALL_TASKS.find((t) => t.id === focus.timer?.taskId) : undefined
 
   useEffect(() => {
     if (!toast) return
@@ -78,6 +101,55 @@ export default function RoadmapPage() {
       return
     }
     toggle.mutate({ taskId, isDone }, { onError: (err) => setToast(`Save failed: ${err.message}`) })
+  }
+
+  function handleToggleReview(task: RoadmapTask, isScheduled: boolean) {
+    const onError = (err: Error) => setToast(`Could not update reviews: ${err.message}`)
+    if (isScheduled) {
+      unscheduleReviews.mutate(task.id, { onError })
+      return
+    }
+    scheduleReviews.mutate(
+      { taskId: task.id, taskTitle: task.title, fromDay: today },
+      { onError, onSuccess: () => setToast('Review booked in 3, 7 and 30 days') }
+    )
+  }
+
+  function handleCompleteReview(review: RoadmapReview, isStillHard: boolean) {
+    completeReview.mutate(
+      { review, isStillHard, today },
+      {
+        onError: (err) => setToast(`Could not save: ${err.message}`),
+        onSuccess: () => setToast(isStillHard ? 'Booked again in 3 days' : 'Nice — review done'),
+      }
+    )
+  }
+
+  function handleFocusStart(minutes: number | null, taskId: string | null) {
+    if (!isOwner) {
+      setIsFocusOpen(false)
+      setIsAccountOpen(true)
+      return
+    }
+    focus.start(minutes, taskId)
+  }
+
+  function handleFocusStop() {
+    const finished = focus.stop()
+    if (!finished) {
+      setToast('Under a minute — not saved')
+      return
+    }
+    addSession.mutate(
+      { day: format(parseISO(finished.startedAt), 'yyyy-MM-dd'), ...finished },
+      {
+        onSuccess: () => {
+          setToast(`Saved ${finished.minutes} min of focus`)
+          setIsFocusOpen(false)
+        },
+        onError: (err) => setToast(`Could not save session: ${err.message}`),
+      }
+    )
   }
 
   function changeTab(next: RoadmapTab) {
@@ -111,6 +183,31 @@ export default function RoadmapPage() {
             </span>
             <span className="font-display font-bold uppercase tracking-tight truncate">Road to Big Tech</span>
           </Link>
+          <div className="flex shrink-0 items-center gap-2">
+          <motion.button
+            type="button"
+            layout
+            whileTap={{ scale: 0.94 }}
+            onClick={() => setIsFocusOpen(true)}
+            aria-label="Focus timer"
+            className={cn(
+              'flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-semibold transition-colors',
+              focus.timer
+                ? focus.isTargetReached
+                  ? 'border-emerald-500 bg-emerald-500 text-white'
+                  : 'border-foreground bg-foreground text-background'
+                : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/50 hover:bg-foreground/[0.06]'
+            )}
+          >
+            <Timer className="h-4 w-4" />
+            {focus.timer && (
+              <span className="font-mono tabular-nums">
+                {formatClock(
+                  focus.targetSeconds !== null && !focus.isTargetReached ? focus.targetSeconds - focus.elapsedSeconds : focus.elapsedSeconds
+                )}
+              </span>
+            )}
+          </motion.button>
           <button
             type="button"
             onClick={() => setIsAccountOpen(true)}
@@ -123,6 +220,7 @@ export default function RoadmapPage() {
               <UserRound className="h-4 w-4 text-muted-foreground" />
             )}
           </button>
+          </div>
         </div>
         <div className="mx-auto flex max-w-3xl items-center gap-4 px-4 pb-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
           <span>
@@ -155,9 +253,16 @@ export default function RoadmapPage() {
             onSelectDate={setSelectedDate}
             onToggle={handleToggle}
             onRequestSignIn={() => setIsAccountOpen(true)}
+            reviews={reviewsQuery.data ?? []}
+            isReviewBusy={completeReview.isPending}
+            onToggleReview={handleToggleReview}
+            onCompleteReview={handleCompleteReview}
+            focusMinutes={minutesByDay.get(selectedDate) ?? 0}
           />
         )}
-        {tab === 'plan' && <PlanView doneIds={doneIds} today={today} onToggle={handleToggle} onOpenDay={openDay} />}
+        {tab === 'plan' && (
+          <PlanView doneIds={doneIds} today={today} onToggle={handleToggle} onOpenDay={openDay} sessions={sessions} />
+        )}
         {tab === 'notes' && (
           <NotesView
             isOwner={isOwner}
@@ -189,6 +294,24 @@ export default function RoadmapPage() {
       </AnimatePresence>
 
       <BottomTabBar active={tab} onChange={changeTab} />
+      <FocusSheet
+        isOpen={isFocusOpen}
+        isRunning={focus.timer !== null}
+        elapsedSeconds={focus.elapsedSeconds}
+        targetSeconds={focus.targetSeconds}
+        isTargetReached={focus.isTargetReached}
+        runningTaskTitle={runningTask?.title ?? null}
+        tasks={todayTasks}
+        todayMinutes={minutesByDay.get(today) ?? 0}
+        isSaving={addSession.isPending}
+        onStart={handleFocusStart}
+        onStop={handleFocusStop}
+        onDiscard={() => {
+          focus.cancel()
+          setToast('Session discarded')
+        }}
+        onClose={() => setIsFocusOpen(false)}
+      />
       <AccountSheet
         isOpen={isAccountOpen}
         session={session}
