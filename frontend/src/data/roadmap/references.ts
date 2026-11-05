@@ -2256,3 +2256,776 @@ SELECT pg_is_in_recovery();          -- true on a standby`,
     extraSource: { label: 'PostgreSQL: High availability and replication', url: `${PG}/high-availability.html` },
   },
 }
+
+// ── System design (Phase 2–3), keyed by ByteByteGo chapter slug ──
+const HI_SD = 'https://www.hellointerview.com/learn/system-design'
+const BBG_SD = 'https://bytebytego.com/courses/system-design-interview'
+const SD_PRIMER_LINK = { label: 'System Design Primer', url: 'https://github.com/donnemartin/system-design-primer' }
+const ASKED_AS = 'Interviewers ask this as'
+const NO_PROBLEMS: string[] = []
+
+export const SD_REFERENCES: Record<string, TaskReference> = {
+  'scale-from-zero-to-millions-of-users': {
+    title: 'Scaling from zero to millions of users',
+    summary:
+      'Scale in steps, each fixing the current bottleneck: separate the database, add replicas and a cache, put stateless app servers behind a load balancer, move static files to a CDN, then shard and go asynchronous with queues.',
+    recognizeTitle: ASKED_AS,
+    recognize: ['"How would you scale this to 10 million users?"', '"What happens if this server dies?"', 'Follow-ups on any design: bottlenecks, single points of failure', '"Make it fast for users worldwide"'],
+    points: [
+      'Vertical scaling (a bigger machine) is simplest but has a ceiling and stays a single point of failure. Horizontal scaling (more machines) requires stateless app servers.',
+      'Stateless web tier: keep sessions in Redis, the database or a signed token — never in server memory — so the load balancer can send any request anywhere and servers can come and go.',
+      'Database path: a primary for writes, read replicas for reads, a cache for hot reads (cache-aside with a TTL), and finally sharding (partitioning by a key) when one primary cannot absorb the writes.',
+      'A CDN serves static assets (images, JS, video) from locations near the user.',
+      'Message queues take slow work (emails, thumbnails) off the request path, absorb spikes, and let workers scale on their own.',
+      'Measure before optimising: logs, metrics (p95/p99 latency, error rate), traces. Multiple regions with geo-DNS give regional failover.',
+    ],
+    tableTitle: 'Building blocks',
+    complexity: [
+      { op: 'Load balancer', cost: 'spreads traffic', note: 'health checks, no single server' },
+      { op: 'Cache (Redis)', cost: 'sub-millisecond reads', note: 'invalidation is the hard part' },
+      { op: 'Read replicas', cost: 'scale reads', note: 'replication lag' },
+      { op: 'Sharding', cost: 'scales writes and storage', note: 'cross-shard queries get hard' },
+      { op: 'Message queue', cost: 'absorbs spikes', note: 'work becomes asynchronous' },
+      { op: 'CDN', cost: 'static content near users' },
+    ],
+    example: `import time
+
+cache = {}                                    # stands in for Redis
+
+def db_get_user(uid):                         # stands in for a slow query
+    time.sleep(0.05)
+    return {"id": uid, "name": f"user{uid}"}
+
+def get_user(uid, ttl=60):                    # cache-aside
+    hit = cache.get(uid)
+    if hit and hit[1] > time.time():
+        return hit[0]                         # cache hit
+    user = db_get_user(uid)                   # miss: read the database...
+    cache[uid] = (user, time.time() + ttl)    # ...then fill the cache
+    return user
+
+t = time.time(); get_user(1); first = time.time() - t
+t = time.time(); get_user(1); second = time.time() - t
+print(first > 0.04, second < 0.01)            # True True`,
+    pitfalls: [
+      { title: 'Sessions in app-server memory', fix: 'Users get logged out when the load balancer switches servers. Store sessions centrally or use signed tokens.' },
+      { title: 'A cache without an invalidation plan', fix: 'Stale data everywhere. Delete or update the cache entry on every write, and set TTLs.' },
+      { title: 'Sharding too early, or on a bad key', fix: 'Hot shards (one celebrity, one big customer). Exhaust replicas and caching first; choose a high-cardinality key.' },
+      { title: 'Hidden single points of failure', fix: 'One load balancer, one database, one region. Walk the diagram and ask "what if this dies?".' },
+    ],
+    interview: {
+      when: 'Grow the design step by step and name the bottleneck each step removes. Interviewers reward the "why" (trade-offs), not a list of boxes.',
+      problems: NO_PROBLEMS,
+    },
+    inWork: [
+      'Postgres/Supabase read replicas and connection pooling (PgBouncer, Supavisor)',
+      'Redis in front of slow queries',
+      'Vercel or Cloudflare CDN for static assets',
+      'Background jobs through queues: emails, image processing',
+    ],
+    quiz: [
+      { question: 'Why must app servers be stateless to scale horizontally?', answer: 'So any server can handle any request: sessions live in a shared store, and servers can be added or removed freely.' },
+      { question: 'What is the hardest part of caching?', answer: 'Invalidation: deciding when a cached value is stale (TTLs, deleting or updating it on writes).' },
+      { question: 'Read replicas or sharding?', answer: 'Replicas copy the data and scale reads. Sharding splits the data and scales writes and storage.' },
+    ],
+    source: { label: 'ByteByteGo: Scale from zero to millions (free chapter)', url: `${BBG_SD}/scale-from-zero-to-millions-of-users` },
+    extraSource: SD_PRIMER_LINK,
+  },
+  estimation: {
+    title: 'Estimation and the interview framework',
+    summary:
+      'Size the problem with quick, rounded math before drawing boxes, and run the interview in four steps: requirements, high-level design, deep dive, wrap-up.',
+    recognizeTitle: ASKED_AS,
+    recognize: ['"Estimate the QPS and storage for…"', 'The first five minutes of every design interview', '"What would you improve with more time?"', 'Capacity planning before a launch'],
+    points: [
+      'Four steps in ~45 minutes: (1) clarify functional and non-functional requirements and scale; (2) high-level design, API and data model — get buy-in; (3) deep dive into the 1–2 hardest parts; (4) wrap-up: bottlenecks, failures, monitoring, next steps.',
+      'Requests per second = daily active users × actions per user per day ÷ 86,400 (≈ 10⁵). Peak is usually 2–3× the average.',
+      'Storage = items per day × item size × retention. Bandwidth = QPS × response size.',
+      'Round aggressively: one day ≈ 10⁵ seconds, so one million requests a day ≈ 12 per second.',
+      'The numbers decide the architecture: 10 QPS fits one server; 100,000 QPS needs caching, replicas and probably sharding.',
+    ],
+    tableTitle: 'Numbers to know',
+    complexity: [
+      { op: 'Seconds in a day', cost: '86,400 ≈ 10⁵' },
+      { op: '1 million requests / day', cost: '≈ 12 QPS' },
+      { op: '2¹⁰ / 2²⁰ / 2³⁰ / 2⁴⁰', cost: 'thousand / million / billion / trillion', note: 'KB / MB / GB / TB' },
+      { op: '99.9% availability', cost: '≈ 8.8 hours down / year' },
+      { op: '99.99% availability', cost: '≈ 53 minutes down / year' },
+      { op: 'Memory / SSD / same-DC round trip', cost: '~100 ns / ~100 µs / ~0.5 ms' },
+    ],
+    example: `dau = 10_000_000                  # daily active users
+posts_per_user = 2                # writes per user per day
+reads_per_user = 50               # feed reads per user per day
+seconds_per_day = 86_400
+
+write_qps = dau * posts_per_user / seconds_per_day
+read_qps = dau * reads_per_user / seconds_per_day
+storage_gb_per_year = dau * posts_per_user * 1_000 * 365 / 1e9    # 1 KB per post
+
+print(round(write_qps), round(read_qps), round(write_qps * 3))      # 231 5787 694
+print(round(storage_gb_per_year), "GB / year")                      # 7300 GB / year`,
+    pitfalls: [
+      { title: 'Drawing boxes before requirements', fix: 'You may solve the wrong problem. Spend the first minutes on scope, users and scale.' },
+      { title: 'Precise arithmetic', fix: 'Wastes time. Round to powers of ten and say your assumptions out loud.' },
+      { title: 'A shallow tour of everything', fix: 'Pick the 1–2 hardest parts and go deep.' },
+      { title: 'Ignoring non-functional requirements', fix: 'Latency, availability and consistency targets drive most decisions — ask for them.' },
+    ],
+    interview: {
+      when: 'Drive the conversation: state assumptions, write the numbers down, and check in with the interviewer at the end of each step.',
+      problems: NO_PROBLEMS,
+    },
+    inWork: ['Capacity planning before launches and campaigns', 'Choosing database plans and instance sizes', 'Design docs: requirements → design → trade-offs → open questions'],
+    quiz: [
+      { question: 'One million requests per day — how many per second?', answer: 'About 12 (10⁶ ÷ 86,400 ≈ 11.6). Rounded: 10⁶ ÷ 10⁵ ≈ 10.' },
+      { question: 'Why estimate before designing?', answer: 'The numbers decide the architecture: 10 QPS fits one server; 100,000 QPS needs caches, replicas and sharding.' },
+      { question: 'The four steps of a design interview?', answer: 'Requirements, high-level design, deep dive, wrap-up.' },
+    ],
+    source: { label: 'Hello Interview: Delivery framework', url: `${HI_SD}/in-a-hurry/delivery` },
+    extraSource: { label: 'Hello Interview: Numbers to know', url: `${HI_SD}/core-concepts/numbers-to-know` },
+  },
+  'design-a-rate-limiter': {
+    title: 'Rate limiter',
+    summary:
+      'Count requests per client per time window and reject the excess with HTTP 429 — usually a token bucket whose counters live in a shared store such as Redis.',
+    recognizeTitle: ASKED_AS,
+    recognize: ['"Design a rate limiter / API throttling"', 'Protecting login and OTP endpoints from brute force', 'Free vs paid usage tiers', 'One noisy client overloading a service'],
+    points: [
+      'Token bucket: refill r tokens per second up to a capacity b; each request takes a token. It allows short bursts and is the most common choice.',
+      'Fixed window counters are simple but let up to 2× the limit through around window edges; a sliding-window log is exact but memory-heavy; a sliding-window counter approximates it cheaply.',
+      'Place it in the API gateway or middleware, before expensive work, keyed by user ID, API key or IP.',
+      'Distributed limits keep counters in Redis and update them atomically (INCR + EXPIRE, or a Lua script); otherwise two servers can both let the last request through.',
+      'Reply `429 Too Many Requests` with `Retry-After` (and remaining-quota headers). Decide whether to fail open or closed when the limiter store is down.',
+    ],
+    tableTitle: 'Algorithms',
+    complexity: [
+      { op: 'Token bucket', cost: 'bursts allowed, smooth', note: 'the usual answer' },
+      { op: 'Leaky bucket', cost: 'constant output rate' },
+      { op: 'Fixed window', cost: 'simplest', note: '2× burst at edges' },
+      { op: 'Sliding window log', cost: 'exact', note: 'stores every timestamp' },
+      { op: 'Sliding window counter', cost: 'close to exact, cheap' },
+    ],
+    example: `import time
+
+class TokenBucket:
+    def __init__(self, rate, capacity):
+        self.rate, self.capacity = rate, capacity      # tokens/sec, burst size
+        self.tokens, self.last = capacity, time.monotonic()
+
+    def allow(self):
+        now = time.monotonic()
+        self.tokens = min(self.capacity, self.tokens + (now - self.last) * self.rate)
+        self.last = now
+        if self.tokens >= 1:
+            self.tokens -= 1
+            return True
+        return False                                    # -> HTTP 429
+
+bucket = TokenBucket(rate=1, capacity=3)
+print([bucket.allow() for _ in range(5)])               # [True, True, True, False, False]`,
+    pitfalls: [
+      { title: 'Fixed windows', fix: 'Twice the limit can slip through around a boundary. Use a token bucket or sliding window.' },
+      { title: 'Read-then-write on Redis', fix: 'Races let extra requests through. Use atomic operations or a Lua script.' },
+      { title: 'Limiting by IP only', fix: 'Offices and mobile carriers share IPs. Prefer user or API-key limits, with IP as a fallback.' },
+      { title: 'A bare 429', fix: 'Clients retry immediately. Send `Retry-After` and expect exponential backoff.' },
+    ],
+    interview: {
+      when: 'Compare two or three algorithms, pick the token bucket, then make it distributed with Redis and atomic updates. Mention response headers and the failure mode.',
+      problems: NO_PROBLEMS,
+    },
+    inWork: ['Rate-limit rules in Nginx, Cloudflare or an API gateway', 'Limits on login, OTP and email sending', 'Handling 429s from APIs you call (Supabase, payment providers) with backoff'],
+    quiz: [
+      { question: 'Token bucket vs fixed window?', answer: 'A token bucket allows controlled bursts and smooths traffic; a fixed window can let up to 2× the limit through around window edges.' },
+      { question: 'Why Redis with atomic operations?', answer: 'All servers share the same counters, and atomicity stops two servers from both admitting the last allowed request.' },
+      { question: 'Your client gets a 429. What should it do?', answer: 'Wait as long as `Retry-After` says, then retry with exponential backoff and jitter.' },
+    ],
+    source: { label: 'Hello Interview: Distributed rate limiter', url: `${HI_SD}/problem-breakdowns/distributed-rate-limiter` },
+    extraSource: { label: 'ByteByteGo: Rate limiter (paid)', url: `${BBG_SD}/design-a-rate-limiter` },
+  },
+  'design-consistent-hashing': {
+    title: 'Consistent hashing',
+    summary:
+      'Put servers and keys on one hash ring and give each key to the next server clockwise. Adding or removing a server then moves only about 1/n of the keys instead of nearly all of them.',
+    recognizeTitle: ASKED_AS,
+    recognize: ['Spreading keys or cache entries over many nodes', '"What happens when we add a cache server?"', 'Partitioning a key-value store', 'Routing requests for the same key to the same node'],
+    points: [
+      'Naive `hash(key) % n` remaps almost every key when n changes — a cache stampede or a massive data move.',
+      'Ring: hash servers and keys into the same space; a key belongs to the first server clockwise. A new server only takes keys from its neighbour.',
+      'Virtual nodes: place each server at many points (100+) to even out load, and so a failed server’s keys spread across many others.',
+      'Replication: store each key on the next N distinct servers around the ring.',
+      'Used by Dynamo-style databases (Cassandra, DynamoDB), CDNs and client-side cache sharding.',
+    ],
+    tableTitle: 'Keys moved when going from 3 to 4 servers',
+    complexity: [
+      { op: '`hash % n`', cost: '≈ 75%', note: 'almost everything moves' },
+      { op: 'Hash ring', cost: '≈ 22–25%', note: '≈ 1/n of the keys' },
+      { op: 'Lookup', cost: 'O(log v)', note: 'binary search over v ring points' },
+    ],
+    example: `import bisect, hashlib
+
+def h(key):                               # stable hash (Python's hash() is randomised)
+    return int(hashlib.md5(key.encode()).hexdigest(), 16)
+
+class Ring:
+    def __init__(self, servers, vnodes=100):
+        self.points = sorted((h(f"{s}#{i}"), s) for s in servers for i in range(vnodes))
+        self.hashes = [p for p, _ in self.points]
+
+    def get(self, key):                   # first server clockwise
+        i = bisect.bisect(self.hashes, h(key)) % len(self.points)
+        return self.points[i][1]
+
+keys = [f"user:{i}" for i in range(10_000)]
+before, after = Ring(["a", "b", "c"]), Ring(["a", "b", "c", "d"])
+ring_moved = sum(before.get(k) != after.get(k) for k in keys) / len(keys)
+mod_moved = sum(h(k) % 3 != h(k) % 4 for k in keys) / len(keys)
+print(f"ring {ring_moved:.0%}, mod-n {mod_moved:.0%}")   # ring 22%, mod-n 75%`,
+    pitfalls: [
+      { title: 'No virtual nodes', fix: 'With few servers the ring is lumpy and one node gets far more keys. Use 100+ points per server.' },
+      { title: 'Python’s built-in `hash()`', fix: 'It is randomised per process. Use a stable hash (MD5, xxHash, murmur).' },
+      { title: '"It fixes hot keys"', fix: 'One key still lives on one node. Replicate or cache hot keys separately.' },
+      { title: 'Forgetting replication', fix: 'A single owner per key means data loss when it fails. Copy to the next N nodes.' },
+    ],
+    interview: {
+      when: 'Start from why `hash % n` fails, then ring + virtual nodes + replication. Bring it up in any sharding or cache deep dive.',
+      problems: NO_PROBLEMS,
+    },
+    inWork: ['Client-side sharding for Redis and Memcached', 'Partitioning in Cassandra and DynamoDB', 'Load balancers that keep a user on the same backend', 'CDN cache-node selection'],
+    quiz: [
+      { question: 'Why is `hash(key) % n` bad when servers change?', answer: 'Changing n remaps most keys, so caches go cold or most data has to move.' },
+      { question: 'What do virtual nodes fix?', answer: 'Uneven load, and a failed node dumping all its keys onto a single neighbour.' },
+      { question: 'Does consistent hashing solve a hot key?', answer: 'No — one key still maps to one node. Replicate or cache that key.' },
+    ],
+    source: { label: 'Hello Interview: Consistent hashing', url: `${HI_SD}/core-concepts/consistent-hashing` },
+    extraSource: { label: 'ByteByteGo: Consistent hashing (paid)', url: `${BBG_SD}/design-consistent-hashing` },
+  },
+  'design-a-key-value-store': {
+    title: 'Distributed key-value store',
+    summary:
+      'Split data across nodes with consistent hashing, keep N copies of every key, and tune consistency with read and write quorums: R + W > N means every read sees the latest write.',
+    recognizeTitle: ASKED_AS,
+    recognize: ['"Design a key-value store / distributed cache"', 'CAP theorem questions', '"How do replicas stay in sync?"', 'Choosing between Redis, DynamoDB and Cassandra'],
+    points: [
+      'Partition keys with consistent hashing; replicate each key to N nodes (often 3) in different racks or zones.',
+      'Quorums: a write succeeds after W acknowledgements, a read asks R replicas. R + W > N guarantees the two sets overlap, so a read reaches at least one replica with the latest write. Smaller R or W is faster but only eventually consistent.',
+      'CAP: during a network partition you choose consistency (refuse some requests) or availability (serve possibly stale data and reconcile later).',
+      'Conflicts: last-write-wins (simple, can silently drop writes) or versions such as vector clocks plus read repair.',
+      'Failure handling: gossip to detect dead nodes, hinted handoff while a node is down, Merkle trees to re-sync replicas.',
+      'One node’s write path is usually an LSM-tree: commit log → memtable → sorted files on disk, with Bloom filters to skip files on reads.',
+    ],
+    tableTitle: 'Quorum settings (N = 3)',
+    complexity: [
+      { op: 'R = 1, W = 3', cost: 'fast reads', note: 'slow writes' },
+      { op: 'R = 3, W = 1', cost: 'fast writes', note: 'slow reads' },
+      { op: 'R = 2, W = 2', cost: 'R + W > N', note: 'reads see the latest write' },
+      { op: 'R = 1, W = 1', cost: 'fastest', note: 'eventual consistency only' },
+    ],
+    example: `from itertools import combinations
+
+N = 3
+replicas = range(N)
+
+def always_overlaps(R, W):        # does every read set meet every write set?
+    return all(set(r) & set(w)
+               for r in combinations(replicas, R)
+               for w in combinations(replicas, W))
+
+print(always_overlaps(2, 2), always_overlaps(1, 2), always_overlaps(1, 3))   # True False True`,
+    pitfalls: [
+      { title: 'Claiming "CA" for a distributed system', fix: 'Partitions happen. The real choice is what to give up while one is happening.' },
+      { title: 'Last-write-wins with skewed clocks', fix: 'An older write can win and newer data is silently lost. Use versions or a single writer per key.' },
+      { title: 'All replicas in one rack or zone', fix: 'One failure takes every copy. Spread replicas across failure domains.' },
+      { title: 'Ignoring hot partitions', fix: 'A popular key overloads its replicas. Cache or split it.' },
+    ],
+    interview: {
+      when: 'Walk through partitioning → replication → quorums (R + W > N) → conflict resolution → failure detection, and say which side of CAP the use case needs.',
+      problems: NO_PROBLEMS,
+    },
+    inWork: ['Consistency levels in DynamoDB and Cassandra', 'Deciding where a product feature needs read-your-writes', 'Redis Cluster replication and failover settings'],
+    quiz: [
+      { question: 'Why does R + W > N give consistent reads?', answer: 'Any read set and any write set must share at least one replica, and that replica has the latest value.' },
+      { question: 'CAP in one sentence?', answer: 'When the network partitions, you either reject requests to stay consistent or serve possibly stale data to stay available.' },
+      { question: 'The risk of last-write-wins?', answer: 'Clock skew can make an older write look newer, so a real update is silently lost.' },
+    ],
+    source: { label: 'Hello Interview: Distributed cache', url: `${HI_SD}/problem-breakdowns/distributed-cache` },
+    extraSource: { label: 'ByteByteGo: Key-value store (paid)', url: `${BBG_SD}/design-a-key-value-store` },
+  },
+  'design-a-unique-id-generator-in-distributed-systems': {
+    title: 'Unique ID generator',
+    summary:
+      'Generate unique, roughly time-ordered 64-bit IDs on many machines with no coordination: Snowflake packs a timestamp, a machine ID and a per-millisecond sequence into one integer.',
+    recognizeTitle: ASKED_AS,
+    recognize: ['"Design a unique ID generator for a distributed system"', 'IDs that sort by creation time', 'A single database auto-increment that cannot keep up', 'Order and invoice numbers across services'],
+    points: [
+      'Options: database auto-increment (simple, but a single point of failure and hard across shards), UUIDv4 (no coordination, but 128 bits and random order), a ticket server, or Snowflake.',
+      'Snowflake layout: 1 sign bit + 41 bits of milliseconds since a custom epoch (~69 years) + 10 bits of machine ID (1,024 machines) + 12 bits of sequence (4,096 IDs per millisecond per machine).',
+      'Time-ordered IDs insert at the end of a B-tree index, which keeps indexes compact and fast; random UUIDs scatter inserts across the whole index.',
+      'If the clock moves backwards, wait or refuse — otherwise duplicates appear. Keep clocks synced with NTP.',
+      'UUIDv7 and ULID are standard time-ordered alternatives when 128 bits are fine.',
+    ],
+    tableTitle: 'Snowflake bits',
+    complexity: [
+      { op: 'Timestamp', cost: '41 bits', note: '≈ 69 years of milliseconds' },
+      { op: 'Machine ID', cost: '10 bits', note: '1,024 machines' },
+      { op: 'Sequence', cost: '12 bits', note: '4,096 IDs / ms / machine' },
+      { op: 'Total', cost: '64-bit signed integer', note: 'sign bit unused' },
+    ],
+    example: `import time
+
+EPOCH_MS = 1_700_000_000_000           # custom epoch (Nov 2023)
+
+class Snowflake:
+    def __init__(self, machine_id):
+        self.machine_id = machine_id & 0x3FF          # 10 bits
+        self.last_ms, self.seq = -1, 0
+
+    def next_id(self):
+        now = int(time.time() * 1000)
+        if now == self.last_ms:
+            self.seq = (self.seq + 1) & 0xFFF         # 12 bits
+            if self.seq == 0:                         # used up this millisecond
+                while now <= self.last_ms:
+                    now = int(time.time() * 1000)
+        else:
+            self.seq = 0
+        self.last_ms = now
+        return ((now - EPOCH_MS) << 22) | (self.machine_id << 12) | self.seq
+
+gen = Snowflake(machine_id=7)
+a, b = gen.next_id(), gen.next_id()
+print(b > a, (a >> 12) & 0x3FF, a.bit_length() <= 63)   # True 7 True`,
+    pitfalls: [
+      { title: 'UUIDv4 as the primary key of a busy table', fix: 'Random inserts bloat and fragment the index. Prefer time-ordered IDs (Snowflake, UUIDv7).' },
+      { title: 'Clocks moving backwards', fix: 'Duplicate IDs. Detect it and wait or refuse.' },
+      { title: 'Duplicate machine IDs with autoscaling', fix: 'Two machines generate the same IDs. Assign IDs from config, a coordinator or a lease.' },
+      { title: 'Exposing sequential IDs publicly', fix: 'They reveal volume and are guessable. Show opaque IDs externally.' },
+    ],
+    interview: {
+      when: 'List the options with trade-offs, pick Snowflake, explain the bit math (69 years, 1,024 machines, 4,096 per ms) and how you handle clock skew.',
+      problems: NO_PROBLEMS,
+    },
+    inWork: ['Order and invoice IDs across services', 'UUIDv7 or ULID primary keys in Postgres', 'Discord, X (Twitter) and Instagram use Snowflake-style IDs'],
+    quiz: [
+      { question: 'Why not UUIDv4 as the primary key of a busy table?', answer: 'Random values insert all over the B-tree (page splits, cache misses), carry no time order, and take 16 bytes.' },
+      { question: 'How many IDs can one Snowflake machine produce?', answer: '4,096 per millisecond — about 4 million per second.' },
+      { question: 'What if the machine clock goes backwards?', answer: 'Refuse or wait until it passes the last timestamp; otherwise IDs can repeat.' },
+    ],
+    source: SD_PRIMER_LINK,
+    extraSource: { label: 'ByteByteGo: Unique ID generator (paid)', url: `${BBG_SD}/design-a-unique-id-generator-in-distributed-systems` },
+  },
+  'design-a-url-shortener': {
+    title: 'URL shortener',
+    summary:
+      'Map a short code to a long URL: generate a unique ID, encode it in base62, store code → URL, and serve redirects mostly from cache because reads vastly outnumber writes.',
+    recognizeTitle: ASKED_AS,
+    recognize: ['"Design TinyURL / bit.ly"', 'Read-heavy systems with tiny records', 'Generating short unique codes', 'Redirects with click analytics'],
+    points: [
+      'API: `POST /urls {long_url}` → short code; `GET /{code}` → redirect.',
+      'Codes: a unique ID (sequence or Snowflake) encoded in base62 is collision-free by construction; 7 characters give 62⁷ ≈ 3.5 trillion codes. Hashing the URL needs truncation plus collision checks.',
+      '301 (permanent) is cached by browsers — less load, but repeat clicks never reach you. 302 (temporary) sends every click to you — good for analytics and changing targets.',
+      'Reads dominate (often 100:1): cache code → URL in Redis or at the CDN; the database is a simple key-value lookup on the code.',
+      'Abuse: rate-limit creation, scan for malicious URLs, and check uniqueness for custom aliases.',
+    ],
+    tableTitle: 'Numbers to know',
+    complexity: [
+      { op: '62⁶ codes', cost: '≈ 56.8 billion' },
+      { op: '62⁷ codes', cost: '≈ 3.5 trillion' },
+      { op: 'Typical read : write', cost: '100 : 1' },
+      { op: 'Redirect lookup', cost: 'O(1)', note: 'cache, then key-value read' },
+    ],
+    example: `ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+def encode(n):
+    if n == 0:
+        return ALPHABET[0]
+    out = []
+    while n:
+        n, r = divmod(n, 62)
+        out.append(ALPHABET[r])
+    return "".join(reversed(out))
+
+def decode(s):
+    n = 0
+    for ch in s:
+        n = n * 62 + ALPHABET.index(ch)
+    return n
+
+print(encode(125), decode(encode(125)), encode(62 ** 7 - 1))   # 21 125 ZZZZZZZ`,
+    pitfalls: [
+      { title: 'Hashing without collision handling', fix: 'Two URLs get the same code. Check-and-retry, or use ID + base62.' },
+      { title: 'Guessable sequential codes', fix: 'Anyone can enumerate links. Shuffle or obfuscate the ID before encoding.' },
+      { title: '301 when you need analytics', fix: 'Browsers stop asking you. Use 302 if clicks matter.' },
+      { title: 'No expiry or cleanup', fix: 'Storage grows forever. Decide on retention up front.' },
+    ],
+    interview: {
+      when: 'Do the capacity math, justify the code length, choose ID + base62 over hashing, and put a cache in front of the redirect path.',
+      problems: NO_PROBLEMS,
+    },
+    inWork: ['Short links in SMS, marketing and QR codes', 'Invite and referral codes', 'Opaque public IDs instead of raw database IDs'],
+    quiz: [
+      { question: 'How many codes do 7 base62 characters give?', answer: '62⁷ ≈ 3.5 trillion.' },
+      { question: '301 or 302?', answer: '301 is cached permanently (less load, no repeat analytics); 302 sends every click to you (analytics, editable targets).' },
+      { question: 'Why ID + base62 instead of hashing the URL?', answer: 'Unique by construction — no collision checks needed.' },
+    ],
+    source: { label: 'Hello Interview: Bit.ly', url: `${HI_SD}/problem-breakdowns/bitly` },
+    extraSource: { label: 'ByteByteGo: URL shortener (paid)', url: `${BBG_SD}/design-a-url-shortener` },
+  },
+  'design-a-web-crawler': {
+    title: 'Web crawler',
+    summary:
+      'Breadth-first search over the web: a URL frontier feeds fetchers that download pages, extract links, skip what has been seen, and respect each site’s robots.txt and rate limits.',
+    recognizeTitle: ASKED_AS,
+    recognize: ['"Design a web crawler / search indexer"', 'Scraping at scale', 'Politeness and deduplication questions', 'Distributed BFS over billions of nodes'],
+    points: [
+      'Loop: frontier → resolve DNS → fetch → parse → extract links → normalise → dedupe (URLs seen, content hash) → back into the frontier.',
+      'Frontier: priority queues (importance, freshness) in front of per-host queues for politeness — one connection per host and a delay between requests.',
+      'Dedupe at scale: a Bloom filter or distributed set for seen URLs, plus a content fingerprint to skip duplicate pages.',
+      'Respect robots.txt and crawl delays; guard against traps (infinite calendars) with depth and per-host page limits; normalise URLs.',
+      'Scale out workers partitioned by host hash; store pages in blob storage; cache DNS; retry with backoff.',
+    ],
+    tableTitle: 'Numbers to know',
+    complexity: [
+      { op: '1 billion pages / month', cost: '≈ 400 pages / s' },
+      { op: 'At ~100 KB per page', cost: '≈ 40 MB/s download' },
+      { op: 'Storage per month', cost: '≈ 100 TB' },
+      { op: 'Seen-URL check (Bloom filter)', cost: 'O(1)', note: 'tiny memory, rare false positives' },
+    ],
+    example: `from collections import deque
+
+web = {                                # page -> links found on that page
+    "a.com": ["a.com/1", "b.com"],
+    "a.com/1": ["a.com", "a.com/2"],
+    "a.com/2": [],
+    "b.com": ["a.com/1", "c.com"],
+    "c.com": [],
+}
+
+def crawl(seed, max_pages=10):
+    frontier, seen, order = deque([seed]), {seed}, []
+    while frontier and len(order) < max_pages:
+        url = frontier.popleft()
+        order.append(url)              # "download" the page
+        for link in web.get(url, []):
+            if link not in seen:       # dedupe before enqueueing
+                seen.add(link)
+                frontier.append(link)
+    return order
+
+print(crawl("a.com"))   # ['a.com', 'a.com/1', 'b.com', 'a.com/2', 'c.com']`,
+    pitfalls: [
+      { title: 'Hammering one host', fix: 'You get banned (and it is rude). Per-host queues with delays.' },
+      { title: 'Crawler traps', fix: 'Infinite URL spaces. Limit depth, URL length and pages per host.' },
+      { title: 'Deduping by URL only', fix: 'Mirrors and tracking parameters duplicate content. Fingerprint the content too.' },
+      { title: 'One global queue', fix: 'It becomes the bottleneck. Partition the frontier by host.' },
+    ],
+    interview: {
+      when: 'Draw the loop, then deep-dive the frontier (priority + politeness) and deduplication at billions scale (Bloom filters, content hashes).',
+      problems: NO_PROBLEMS,
+    },
+    inWork: ['SEO crawlers, link checkers, price monitors', 'Scraping partner data — within robots.txt and terms of service', 'Indexing internal docs for search'],
+    quiz: [
+      { question: 'Why per-host queues?', answer: 'Politeness: they limit how hard you hit any single site.' },
+      { question: 'The Bloom filter trade-off?', answer: 'Tiny memory and no false negatives, but rare false positives — a few new URLs may be skipped.' },
+      { question: 'How do you avoid crawler traps?', answer: 'Cap depth, URL length and pages per host, and block known trap patterns.' },
+    ],
+    source: { label: 'Hello Interview: Web crawler', url: `${HI_SD}/problem-breakdowns/web-crawler` },
+    extraSource: { label: 'ByteByteGo: Web crawler (paid)', url: `${BBG_SD}/design-a-web-crawler` },
+  },
+  'design-a-notification-system': {
+    title: 'Notification system',
+    summary:
+      'Services publish notification events to a queue; workers check user settings and templates, then deliver through providers (APNs, FCM, SMS, email) with retries, deduplication and rate limits.',
+    recognizeTitle: ASKED_AS,
+    recognize: ['"Design a notification system"', 'Push, email and SMS at scale', 'Asynchronous processing with queues', 'At-least-once delivery and duplicates'],
+    points: [
+      'Flow: event → notification service (validate, check preferences and opt-outs, render the template) → a queue per channel → workers → provider (APNs for iOS, FCM for Android and web, an SMS gateway, an email service).',
+      'One queue per channel isolates failures — a broken SMS provider does not block email — and absorbs spikes.',
+      'Reliability: persist each notification, retry with exponential backoff, send failures to a dead-letter queue. Delivery is at-least-once, so dedupe with an event ID.',
+      'Keep device tokens per user and delete ones the provider reports as invalid.',
+      'Respect preferences, quiet hours and frequency caps; track delivery and open rates.',
+    ],
+    tableTitle: 'Channels',
+    complexity: [
+      { op: 'iOS push', cost: 'APNs' },
+      { op: 'Android / web push', cost: 'FCM, Web Push' },
+      { op: 'SMS', cost: 'SMS gateway', note: 'expensive, rate-limited' },
+      { op: 'Email', cost: 'SES, SendGrid, Resend', note: 'deliverability matters' },
+    ],
+    example: `import random
+
+sent_ids = set()                                    # stands in for a unique key in the DB
+
+def send_once(event_id, deliver):
+    if event_id in sent_ids:
+        return "duplicate skipped"
+    for attempt in range(5):
+        if deliver():
+            sent_ids.add(event_id)
+            return f"sent after {attempt + 1} attempt(s)"
+        delay = 2 ** attempt + random.random()      # exponential backoff + jitter
+        # time.sleep(delay) in real code
+    return "moved to the dead-letter queue"
+
+flaky = iter([False, False, True])
+print(send_once("order-42-shipped", lambda: next(flaky)))   # sent after 3 attempt(s)
+print(send_once("order-42-shipped", lambda: True))          # duplicate skipped`,
+    pitfalls: [
+      { title: 'Sending inside the request', fix: 'Slow providers slow your API. Enqueue and return.' },
+      { title: 'Retries without deduplication', fix: 'Users get the same push twice. Use an idempotency key per event.' },
+      { title: 'Ignoring opt-outs', fix: 'Annoyed users — and legal risk for email and SMS. Check preferences first.' },
+      { title: 'Never cleaning device tokens', fix: 'Wasted sends and provider penalties. Delete tokens reported invalid.' },
+    ],
+    interview: {
+      when: 'Draw producers → queues → workers → providers, then cover retries with idempotency, user preferences and rate limits.',
+      problems: NO_PROBLEMS,
+    },
+    inWork: ['This app’s own reminder: Vercel Cron → /api/remind → Web Push through APNs', 'Transactional email through Resend or SendGrid', 'Order-status push and SMS in e-commerce'],
+    quiz: [
+      { question: 'Why a separate queue per channel?', answer: 'Isolation: one slow or failing provider does not block the others, and each channel scales its own workers.' },
+      { question: 'What does at-least-once delivery imply?', answer: 'A message can arrive twice, so consumers must be idempotent (dedupe by event ID).' },
+      { question: 'APNs says a token is invalid. What now?', answer: 'Delete the token so you stop sending to it.' },
+    ],
+    source: SD_PRIMER_LINK,
+    extraSource: { label: 'ByteByteGo: Notification system (paid)', url: `${BBG_SD}/design-a-notification-system` },
+  },
+  'design-a-news-feed-system': {
+    title: 'News feed',
+    summary:
+      'A feed is built either when someone posts (fan-out on write: push into followers’ feeds) or when a reader opens it (fan-out on read). Real systems mix both and cache the result.',
+    recognizeTitle: ASKED_AS,
+    recognize: ['"Design the Facebook / X news feed"', 'Timelines and activity feeds', 'The celebrity (hot user) problem', 'Ranking and paginating a feed'],
+    points: [
+      'Two APIs: publish a post, and get the feed (paginated).',
+      'Fan-out on write (push): on posting, insert the post ID into each follower’s cached feed. Reads are instant, but a user with millions of followers triggers millions of writes.',
+      'Fan-out on read (pull): gather recent posts from everyone you follow at read time. Writes are cheap, reads are slow for heavy followers.',
+      'Hybrid: push for normal users, pull celebrities’ posts at read time and merge.',
+      'Feed caches hold only post IDs (Redis lists or sorted sets); post and user data are hydrated from their own caches. Paginate with a cursor, not an offset.',
+    ],
+    tableTitle: 'Push vs pull',
+    complexity: [
+      { op: 'Fan-out on write', cost: 'fast reads', note: 'costly for celebrities' },
+      { op: 'Fan-out on read', cost: 'cheap writes', note: 'slow for heavy followers' },
+      { op: 'Hybrid', cost: 'push most, pull celebrities', note: 'the usual answer' },
+    ],
+    example: `import heapq
+from itertools import islice
+
+posts = {                                  # user -> [(timestamp, post_id)], newest first
+    "an":   [(105, "an-3"), (101, "an-2"), (90, "an-1")],
+    "binh": [(104, "binh-2"), (99, "binh-1")],
+    "chi":  [(103, "chi-1")],
+}
+
+def feed(following, limit=4):              # fan-out on read: merge k sorted lists
+    streams = (posts[u] for u in following)
+    merged = heapq.merge(*streams, key=lambda p: p[0], reverse=True)
+    return [post_id for _, post_id in islice(merged, limit)]
+
+print(feed(["an", "binh", "chi"]))         # ['an-3', 'binh-2', 'chi-1', 'an-2']`,
+    pitfalls: [
+      { title: 'Pure push with celebrities', fix: 'One post means millions of writes. Pull celebrity posts at read time.' },
+      { title: 'Offset pagination on a live feed', fix: 'New posts shift offsets: duplicates and gaps. Use a cursor (last seen time or ID).' },
+      { title: 'Full posts copied into every feed', fix: 'Huge storage, and edits are a nightmare. Store IDs only.' },
+      { title: 'Fanning out to inactive users', fix: 'Wasted work. Build their feed on demand when they return.' },
+    ],
+    interview: {
+      when: 'Compare push and pull with the celebrity problem, propose the hybrid, then show what lives in the caches (IDs only) and how cursor pagination works.',
+      problems: NO_PROBLEMS,
+    },
+    inWork: ['Activity feeds and notification lists', 'Redis sorted sets as timelines', 'Cursor pagination in APIs'],
+    quiz: [
+      { question: 'The problem with fan-out on write for celebrities?', answer: 'A single post triggers millions of feed writes.' },
+      { question: 'Why a cursor instead of an offset?', answer: 'New posts shift offsets and cause duplicates or gaps; a cursor (last seen timestamp or ID) stays stable.' },
+      { question: 'Why store only post IDs in feed caches?', answer: 'They are small, and edits or deletes happen in one place.' },
+    ],
+    source: { label: 'Hello Interview: Facebook news feed', url: `${HI_SD}/problem-breakdowns/fb-news-feed` },
+    extraSource: { label: 'ByteByteGo: News feed (paid)', url: `${BBG_SD}/design-a-news-feed-system` },
+  },
+  'design-a-chat-system': {
+    title: 'Chat system',
+    summary:
+      'Clients hold a persistent WebSocket to chat servers; each message is stored with a per-conversation order, routed to the recipient’s connection (or a push notification when offline), and presence comes from heartbeats.',
+    recognizeTitle: ASKED_AS,
+    recognize: ['"Design WhatsApp / Messenger / Slack"', 'Real-time features: typing indicators, presence, live updates', 'Delivery and read receipts, offline messages', 'Group chat fan-out'],
+    points: [
+      'Use WebSockets (persistent, two-way) rather than polling. Chat servers are stateful, so keep a registry of which server each user is connected to (for example in Redis).',
+      'Send path: sender → chat server → persist the message → look up the recipient’s server → deliver; if the recipient is offline, store it and send a push notification.',
+      'Order by server-assigned, increasing message IDs per conversation; clients sort and dedupe by ID after reconnecting.',
+      'Storage is write-heavy, append-only and read by recency: partition by conversation (Cassandra/HBase at huge scale, Postgres with good indexes at smaller scale).',
+      'Delivery states sent → delivered → read are acknowledgements. Presence comes from heartbeats with a timeout. Large groups use pub/sub instead of per-member sends.',
+    ],
+    tableTitle: 'Real-time transports',
+    complexity: [
+      { op: 'Short polling', cost: 'simple', note: 'wasteful, laggy' },
+      { op: 'Long polling', cost: 'near real-time', note: 'reconnect after each message' },
+      { op: 'Server-Sent Events', cost: 'server → client only' },
+      { op: 'WebSocket', cost: 'two-way, persistent', note: 'the chat default' },
+    ],
+    pitfalls: [
+      { title: 'HTTP polling at scale', fix: 'Floods servers with empty requests and adds lag. Use WebSockets.' },
+      { title: 'Assuming one server holds every connection', fix: 'Messages cannot find their recipient. Keep a user → server registry or use pub/sub.' },
+      { title: 'Ordering by client timestamps', fix: 'Clocks differ. Use server-assigned increasing IDs.' },
+      { title: 'Ignoring reconnects', fix: 'Messages get lost or doubled. Resend unacknowledged messages and dedupe by ID.' },
+    ],
+    interview: {
+      when: 'Justify WebSockets, explain how a message finds the recipient’s server, then cover ordering, storage and offline delivery.',
+      problems: NO_PROBLEMS,
+    },
+    inWork: ['Supabase Realtime or Socket.IO for live updates', 'Support chat widgets', 'Presence and typing indicators in collaborative apps'],
+    quiz: [
+      { question: 'Why WebSockets for chat?', answer: 'The server can push instantly over one persistent connection; polling wastes requests and adds latency.' },
+      { question: 'With many chat servers, how does a message reach the recipient?', answer: 'Look up the recipient’s server in a session registry (e.g. Redis), or publish to a per-user pub/sub channel.' },
+      { question: 'Why not order by client timestamps?', answer: 'Device clocks differ; server-assigned increasing IDs per conversation give a consistent order.' },
+    ],
+    source: { label: 'Hello Interview: WhatsApp', url: `${HI_SD}/problem-breakdowns/whatsapp` },
+    extraSource: { label: 'ByteByteGo: Chat system (paid)', url: `${BBG_SD}/design-a-chat-system` },
+  },
+  'design-a-search-autocomplete-system': {
+    title: 'Search autocomplete',
+    summary:
+      'Return the top few completions for a prefix in milliseconds by precomputing them: aggregate query counts offline, store the top k per prefix, and serve from caches.',
+    recognizeTitle: ASKED_AS,
+    recognize: ['"Design search autocomplete / typeahead"', 'Top-k by frequency at scale', 'Read paths that must answer within ~100 ms per keystroke', 'Tries in system design'],
+    points: [
+      'Two paths: data gathering (log queries, aggregate counts daily or weekly) and serving (prefix → top 5).',
+      'Store the top k at each trie node, or as a flat prefix → top-k map — a single lookup, easy to shard and cache.',
+      'Rebuild offline and swap the new index in; trending topics need a separate streaming counter.',
+      'Latency: debounce keystrokes in the browser, cache prefixes on the client and at the CDN, shard by prefix range.',
+      'Filter unsafe suggestions; personalisation is an extra layer on top.',
+    ],
+    tableTitle: 'Numbers to know',
+    complexity: [
+      { op: '10M users × 10 searches × 20 keystrokes', cost: '≈ 23,000 lookups / s', note: 'before debouncing' },
+      { op: 'Lookup in a prefix → top-k map', cost: 'O(1)' },
+      { op: 'Trie walk', cost: 'O(prefix length)' },
+      { op: 'Rebuild', cost: 'offline, periodically' },
+    ],
+    example: `from collections import Counter, defaultdict
+import heapq
+
+queries = ["tree", "trie", "tree", "trend", "trend", "trend", "toy"]
+counts = Counter(queries)
+
+top_k = defaultdict(list)                 # prefix -> best completions (built offline)
+for word, n in counts.items():
+    for i in range(1, len(word) + 1):
+        top_k[word[:i]].append((n, word))
+for prefix in top_k:
+    top_k[prefix] = [w for _, w in heapq.nlargest(3, top_k[prefix])]
+
+print(top_k["tr"], top_k["tri"])          # ['trend', 'tree', 'trie'] ['trie']`,
+    pitfalls: [
+      { title: 'Querying the database on every keystroke', fix: 'Too slow and too expensive. Serve precomputed results from caches.' },
+      { title: 'Updating the trie on the hot path', fix: 'Contention and slow reads. Rebuild offline and swap.' },
+      { title: 'No client debounce', fix: 'A request per keystroke multiplies load. Debounce ~100–300 ms.' },
+      { title: 'One giant trie on one machine', fix: 'Shard by prefix range and replicate.' },
+    ],
+    interview: {
+      when: 'Split offline aggregation from online serving, store the top k per prefix, cache aggressively, and explain the update cycle.',
+      problems: NO_PROBLEMS,
+    },
+    inWork: ['Search boxes for products, users and documents', 'Small scale: Postgres prefix search with an index (`LIKE \'abc%\'`, trigram indexes)', 'Command palettes in apps'],
+    quiz: [
+      { question: 'Why precompute the top k per prefix?', answer: 'Serving becomes one lookup; ranking at request time is too slow for every keystroke.' },
+      { question: 'How do suggestions stay fresh?', answer: 'Periodic offline rebuilds that are swapped in, plus a streaming path for trending queries.' },
+      { question: 'Two client-side tricks?', answer: 'Debounce keystrokes, and cache prefixes already fetched.' },
+    ],
+    source: { label: 'Hello Interview: Top-K', url: `${HI_SD}/problem-breakdowns/top-k` },
+    extraSource: { label: 'ByteByteGo: Search autocomplete (paid)', url: `${BBG_SD}/design-a-search-autocomplete-system` },
+  },
+  'design-youtube': {
+    title: 'Video platform (YouTube)',
+    summary:
+      'Uploads go straight to blob storage, an asynchronous pipeline transcodes them into several qualities and short segments, and a CDN streams those segments with adaptive bitrate. Metadata lives in an ordinary database.',
+    recognizeTitle: ASKED_AS,
+    recognize: ['"Design YouTube / Netflix / TikTok"', 'Large uploads plus processing pipelines', 'Video streaming and CDN questions', 'Systems where storage and bandwidth dominate cost'],
+    points: [
+      'Upload: the client gets a pre-signed URL and uploads directly to object storage — app servers stay out of the data path. Large files use resumable multipart uploads.',
+      'Processing: an event goes onto a queue; workers transcode into several resolutions and codecs, cut 2–10 second segments and make thumbnails, as a pipeline of tasks that scales independently.',
+      'Streaming: HLS/DASH manifests list the segments for each bitrate, and the player switches quality per segment based on measured bandwidth (adaptive bitrate).',
+      'A CDN serves popular videos from the edge; the long tail can come from origin to save cost.',
+      'Metadata (title, owner, privacy) in SQL; view counts aggregated asynchronously.',
+    ],
+    tableTitle: 'The three paths',
+    complexity: [
+      { op: 'Upload', cost: 'pre-signed URL → object storage', note: 'resumable' },
+      { op: 'Processing', cost: 'queue → transcoding workers', note: 'minutes, asynchronous' },
+      { op: 'Delivery', cost: 'CDN + adaptive bitrate', note: '2–10 s segments' },
+      { op: 'Metadata', cost: 'relational DB + cache' },
+    ],
+    exampleLang: 'plaintext',
+    example: `#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=800000,RESOLUTION=640x360
+360p/index.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=2800000,RESOLUTION=1280x720
+720p/index.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1920x1080
+1080p/index.m3u8`,
+    pitfalls: [
+      { title: 'Uploading through app servers', fix: 'They become a bandwidth bottleneck. Use pre-signed URLs to object storage.' },
+      { title: 'Transcoding inside the request', fix: 'Takes minutes and times out. Queue it.' },
+      { title: 'Serving video from origin', fix: 'Slow and expensive. Put a CDN in front.' },
+      { title: 'One big file per video', fix: 'No quality switching and slow seeking. Segment it.' },
+    ],
+    interview: {
+      when: 'Separate the upload, processing and streaming paths; stress the asynchronous pipeline, the CDN and adaptive bitrate — and mention cost.',
+      problems: NO_PROBLEMS,
+    },
+    inWork: ['Signed upload URLs in Supabase Storage or S3', 'Mux or Cloudflare Stream instead of building transcoding', 'Thumbnail and image-processing pipelines on queues'],
+    quiz: [
+      { question: 'Why pre-signed upload URLs?', answer: 'The client uploads straight to storage, so app servers never carry the file bytes.' },
+      { question: 'What is adaptive bitrate streaming?', answer: 'The video exists in several qualities cut into segments; the player picks each segment’s quality from the current bandwidth.' },
+      { question: 'Why transcode asynchronously?', answer: 'It takes minutes; a queue and workers keep uploads fast and scale separately.' },
+    ],
+    source: { label: 'Hello Interview: YouTube', url: `${HI_SD}/problem-breakdowns/youtube` },
+    extraSource: { label: 'ByteByteGo: YouTube (paid)', url: `${BBG_SD}/design-youtube` },
+  },
+  'design-google-drive': {
+    title: 'File storage and sync (Google Drive)',
+    summary:
+      'Files are split into chunks stored by content hash in blob storage, metadata (folders, versions, sharing) lives in a database, and clients sync by uploading only changed chunks and listening for changes.',
+    recognizeTitle: ASKED_AS,
+    recognize: ['"Design Dropbox / Google Drive"', 'Syncing files across devices', 'Large uploads, versioning, deduplication', 'Conflicting offline edits'],
+    points: [
+      'Chunking: split files into blocks (e.g. 4 MB) and name each block by its hash. Identical blocks are stored once, uploads resume per chunk, and an edit re-uploads only the changed chunks (delta sync).',
+      'Metadata database (strongly consistent, relational): users, files, versions, each version’s chunk list, permissions.',
+      'Upload flow: the client asks the API for pre-signed URLs, uploads missing chunks to blob storage, then commits a new version in the metadata DB.',
+      'Sync: clients long-poll or subscribe for change events, then download only the chunks they lack.',
+      'Conflicts from two offline edits: keep both ("conflicted copy") or last-write-wins with version history. Replicate blobs across regions; move old versions to cold storage.',
+    ],
+    tableTitle: 'Design choices',
+    complexity: [
+      { op: 'Chunk size', cost: '~4 MB', note: 'resume + delta sync' },
+      { op: 'Chunk name', cost: 'SHA-256 of the content', note: 'dedupe + integrity' },
+      { op: 'Metadata', cost: 'relational, strongly consistent' },
+      { op: 'Blocks', cost: 'immutable, replicated object storage' },
+    ],
+    example: `import hashlib
+
+def chunk_hashes(data, size=4):            # real systems use ~4 MB chunks
+    return [hashlib.sha256(data[i:i + size]).hexdigest()[:8]
+            for i in range(0, len(data), size)]
+
+v1 = chunk_hashes(b"hello world!")
+v2 = chunk_hashes(b"hello World!")         # one byte changed
+changed = [i for i, (a, b) in enumerate(zip(v1, v2)) if a != b]
+print(len(v1), changed)                    # 3 [1]  -> upload only chunk 1`,
+    pitfalls: [
+      { title: 'Re-uploading whole files', fix: 'Slow and wasteful. Upload only changed chunks.' },
+      { title: 'Files stored inside the database', fix: 'Bloats backups and slows queries. Blobs in object storage, metadata in the DB.' },
+      { title: 'Eventually consistent metadata', fix: 'Folders and permissions appear and vanish. Keep metadata strongly consistent.' },
+      { title: 'Ignoring conflicts', fix: 'Silent data loss. Detect version mismatches and keep both copies.' },
+    ],
+    interview: {
+      when: 'Separate metadata from blocks, explain chunking + hash dedupe + delta sync, then how clients learn about changes and resolve conflicts.',
+      problems: NO_PROBLEMS,
+    },
+    inWork: ['Supabase Storage plus a metadata table — exactly how this app stores your resources', 'Content-addressed storage in git and Docker image layers', 'Resumable uploads (tus protocol)'],
+    quiz: [
+      { question: 'Why split files into chunks?', answer: 'Resumable uploads, re-uploading only changed parts, and storing identical chunks once.' },
+      { question: 'Why name chunks by their hash?', answer: 'Identical content gets the same name, so it is stored once, and integrity can be verified.' },
+      { question: 'Where is strong consistency essential?', answer: 'In the metadata (folders, versions, permissions). Blocks are immutable, so they can be replicated freely.' },
+    ],
+    source: { label: 'Hello Interview: Dropbox', url: `${HI_SD}/problem-breakdowns/dropbox` },
+    extraSource: { label: 'ByteByteGo: Google Drive (paid)', url: `${BBG_SD}/design-google-drive` },
+  },
+}

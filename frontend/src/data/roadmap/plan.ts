@@ -1,5 +1,5 @@
 import { createProblemTask, getCategorySlugs } from './neetcode'
-import { CS_REFERENCES, PYTHON_REFERENCES } from './references'
+import { CS_REFERENCES, PYTHON_REFERENCES, SD_REFERENCES } from './references'
 import type { PhaseId, RoadmapDay, RoadmapPhase, RoadmapTask, RoadmapWeek, TaskKind, TaskLink, TaskReference, TaskSeed } from './types'
 
 // ── Link helpers ──────────────────────────
@@ -49,6 +49,9 @@ const problems = (category: string, from?: number, to?: number) =>
   getCategorySlugs(category, from, to).map(createProblemTask)
 const askClaude = (kind: TaskKind, title: string) => task(kind, title, link('Claude', LINKS.claude))
 
+const withSdTheory = (slug: string, seeds: TaskSeed[]): TaskSeed[] =>
+  SD_REFERENCES[slug] ? seeds.map((seed) => withReference(seed, SD_REFERENCES[slug])) : seeds
+
 const HI = `${LINKS.helloInterview}/problem-breakdowns/`
 const SD_PRIMER = 'https://github.com/donnemartin/system-design-primer'
 
@@ -72,11 +75,11 @@ const FREE_SD_SOURCES: Record<string, TaskLink> = {
 function sdChapter(title: string, slug: string): TaskSeed[] {
   const free = FREE_SD_SOURCES[slug]
   const extra = slug === 'scale-from-zero-to-millions-of-users' ? [] : [link('ByteByteGo (paid)', `${LINKS.bbg}${slug}`)]
-  return [
+  return withSdTheory(slug, [
     task('sd', `Read: ${title}`, free, ...extra),
     task('sd', `Redraw ${title} from memory in 30 minutes`),
     askClaude('sd', `Walk Claude through your ${title} design and defend the trade-offs`),
-  ]
+  ])
 }
 
 const redoMissed = task('review', "Redo this week's missed problems without looking at solutions", link('NeetCode', LINKS.neetcode))
@@ -409,12 +412,12 @@ const weekSpecs: WeekSpec[] = [
     end: '2027-03-14',
     goal: '2-D DP part 1. Learn estimation and the interview framework.',
     dsa: problems('2-D DP', 0, 6),
-    study: [
+    study: withSdTheory('estimation', [
       task('sd', 'Read: Numbers to know for estimation', link('Hello Interview', `${LINKS.helloInterview}/core-concepts/numbers-to-know`)),
       task('sd', 'Read: How to deliver a system design interview', link('Hello Interview', `${LINKS.helloInterview}/in-a-hurry/delivery`)),
       task('sd', 'System Design School primer', link('Read', LINKS.sdsPrimer)),
       askClaude('sd', 'Estimate QPS and storage for a 10M-user app, check with Claude'),
-    ],
+    ]),
   },
   {
     label: 'Week 18',
