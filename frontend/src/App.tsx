@@ -9,6 +9,7 @@ import ResumePage from '@/pages/ResumePage'
 import NotFoundPage from '@/pages/NotFoundPage'
 
 const RoadmapPage = lazy(() => import('@/pages/RoadmapPage'))
+const JourneyPage = lazy(() => import('@/pages/JourneyPage'))
 
 const pageVariants = {
   initial: { opacity: 0, y: 16 },
@@ -46,6 +47,14 @@ export default function App() {
           >
             <Routes location={location}>
               <Route path="/" element={<HomePage />} />
+              <Route
+                path="/journey"
+                element={
+                  <Suspense fallback={<div className="min-h-screen" />}>
+                    <JourneyPage />
+                  </Suspense>
+                }
+              />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </motion.div>

@@ -88,13 +88,13 @@ export function Navbar() {
             transition={{ delay: 0.06 * navLinks.length + 0.2 }}
           >
             <Link
-              to="/roadmap"
+              to="/journey"
               className={cn(
                 'text-xs font-semibold uppercase tracking-widest transition-colors',
-                pathname === '/roadmap' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                pathname === '/journey' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              Roadmap
+              Journey
             </Link>
           </motion.div>
         </nav>
@@ -177,11 +177,11 @@ export function Navbar() {
                 </motion.button>
               ))}
               <Link
-                to="/roadmap"
+                to="/journey"
                 onClick={() => setMobileOpen(false)}
                 className="py-3.5 text-sm font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
               >
-                Roadmap
+                Journey
               </Link>
               <button
                 onClick={() => { openModal(); setMobileOpen(false) }}

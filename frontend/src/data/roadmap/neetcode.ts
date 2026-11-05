@@ -213,6 +213,12 @@ const PROBLEMS: NeetCodeProblem[] = Object.entries(CATEGORIES).flatMap(([categor
 )
 
 export const NEETCODE_150_TOTAL = PROBLEMS.length
+export const NEETCODE_CATEGORIES = Object.keys(CATEGORIES)
+export const CATEGORY_SIZES: Record<string, number> = Object.fromEntries(Object.entries(CATEGORIES).map(([c, rows]) => [c, rows.length]))
+export const DIFFICULTY_TOTALS = PROBLEMS.reduce<Record<ProblemDifficulty, number>>(
+  (acc, p) => ({ ...acc, [p.difficulty]: acc[p.difficulty] + 1 }),
+  { easy: 0, medium: 0, hard: 0 }
+)
 
 export function getCategorySlugs(category: string, from = 0, to?: number): string[] {
   return (CATEGORIES[category] ?? []).slice(from, to).map(([slug]) => slug)
@@ -226,6 +232,7 @@ export function createProblemTask(slug: string): TaskSeed {
     kind: 'dsa',
     title: `${problem.title} · ${problem.category}`,
     difficulty: problem.difficulty,
+    category: problem.category,
     reference: CATEGORY_REFERENCES[problem.category],
     links: problem.isPremium
       ? [

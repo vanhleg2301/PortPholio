@@ -20,6 +20,8 @@ export interface TaskSeed {
   title: string
   links: TaskLink[]
   difficulty?: ProblemDifficulty
+  // NeetCode category, set on problem tasks only.
+  category?: string
   reference?: TaskReference
 }
 
