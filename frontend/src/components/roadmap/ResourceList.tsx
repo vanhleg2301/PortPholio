@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { FileText, Link2, Paperclip, Plus, Trash2 } from 'lucide-react'
+import { ConfirmDialog } from '@/components/roadmap/ConfirmDialog'
 import { useAddLink, useDeleteResource, useUploadFile, type RoadmapResource } from '@/hooks/useRoadmapResources'
 
 interface ResourceListProps {
@@ -20,6 +21,8 @@ export function ResourceList({ day, resources }: ResourceListProps) {
   const [isLinkFormOpen, setIsLinkFormOpen] = useState(false)
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
+  const [pendingDelete, setPendingDelete] = useState<RoadmapResource | null>(null)
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const error = addLink.error ?? uploadFile.error ?? deleteResource.error
 
   async function handleAddLink(e: FormEvent) {
@@ -46,8 +49,9 @@ export function ResourceList({ day, resources }: ResourceListProps) {
     }
   }
 
-  function handleDelete(resource: RoadmapResource) {
-    if (window.confirm(`Delete "${resource.title}"?`)) deleteResource.mutate(resource)
+  function handleConfirmDelete() {
+    if (!pendingDelete) return
+    deleteResource.mutate(pendingDelete, { onSettled: () => setIsConfirmOpen(false) })
   }
 
   const inputClass = 'w-full rounded-xl border border-border bg-transparent px-3 py-2.5 text-base outline-none focus:border-foreground/50'
@@ -71,7 +75,10 @@ export function ResourceList({ day, resources }: ResourceListProps) {
                 <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{r.title}</span>
               )}
               <span className="text-[11px] text-muted-foreground">{formatSize(r.size_bytes)}</span>
-              <button type="button" onClick={() => handleDelete(r)} aria-label={`Delete ${r.title}`} className="p-1.5 rounded-full text-muted-foreground hover:text-hard hover:bg-hard/10 transition-colors">
+              <button type="button" onClick={() => {
+                  setPendingDelete(r)
+                  setIsConfirmOpen(true)
+                }} aria-label={`Delete ${r.title}`} className="p-1.5 rounded-full text-muted-foreground hover:text-hard hover:bg-hard/10 transition-colors">
                 <Trash2 className="h-4 w-4" />
               </button>
             </li>
@@ -109,6 +116,23 @@ export function ResourceList({ day, resources }: ResourceListProps) {
         </div>
       )}
       {error && <p className="mt-2 text-xs text-hard">{error.message}</p>}
+
+      <ConfirmDialog
+        isOpen={isConfirmOpen}
+        title={pendingDelete?.kind === 'file' ? 'Delete this file?' : 'Remove this link?'}
+        description={
+          <>
+            <span className="font-medium text-foreground break-all">{pendingDelete?.title}</span>
+            {pendingDelete?.kind === 'file'
+              ? ' will be permanently deleted from storage. This cannot be undone.'
+              : ' will be removed from this day.'}
+          </>
+        }
+        confirmLabel={pendingDelete?.kind === 'file' ? 'Delete file' : 'Remove link'}
+        isPending={deleteResource.isPending}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setIsConfirmOpen(false)}
+      />
     </div>
   )
 }
