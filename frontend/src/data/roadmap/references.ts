@@ -1,6 +1,7 @@
 import type { TaskReference } from './types'
 
 const PY = 'https://docs.python.org/3'
+const TIH = 'https://www.techinterviewhandbook.org/algorithms'
 
 // ── Python basics (Week 0) ────────────────
 const PY_WIKI_COMPLEXITY = { label: 'Python wiki: TimeComplexity', url: 'https://wiki.python.org/moin/TimeComplexity' }
@@ -61,6 +62,11 @@ print("racecar" == "racecar"[::-1])    # True`,
       },
     ],
     source: { label: 'Python Tutorial §3: An Informal Introduction', url: `${PY}/tutorial/introduction.html` },
+    inWork: [
+      'Parsing log or CSV lines with `split` and building output with `join`',
+      'Pagination by slicing: `items[offset:offset + limit]`',
+      'Bugs from a list shared between functions or requests — copy when a caller must not see changes',
+    ],
     extraSource: PY_WIKI_COMPLEXITY,
   },
   collections: {
@@ -123,6 +129,11 @@ for ch in "banana":
       },
     ],
     source: { label: 'Python Tutorial §5: Data Structures', url: `${PY}/tutorial/datastructures.html` },
+    inWork: [
+      'Lookups by ID (`users_by_id[uid]`), caches and deduplication',
+      'Counting events per key for metrics and reports',
+      'JSON objects map one-to-one to dicts in API code',
+    ],
     extraSource: { label: 'Python Tutorial §4: More Control Flow Tools', url: `${PY}/tutorial/controlflow.html` },
   },
   interviewToolkit: {
@@ -180,6 +191,11 @@ print(sorted(people, key=lambda p: (-p[1], p[0])))
       { question: 'Why use `deque` instead of a list for BFS?', answer: '`popleft()` is O(1). `list.pop(0)` shifts every item (O(n)), which can turn BFS into O(n²).' },
     ],
     source: { label: 'collections — Container datatypes', url: `${PY}/library/collections.html` },
+    inWork: [
+      'Job schedulers and priority queues (heapq)',
+      'Work queues and crawlers that process items in order (deque)',
+      'Top-N reports and analytics (Counter, nlargest)',
+    ],
     extraSource: { label: 'heapq — Heap queue algorithm', url: `${PY}/library/heapq.html` },
   },
 } satisfies Record<string, TaskReference>
@@ -187,93 +203,462 @@ print(sorted(people, key=lambda p: (-p[1], p[0])))
 // ── NeetCode categories: the pattern behind each group ──
 const CATEGORY_NOTES: Record<string, Omit<TaskReference, 'title'>> = {
   'Arrays & Hashing': {
-    source: { label: 'Python Tutorial: Dictionaries', url: `${PY}/tutorial/datastructures.html#dictionaries` },
+    summary:
+      "Trade memory for time: remember what you've already seen in a hash map, so each new element is answered in O(1) instead of rescanning the array.",
+    recognize: [
+      'Find a pair, a duplicate or a complement ("two numbers that add up to…")',
+      'Count, frequency, "most common"',
+      'Group items that share a property (anagrams, same digits)',
+      'Your first idea is two nested loops over the same array',
+    ],
     points: [
-      'Trade memory for speed: a dict/set turns an O(n) search into an O(1) lookup.',
-      'Frequency count (`Counter`), "seen" set, and grouping by a computed key (e.g. sorted word) cover most problems.',
-      'Prefix/suffix arrays answer "product/sum of everything except i" in O(n).',
+      'Brute force compares every pair: O(n²). A hash map lets you ask "have I already seen what I need?" in O(1), so a single pass is enough — O(n) time for O(n) extra memory.',
+      'The real decision is the key: the value itself (a "seen" set), the complement (`target - x`), or a canonical form for grouping (sorted letters, a tuple of letter counts).',
+      'Prefix/suffix accumulation: precompute running products or sums from the left and from the right, so "everything except index i" costs O(1) per index — no division needed.',
+      'Sorting first (O(n log n), little extra memory) is the alternative when memory is tight or order matters.',
+    ],
+    complexity: [
+      { op: 'Check every pair', cost: 'O(n²)', note: 'O(1) space' },
+      { op: 'One pass with a dict / set', cost: 'O(n)', note: 'O(n) space' },
+      { op: 'Sort, then scan', cost: 'O(n log n)', note: 'O(1)–O(n) space' },
+      { op: 'Group by sorted-word key', cost: 'O(n · k log k)', note: 'k = word length' },
     ],
     example: `def two_sum(nums, target):
-    index = {}
+    seen = {}                        # value -> index
     for i, x in enumerate(nums):
-        if target - x in index:
-            return [index[target - x], i]
-        index[x] = i`,
+        need = target - x
+        if need in seen:             # O(1) lookup
+            return [seen[need], i]
+        seen[x] = i                  # store AFTER checking: no self-match
+    return []
+
+def product_except_self(nums):
+    n = len(nums)
+    out = [1] * n
+    left = 1
+    for i in range(n):               # out[i] = product of items left of i
+        out[i] = left
+        left *= nums[i]
+    right = 1
+    for i in range(n - 1, -1, -1):   # ... times product of items right of i
+        out[i] *= right
+        right *= nums[i]
+    return out
+
+print(two_sum([2, 7, 11, 15], 9))          # [0, 1]
+print(product_except_self([1, 2, 3, 4]))   # [24, 12, 8, 6]`,
+    pitfalls: [
+      { title: 'Storing before checking in Two Sum', fix: 'An element pairs with itself when `target == 2 * x`. Check `need in seen` first, then store.' },
+      { title: 'A list as the group key', fix: 'Unhashable. Use `tuple(sorted(word))`, `"".join(sorted(word))`, or a 26-count tuple.' },
+      { title: 'Longest Consecutive Sequence counting from every number', fix: "That is O(n²). Only start counting at `x` when `x - 1` is not in the set." },
+      { title: 'Ignoring the memory cost', fix: 'Expect the follow-up "can you do it in O(1) extra space?" — have the sort-based answer ready.' },
+    ],
+    interview: {
+      when: 'Your first optimisation for almost any array problem. Say the trade-off out loud: "brute force is O(n²); a hash map makes it O(n) at the cost of O(n) memory."',
+      problems: ['contains-duplicate', 'two-sum', 'group-anagrams', 'top-k-frequent-elements', 'product-of-array-except-self', 'longest-consecutive-sequence'],
+    },
+    inWork: [
+      'Deduplicating records or events by ID before processing them',
+      'Joining two datasets in memory (a hash join) instead of nested loops',
+      'Caching / memoising results by key',
+      'Counting metrics: requests per user, errors per endpoint',
+    ],
+    quiz: [
+      { question: 'Two Sum: why check `need in seen` before `seen[x] = i`?', answer: 'So an element cannot pair with itself (target 6 with a single 3), and the earlier index is kept.' },
+      {
+        question: 'How do anagrams end up under the same dict key?',
+        answer: 'Use a canonical form: `"".join(sorted(w))` (O(k log k) per word) or a tuple of 26 letter counts (O(k) per word).',
+      },
+      {
+        question: 'Longest Consecutive Sequence in O(n) — what is the trick?',
+        answer: 'Put every number in a set and only start walking from `x` when `x - 1` is missing. Each sequence is then walked exactly once.',
+      },
+    ],
+    source: { label: 'Tech Interview Handbook: Hash table', url: `${TIH}/hash-table/` },
+    extraSource: { label: 'Python Tutorial: Dictionaries', url: `${PY}/tutorial/datastructures.html#dictionaries` },
   },
   'Two Pointers': {
-    source: { label: 'Python Sorting HOW TO', url: `${PY}/howto/sorting.html` },
-    points: [
-      'Usually on a sorted array or a string: one pointer at each end, move them toward each other.',
-      'Move the pointer that can improve the answer (sum too small → move left up).',
-      '3Sum = sort, fix one number, then two pointers on the rest. Skip duplicates.',
+    summary:
+      'Two indexes walk the data in a coordinated way, so one pass replaces checking every pair. It works when the input is sorted or the answer depends on both ends.',
+    recognize: [
+      'Sorted array + "pair or triplet with sum X"',
+      'Palindromes, or anything compared from both ends',
+      '"In place" or "O(1) extra space"',
+      'Maximise a width or area between two positions',
     ],
-    example: `def is_palindrome(s):
-    l, r = 0, len(s) - 1
+    points: [
+      'Opposite ends: `l = 0`, `r = n - 1`. Each step moves the pointer whose move can improve the answer, discarding a whole row of pairs at once — that is why one pass is correct, not lucky.',
+      'Why sorted input matters: if `nums[l] + nums[r]` is too small, pairing `l` with anything left of `r` is also too small, so `l += 1` is safe.',
+      'Same direction (read/write): one pointer scans, the other marks where the next kept item goes — in-place filtering with O(1) memory.',
+      '3Sum = sort, fix one index, run two pointers on the rest: O(n²), the best known approach. Skip equal values to avoid duplicate triplets.',
+    ],
+    complexity: [
+      { op: 'Check every pair', cost: 'O(n²)' },
+      { op: 'Two pointers on sorted input', cost: 'O(n)', note: '+ O(n log n) to sort' },
+      { op: '3Sum (sort + two pointers)', cost: 'O(n²)' },
+      { op: 'Extra memory', cost: 'O(1)' },
+    ],
+    example: `def two_sum_sorted(nums, target):       # nums is sorted
+    l, r = 0, len(nums) - 1
     while l < r:
-        if s[l] != s[r]:
-            return False
-        l, r = l + 1, r - 1
-    return True`,
+        s = nums[l] + nums[r]
+        if s == target:
+            return [l, r]
+        if s < target:
+            l += 1                      # need a bigger sum
+        else:
+            r -= 1                      # need a smaller sum
+    return []
+
+def max_area(heights):                  # Container With Most Water
+    l, r, best = 0, len(heights) - 1, 0
+    while l < r:
+        best = max(best, (r - l) * min(heights[l], heights[r]))
+        if heights[l] < heights[r]:     # the shorter wall limits the area,
+            l += 1                      # so moving the taller one cannot help
+        else:
+            r -= 1
+    return best
+
+print(two_sum_sorted([1, 3, 4, 6, 9], 10))       # [0, 4]
+print(max_area([1, 8, 6, 2, 5, 4, 8, 3, 7]))     # 49`,
+    pitfalls: [
+      { title: 'Two pointers on unsorted input', fix: 'Sum logic breaks. Sort first, or use a hash map if the original indexes must be returned.' },
+      { title: 'Duplicate triplets in 3Sum', fix: 'Skip equal `nums[i]` for the fixed index, and move `l` past equal values after a match.' },
+      { title: '`while l <= r` for pairs', fix: 'A pair needs two different indexes: use `l < r`.' },
+      { title: 'Inner skip loops without a bound', fix: 'When skipping non-letters in Valid Palindrome, keep `l < r` inside those loops too.' },
+    ],
+    interview: {
+      when: 'When you see "sorted" or "in place", try two pointers before reaching for extra memory. Explain why moving a pointer never skips the answer — that argument is what interviewers listen for.',
+      problems: ['valid-palindrome', 'two-sum-ii-input-array-is-sorted', '3sum', 'container-with-most-water', 'trapping-rain-water'],
+    },
+    inWork: [
+      'Merging two sorted lists or streams (merge sort, merge-join in databases)',
+      'Diffing two sorted ID lists to find what was added or removed',
+      'In-place compaction of arrays and buffers',
+    ],
+    quiz: [
+      {
+        question: 'Container With Most Water: why move the shorter wall?',
+        answer: 'The area is capped by the shorter wall. Moving the taller one only shrinks the width without raising that cap, so it can never give a better area.',
+      },
+      { question: 'Why is 3Sum O(n²) even though it sorts?', answer: 'Sorting is O(n log n); then each of the n fixed indexes runs an O(n) two-pointer scan: n × n dominates.' },
+      {
+        question: 'Unsorted array, return the original indexes of a pair: two pointers or hash map?',
+        answer: 'Hash map, O(n). Sorting loses the original indexes (or needs extra bookkeeping) and costs O(n log n).',
+      },
+    ],
+    source: { label: 'Tech Interview Handbook: Array', url: `${TIH}/array/` },
+    extraSource: { label: 'Python Sorting HOW TO', url: `${PY}/howto/sorting.html` },
   },
   'Sliding Window': {
-    source: { label: 'Python Tutorial: Dictionaries', url: `${PY}/tutorial/datastructures.html#dictionaries` },
-    points: [
-      'Keep a window [left, right]; grow right every step, shrink left while the window is invalid.',
-      'Track what is inside the window with a dict of counts or a set.',
-      'Each index enters and leaves once → O(n).',
+    summary:
+      'Keep a contiguous window [left, right] and update its state as it slides, instead of recomputing every subarray from scratch.',
+    recognize: [
+      '"Longest / shortest substring or subarray" with a condition',
+      '"Contains all of…", "at most k distinct", "at most k replacements"',
+      'Contiguous elements — not subsequences',
+      'A fixed window: max or average of every k items',
     ],
-    example: `def longest_unique(s):
-    seen, left, best = set(), 0, 0
+    points: [
+      'Brute force checks every subarray: O(n²) or worse. A window adds the new right element and removes the left one, so each index enters and leaves once: O(n).',
+      'Variable window template: grow `right` every step; while the window breaks the rule, shrink from `left`; record the answer once it is valid again.',
+      'Window state is a count dict, a set or a running sum — chosen so adding and removing are O(1).',
+      '"Longest with at most k changes": the window is valid while `length - most_frequent_count <= k`.',
+      'A monotonic deque keeps the window maximum available in O(1) (Sliding Window Maximum).',
+    ],
+    complexity: [
+      { op: 'Check every subarray', cost: 'O(n²)', note: 'or worse' },
+      { op: 'Sliding window', cost: 'O(n)', note: 'each index moves ≤ 2 times' },
+      { op: 'Window state', cost: 'O(k) or O(alphabet)', note: 'space' },
+      { op: 'Window maximum with a deque', cost: 'O(n)' },
+    ],
+    example: `def longest_unique_substring(s):
+    last = {}                        # char -> last index seen
+    left = best = 0
     for right, ch in enumerate(s):
-        while ch in seen:
-            seen.remove(s[left]); left += 1
-        seen.add(ch)
+        if ch in last and last[ch] >= left:
+            left = last[ch] + 1      # jump past the repeated char
+        last[ch] = right
         best = max(best, right - left + 1)
-    return best`,
+    return best
+
+def character_replacement(s, k):     # longest window fixable with k changes
+    count, left, top, best = {}, 0, 0, 0
+    for right, ch in enumerate(s):
+        count[ch] = count.get(ch, 0) + 1
+        top = max(top, count[ch])
+        while (right - left + 1) - top > k:   # too many to replace
+            count[s[left]] -= 1
+            left += 1
+        best = max(best, right - left + 1)
+    return best
+
+print(longest_unique_substring("abcabcbb"))   # 3  ("abc")
+print(character_replacement("AABABBA", 1))    # 4`,
+    pitfalls: [
+      { title: 'Subsequences, or sums with negative numbers', fix: 'Shrinking no longer reliably helps, so the window idea breaks. Use prefix sums + a hash map, or Kadane for max sum.' },
+      { title: 'Off-by-one window length', fix: 'The length is `right - left + 1`.' },
+      { title: 'Recording the answer while the window is invalid', fix: 'Update the answer after the shrink loop, when the invariant holds again.' },
+      { title: 'Comparing whole count dicts every step', fix: 'In Minimum Window Substring track a `have/need` counter so each step stays O(1).' },
+    ],
+    interview: {
+      when: 'Any "longest / shortest contiguous…" question. State the invariant ("after the inner loop the window is valid") and the O(n) argument ("each index moves at most twice").',
+      problems: [
+        'best-time-to-buy-and-sell-stock',
+        'longest-substring-without-repeating-characters',
+        'longest-repeating-character-replacement',
+        'permutation-in-string',
+        'minimum-window-substring',
+      ],
+    },
+    inWork: [
+      'Rate limiting: requests per user in the last 60 seconds',
+      'Rolling metrics: moving averages, p95 latency over the last N minutes',
+      "Streaming analytics, and TCP's congestion window",
+    ],
+    quiz: [
+      {
+        question: 'Why is a sliding window O(n) even with a nested `while` loop?',
+        answer: '`left` only moves forward and never past `right`, so over the whole run it moves at most n times. Total work is O(n), not O(n²).',
+      },
+      { question: 'Max subarray sum with negative numbers — sliding window?', answer: "No: shrinking doesn't reliably improve the sum. Use Kadane's algorithm." },
+      {
+        question: 'Best Time to Buy and Sell Stock as a window: what are left and right?',
+        answer: 'left = cheapest day so far (buy), right = today (sell). Move left to right whenever today is cheaper.',
+      },
+    ],
+    source: { label: 'Tech Interview Handbook: String', url: `${TIH}/string/` },
+    extraSource: { label: 'Tech Interview Handbook: Array', url: `${TIH}/array/` },
   },
   Stack: {
-    source: { label: 'Python Tutorial: Using Lists as Stacks', url: `${PY}/tutorial/datastructures.html#using-lists-as-stacks` },
-    points: [
-      'A list is a stack: `append` to push, `pop()` to pop, `stack[-1]` to peek — all O(1).',
-      'Matching pairs (brackets) and "undo" problems are stack problems.',
-      'Monotonic stack: keep items increasing/decreasing to find the next greater/smaller element in O(n).',
+    summary:
+      'Last in, first out: a stack remembers unfinished things so the most recent one is resolved first — matching brackets, undo, and "next greater element".',
+    recognize: [
+      'Matching pairs: brackets, tags, start/end markers',
+      '"Next greater / smaller element", "days until a warmer day"',
+      'Evaluating expressions or nested structures',
+      'Undo, or going back to the most recent state',
     ],
-    example: `def daily_temperatures(t):
-    res, stack = [0] * len(t), []   # stack of indexes
-    for i, x in enumerate(t):
-        while stack and t[stack[-1]] < x:
-            j = stack.pop(); res[j] = i - j
+    points: [
+      'A Python list is a stack: `append` pushes, `pop()` pops, `stack[-1]` peeks — all O(1).',
+      'Matching: push openers; on a closer, the top must be its partner, otherwise invalid; at the end the stack must be empty.',
+      'Monotonic stack: keep indexes whose values are decreasing. When a bigger value arrives, pop everything smaller — each popped index has just found its "next greater". Every index is pushed and popped once, so the whole pass is O(n).',
+      'Recursion is an implicit stack (the call stack). Any recursive DFS can be rewritten with an explicit stack to avoid recursion limits.',
+    ],
+    complexity: [
+      { op: 'push, pop, peek', cost: 'O(1)' },
+      { op: 'Monotonic stack over n items', cost: 'O(n)', note: 'amortised' },
+      { op: 'Python recursion depth', cost: '≈ 1000', note: 'default limit' },
+    ],
+    example: `def is_valid(s):
+    pairs = {")": "(", "]": "[", "}": "{"}
+    stack = []
+    for ch in s:
+        if ch in pairs:
+            if not stack or stack.pop() != pairs[ch]:
+                return False
+        else:
+            stack.append(ch)
+    return not stack                    # leftovers = never closed
+
+def daily_temperatures(temps):
+    answer = [0] * len(temps)
+    stack = []                          # indexes, temps decreasing
+    for i, t in enumerate(temps):
+        while stack and temps[stack[-1]] < t:
+            j = stack.pop()
+            answer[j] = i - j           # warmer day found for day j
         stack.append(i)
-    return res`,
+    return answer
+
+print(is_valid("([]{})"), is_valid("(]"))   # True False
+print(daily_temperatures([73, 74, 75, 71, 69, 72, 76, 73]))
+# [1, 1, 4, 2, 1, 1, 0, 0]`,
+    pitfalls: [
+      { title: 'Popping an empty stack', fix: '`IndexError`. Check `if stack` before `pop()` or `stack[-1]`.' },
+      { title: 'Forgetting the final emptiness check', fix: 'Without `return not stack`, `"(("` is accepted as valid.' },
+      { title: 'Storing values instead of indexes', fix: 'When the answer is a distance (days, width), the monotonic stack must hold indexes.' },
+      { title: 'Min Stack with one global minimum', fix: 'It breaks after pops. Store the current minimum alongside each element.' },
+    ],
+    interview: {
+      when: 'Anything nested, or "nearest previous / next bigger" → stack. Name the monotonic stack and give the amortised O(n) argument.',
+      problems: ['valid-parentheses', 'min-stack', 'evaluate-reverse-polish-notation', 'daily-temperatures', 'largest-rectangle-in-histogram'],
+    },
+    inWork: [
+      'Undo / redo in editors',
+      'Parsers: JSON, HTML tags, expression evaluators, compilers',
+      'The call stack itself — reading stack traces, avoiding very deep recursion',
+      'Browser back-button history',
+    ],
+    quiz: [
+      { question: 'Why is the monotonic stack O(n) despite its inner loop?', answer: 'Each index is pushed once and popped at most once, so all pops across the run add up to at most n.' },
+      { question: 'Min Stack with O(1) `getMin`: how?', answer: 'Push pairs `(value, min_so_far)`. The top always holds the current minimum, and popping restores the previous one automatically.' },
+      {
+        question: 'Why can recursive DFS crash on a 100,000-node path in Python, and what is the fix?',
+        answer: 'The default recursion limit (~1000) raises `RecursionError`. Use an explicit stack (iterative DFS).',
+      },
+    ],
+    source: { label: 'Tech Interview Handbook: Stack', url: `${TIH}/stack/` },
+    extraSource: { label: 'Python Tutorial: Using Lists as Stacks', url: `${PY}/tutorial/datastructures.html#using-lists-as-stacks` },
   },
   'Binary Search': {
-    source: { label: 'bisect — Array bisection algorithm', url: `${PY}/library/bisect.html` },
-    points: [
-      'Halve the search space each step → O(log n). Needs something sorted or monotonic.',
-      'Write the invariant first: what is true about `lo` and `hi` at every loop?',
-      '"Binary search on the answer": guess a value (e.g. eating speed) and check if it works.',
+    summary:
+      'Halve the search space every step by asking a yes/no question whose answer is monotonic — O(log n) instead of O(n).',
+    recognize: [
+      'Sorted, or rotated sorted, array',
+      '"Find the minimum / maximum value that works" (search on the answer)',
+      'Huge ranges (up to 10⁹) instead of an explicit array',
+      'An expected time of O(log n)',
     ],
-    example: `def search(nums, target):
-    lo, hi = 0, len(nums) - 1
-    while lo <= hi:
+    points: [
+      'It works on anything monotonic: a predicate that is False … False True … True. The task is to find the first True.',
+      'Write the invariant before coding, e.g. "the answer is always in [lo, hi]". The loop condition and the updates follow from it, and off-by-one bugs disappear.',
+      'Search on the answer: when you can check "is speed k enough?" in O(n), binary search k over its range — O(n log range).',
+      'Rotated array: one half around `mid` is always sorted; check whether the target lies inside that half.',
+      'In real code use `bisect.bisect_left(a, x)`: the first index with `a[i] >= x`.',
+    ],
+    complexity: [
+      { op: 'Linear search', cost: 'O(n)' },
+      { op: 'Binary search', cost: 'O(log n)', note: '≈ 30 steps for 10⁹' },
+      { op: 'Search on the answer', cost: 'O(check × log range)' },
+      { op: '`bisect_left` / `bisect_right`', cost: 'O(log n)' },
+    ],
+    example: `def first_true(lo, hi, ok):        # smallest x in [lo, hi] with ok(x)
+    while lo < hi:
         mid = (lo + hi) // 2
-        if nums[mid] == target: return mid
-        if nums[mid] < target: lo = mid + 1
-        else: hi = mid - 1
-    return -1`,
+        if ok(mid):
+            hi = mid                   # mid works: answer is mid or left
+        else:
+            lo = mid + 1               # mid fails: answer is right of mid
+    return lo
+
+def min_eating_speed(piles, h):        # Koko Eating Bananas
+    hours = lambda k: sum((p + k - 1) // k for p in piles)   # ceil(p / k)
+    return first_true(1, max(piles), lambda k: hours(k) <= h)
+
+print(min_eating_speed([3, 6, 7, 11], 8))   # 4
+
+import bisect
+a = [1, 3, 3, 5, 8]
+print(bisect.bisect_left(a, 3), bisect.bisect_right(a, 3))   # 1 3`,
+    pitfalls: [
+      { title: 'Infinite loop with `lo = mid`', fix: 'With `mid = (lo + hi) // 2` and `hi = lo + 1`, `lo = mid` never moves. Pair floor-mid with `lo = mid + 1`.' },
+      { title: 'Mixing templates', fix: 'Pick one invariant (`lo < hi` with `hi = mid`, or `lo <= hi` with `hi = mid - 1`) and stick to it.' },
+      { title: 'Wrong answer range', fix: 'The lower bound must be valid: speeds start at 1, not 0 (division by zero).' },
+      { title: '`x in sorted_list`', fix: 'That is O(n). Use `bisect` for O(log n).' },
+    ],
+    interview: {
+      when: 'Look for monotonic yes/no questions, not just sorted arrays. Saying the invariant out loud is the difference between a clean solution and off-by-one debugging.',
+      problems: [
+        'binary-search',
+        'search-a-2d-matrix',
+        'koko-eating-bananas',
+        'find-minimum-in-rotated-sorted-array',
+        'search-in-rotated-sorted-array',
+        'time-based-key-value-store',
+      ],
+    },
+    inWork: [
+      '`git bisect` to find the commit that introduced a bug',
+      'Database B-tree indexes and lookups in sorted files',
+      'Finding a limit: the largest load or smallest timeout that still passes',
+      'Finding the first bad version in a release history',
+    ],
+    quiz: [
+      { question: 'How many steps does binary search need for one billion items?', answer: 'About 30, because 2³⁰ ≈ 1.07 billion.' },
+      {
+        question: 'Why is Koko Eating Bananas a binary-search problem without a sorted array?',
+        answer: 'The predicate "speed k finishes within h hours" is monotonic: once true, it stays true for every bigger k. So binary search the smallest k.',
+      },
+      { question: 'In a rotated sorted array, how do you know which half is sorted?', answer: 'If `nums[lo] <= nums[mid]`, the left half is sorted; otherwise the right half is.' },
+    ],
+    source: { label: 'Tech Interview Handbook: Sorting and searching', url: `${TIH}/sorting-searching/` },
+    extraSource: { label: 'bisect — Array bisection algorithm', url: `${PY}/library/bisect.html` },
   },
   'Linked List': {
-    source: { label: 'Python Tutorial §9: Classes', url: `${PY}/tutorial/classes.html` },
-    points: [
-      'A dummy head node removes edge cases when the head itself may change.',
-      'Fast/slow pointers find the middle and detect cycles.',
-      'Reverse in place with three variables: prev, cur, next.',
+    summary:
+      'Nodes connected by pointers: O(1) insert and delete when you hold the node, but O(n) to reach the k-th item. Problems test rewiring pointers without losing references.',
+    recognize: [
+      'The input is a `ListNode` head',
+      'Reverse, reorder or merge lists',
+      'Detect a cycle or find the middle',
+      'An LRU cache, or O(1) removal from the middle',
     ],
-    example: `def reverse(head):
+    points: [
+      'Each node holds `val` and `next`. Changing `next` rewires the list; losing the last reference to a node loses everything after it.',
+      'Dummy head: `dummy = ListNode(0, head)` removes the special cases when the head changes; return `dummy.next`.',
+      'Fast/slow pointers: fast moves 2, slow moves 1. Fast reaches the end → slow is at the middle. They meet → there is a cycle (Floyd).',
+      'Reverse in place with `prev`, `cur`, `nxt`: always save `nxt` before rewiring.',
+      'Doubly linked list + hash map = O(1) LRU cache: move a node to the front on access, evict from the tail.',
+    ],
+    complexity: [
+      { op: 'Reach the k-th node', cost: 'O(n)' },
+      { op: 'Insert / delete with the node in hand', cost: 'O(1)' },
+      { op: 'Reverse, find middle, detect cycle', cost: 'O(n)', note: 'O(1) space' },
+      { op: 'Merge k sorted lists with a heap', cost: 'O(N log k)', note: 'N = total nodes' },
+    ],
+    example: `class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val, self.next = val, next
+
+def reverse(head):
     prev = None
     while head:
-        head.next, prev, head = prev, head, head.next
-    return prev`,
+        nxt = head.next            # 1. save the rest
+        head.next = prev           # 2. point backwards
+        prev, head = head, nxt     # 3. move on
+    return prev
+
+def has_cycle(head):
+    slow = fast = head
+    while fast and fast.next:
+        slow, fast = slow.next, fast.next.next
+        if slow is fast:
+            return True
+    return False
+
+def build(vals):
+    dummy = tail = ListNode()
+    for v in vals:
+        tail.next = ListNode(v)
+        tail = tail.next
+    return dummy.next
+
+node, out = reverse(build([1, 2, 3])), []
+while node:
+    out.append(node.val)
+    node = node.next
+print(out, has_cycle(build([1, 2])))   # [3, 2, 1] False`,
+    pitfalls: [
+      { title: 'Rewiring before saving `next`', fix: 'The rest of the list is lost. Save `nxt = head.next` first.' },
+      { title: '`while fast.next` without checking `fast`', fix: '`AttributeError` on `None`. Use `while fast and fast.next`.' },
+      { title: 'Removing the N-th node from the end', fix: 'Move one pointer n steps ahead and start both from a dummy, so removing the head is not a special case.' },
+      { title: 'Comparing nodes with `==`', fix: 'You mean the same node: use `is`.' },
+    ],
+    interview: {
+      when: 'Draw boxes and arrows before coding and narrate each pointer move. Use a dummy node by default — it removes most edge cases.',
+      problems: ['reverse-linked-list', 'merge-two-sorted-lists', 'linked-list-cycle', 'reorder-list', 'remove-nth-node-from-end-of-list', 'lru-cache'],
+    },
+    inWork: [
+      'LRU caches (`OrderedDict`, cache eviction in Redis-like systems)',
+      'Undo history, playlists, tab history',
+      'Free lists in memory allocators and OS schedulers',
+      'Append-only logs and blockchains where each record points to the previous one',
+    ],
+    quiz: [
+      { question: 'Why use a dummy head node?', answer: 'Inserting or deleting at the head stops being a special case; at the end you return `dummy.next`.' },
+      {
+        question: "How does Floyd's algorithm find a cycle with O(1) memory?",
+        answer: 'Fast moves 2 steps, slow 1. Inside a cycle fast gains one step per move and must land on slow; without a cycle fast reaches `None`.',
+      },
+      {
+        question: 'LRU cache with O(1) get and put: which structures?',
+        answer: 'A hash map from key to node, plus a doubly linked list ordered by recency: move a node to the front on access, evict the tail when full.',
+      },
+    ],
+    source: { label: 'Tech Interview Handbook: Linked list', url: `${TIH}/linked-list/` },
+    extraSource: { label: 'collections.OrderedDict (LRU building block)', url: `${PY}/library/collections.html#collections.OrderedDict` },
   },
   Trees: {
     source: { label: 'collections.deque (for BFS)', url: `${PY}/library/collections.html#collections.deque` },

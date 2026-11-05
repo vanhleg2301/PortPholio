@@ -1,6 +1,18 @@
 import { useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowUpRight, BookOpen, ChevronDown, CircleHelp, Gauge, Layers, Target, TriangleAlert, type LucideIcon } from 'lucide-react'
+import {
+  ArrowUpRight,
+  BookOpen,
+  Briefcase,
+  ChevronDown,
+  CircleHelp,
+  Gauge,
+  Layers,
+  ScanSearch,
+  Target,
+  TriangleAlert,
+  type LucideIcon,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { MarkdownPreview } from '@/components/roadmap/MarkdownPreview'
 import { EASE_OUT } from '@/lib/motion'
@@ -112,6 +124,18 @@ export function TheoryCard({ reference, isOpenByDefault = true }: TheoryCardProp
             className="overflow-hidden"
           >
             <div className="border-t border-sky-500/15 px-4 pb-4 pt-4">
+              {reference.recognize && (
+                <Section icon={ScanSearch} title="Spot it when you see">
+                  <div className="flex flex-wrap gap-2">
+                    {reference.recognize.map((signal) => (
+                      <span key={signal} className="rounded-lg bg-sky-500/10 px-2.5 py-1.5 text-xs leading-snug text-sky-800 dark:text-sky-200">
+                        <InlineCode text={signal} />
+                      </span>
+                    ))}
+                  </div>
+                </Section>
+              )}
+
               <Section icon={Layers} title="How it works">
                 <ul className="space-y-2 text-sm leading-relaxed">
                   {reference.points.map((point) => (
@@ -197,6 +221,21 @@ export function TheoryCard({ reference, isOpenByDefault = true }: TheoryCardProp
                 </Section>
               )}
 
+              {reference.inWork && (
+                <Section icon={Briefcase} title="In real work">
+                  <ul className="space-y-1.5 text-sm leading-relaxed">
+                    {reference.inWork.map((use) => (
+                      <li key={use} className="flex gap-2.5">
+                        <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-emerald-500" />
+                        <span>
+                          <InlineCode text={use} />
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
+
               {reference.quiz && (
                 <Section icon={CircleHelp} title="Check yourself">
                   <ul className="space-y-2">
@@ -221,7 +260,7 @@ export function TheoryCard({ reference, isOpenByDefault = true }: TheoryCardProp
                         : 'bg-foreground/[0.06] text-muted-foreground hover:text-foreground hover:bg-foreground/[0.12]'
                     )}
                   >
-                    {i === 0 ? 'Official docs' : 'Go deeper'}: {s.label}
+                    {i === 0 ? 'Read' : 'Go deeper'}: {s.label}
                     <ArrowUpRight className="h-3.5 w-3.5" />
                   </a>
                 ))}

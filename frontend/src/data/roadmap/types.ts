@@ -12,6 +12,10 @@ export interface TaskReference {
   title: string
   // One sentence: the mental model. Shown even when the card is collapsed.
   summary?: string
+  // Signals in a problem statement that point to this pattern.
+  recognize?: string[]
+  // Where this shows up in real engineering work.
+  inWork?: string[]
   // How it works under the hood.
   points: string[]
   complexity?: Array<{ op: string; cost: string; note?: string }>
