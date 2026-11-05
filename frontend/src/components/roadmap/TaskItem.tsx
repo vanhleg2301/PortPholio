@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Check, ArrowUpRight, BookOpen, CalendarClock, RotateCcw } from 'lucide-react'
+import { Check, ArrowUpRight, BookOpen, CalendarClock, GraduationCap, RotateCcw } from 'lucide-react'
 import { TheoryCard } from '@/components/roadmap/TheoryCard'
 import { cn } from '@/lib/utils'
 import { EASE_OUT, SPRING, listItem } from '@/lib/motion'
@@ -21,9 +21,10 @@ interface TaskItemProps {
   // Spaced repetition: only passed for problems when the owner is signed in.
   isReviewScheduled?: boolean
   onToggleReview?: () => void
+  onOpenLesson?: (task: RoadmapTask) => void
 }
 
-export function TaskItem({ task, isDone, onToggle, showTheoryToggle = true, isReviewScheduled = false, onToggleReview }: TaskItemProps) {
+export function TaskItem({ task, isDone, onToggle, showTheoryToggle = true, isReviewScheduled = false, onToggleReview, onOpenLesson }: TaskItemProps) {
   const [isTheoryOpen, setIsTheoryOpen] = useState(false)
 
   return (
@@ -74,8 +75,18 @@ export function TaskItem({ task, isDone, onToggle, showTheoryToggle = true, isRe
         <p className={cn('text-[15px] leading-snug mt-0.5 transition-colors duration-300', isDone && 'text-muted-foreground line-through decoration-foreground/30')}>
           {task.title}
         </p>
-        {task.links.length > 0 && (
+        {(task.links.length > 0 || (task.lessonId && onOpenLesson)) && (
           <div className="flex flex-wrap gap-2 mt-2">
+            {task.lessonId && onOpenLesson && (
+              <button
+                type="button"
+                onClick={() => onOpenLesson(task)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1.5 text-xs font-semibold text-background hover:bg-foreground/85 transition-colors"
+              >
+                <GraduationCap className="h-3.5 w-3.5" />
+                Open lesson
+              </button>
+            )}
             {task.links.map((l) => (
               <a
                 key={l.label + l.url}

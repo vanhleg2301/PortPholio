@@ -24,7 +24,7 @@ export default function App() {
   if (isResume) return <ResumePage />
 
   // App-style page: no portfolio chrome, and kept outside the transformed motion wrapper so its fixed bars stay fixed.
-  if (location.pathname === '/roadmap') {
+  if (location.pathname === '/roadmap' || location.pathname.startsWith('/roadmap/')) {
     return (
       <Suspense fallback={<div className="min-h-screen bg-background" />}>
         <RoadmapPage />

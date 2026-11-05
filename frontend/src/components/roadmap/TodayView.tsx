@@ -15,6 +15,7 @@ import type { RoadmapNote } from '@/hooks/useRoadmapNotes'
 import type { NoteTopic } from '@/data/roadmap/topics'
 import type { RoadmapResource } from '@/hooks/useRoadmapResources'
 import { DAY_BY_DATE, getWeekForDate } from '@/lib/roadmapStats'
+import { cn } from '@/lib/utils'
 import { appear, listContainer, section, slide } from '@/lib/motion'
 
 interface TodayViewProps {
@@ -33,6 +34,9 @@ interface TodayViewProps {
   onToggleReview: (task: RoadmapTask, isScheduled: boolean) => void
   onCompleteReview: (review: RoadmapReview, isStillHard: boolean) => void
   focusMinutes: number
+  onOpenLesson: (task: RoadmapTask) => void
+  // On desktop the week list and the notes/resources live in side columns.
+  isDesktop: boolean
 }
 
 function SectionTitle({ children }: { children: string }) {
@@ -55,6 +59,8 @@ export function TodayView({
   onToggleReview,
   onCompleteReview,
   focusMinutes,
+  onOpenLesson,
+  isDesktop,
 }: TodayViewProps) {
   const day = DAY_BY_DATE.get(date)
   const week = getWeekForDate(date)
@@ -78,11 +84,11 @@ export function TodayView({
 
   return (
     <div>
-      <WeekStrip selectedDate={date} today={today} doneIds={doneIds} onSelect={onSelectDate} />
+      {!isDesktop && <WeekStrip selectedDate={date} today={today} doneIds={doneIds} onSelect={onSelectDate} />}
 
       <AnimatePresence mode="wait" custom={direction}>
         <motion.div key={date} custom={direction} variants={slide} initial="enter" animate="center" exit="exit">
-          <motion.div variants={section} className="mt-5 flex items-end justify-between gap-3">
+          <motion.div variants={section} className={cn('flex items-end justify-between gap-3', !isDesktop && 'mt-5')}>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                 {week?.label}
@@ -133,6 +139,7 @@ export function TodayView({
                     showTheoryToggle={false}
                     isReviewScheduled={scheduledTaskIds.has(task.id)}
                     onToggleReview={isOwner && task.difficulty ? () => onToggleReview(task, scheduledTaskIds.has(task.id)) : undefined}
+                    onOpenLesson={onOpenLesson}
                   />
                 ))}
               </motion.ul>
@@ -150,7 +157,7 @@ export function TodayView({
             </motion.section>
           )}
 
-          {isOwner ? (
+          {isDesktop ? null : isOwner ? (
             <>
               <motion.section variants={section} layout="position">
                 <SectionTitle>Notes</SectionTitle>

@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { Flame, Timer, UserRound } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { FocusSheet } from '@/components/roadmap/FocusSheet'
+import { DesktopSidebar } from '@/components/roadmap/DesktopSidebar'
+import { SidePanel } from '@/components/roadmap/SidePanel'
+import { LessonView } from '@/components/learn/LessonView'
+import { LESSON_BY_ID } from '@/data/lessons'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
+import { useLessonProgress, useMarkExercisePassed, useSaveCode, useSavedCode } from '@/hooks/useLessonData'
 import { formatClock, useFocusTimer } from '@/hooks/useFocusTimer'
 import { useCompleteReview, useRoadmapReviews, useScheduleReviews, useUnscheduleReviews, type RoadmapReview } from '@/hooks/useRoadmapReviews'
 import { useAddSession, useStudySessions } from '@/hooks/useStudySessions'
@@ -73,6 +79,18 @@ export default function RoadmapPage() {
   const addSession = useAddSession()
   const focus = useFocusTimer()
   const [isFocusOpen, setIsFocusOpen] = useState(false)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+  const location = useLocation()
+  const navigate = useNavigate()
+  const lessonProgress = useLessonProgress(isOwner)
+  const savedCodeQuery = useSavedCode(isOwner)
+  const markPassed = useMarkExercisePassed()
+  const saveCode = useSaveCode()
+
+  const lessonId = /^\/roadmap\/learn\/([^/]+)/.exec(location.pathname)?.[1]
+  const lesson = lessonId ? LESSON_BY_ID.get(lessonId) : undefined
+  const lessonTaskId =
+    (location.state as { taskId?: string } | null)?.taskId ?? ALL_TASKS.find((t) => t.lessonId === lessonId)?.id ?? null
 
   const doneIds = useMemo(() => new Set(rows.map((r) => r.task_id)), [rows])
   const activity = useMemo(() => getActivityDates(rows.map((r) => r.completed_at)), [rows])
@@ -156,7 +174,23 @@ export default function RoadmapPage() {
 
   function changeTab(next: RoadmapTab) {
     setTab(next)
+    if (lesson) navigate('/roadmap')
     window.scrollTo({ top: 0 })
+  }
+
+  function openLesson(task: RoadmapTask) {
+    if (!task.lessonId) return
+    navigate(`/roadmap/learn/${task.lessonId}`, { state: { taskId: task.id } })
+    window.scrollTo({ top: 0 })
+  }
+
+  function closeLesson() {
+    navigate('/roadmap')
+    window.scrollTo({ top: 0 })
+  }
+
+  function handleSaveCode(key: string, code: string) {
+    saveCode.mutate({ key, code }, { onError: (err) => setToast(`Could not save code: ${err.message}`) })
   }
 
   function openDay(date: string) {
@@ -165,6 +199,7 @@ export default function RoadmapPage() {
   }
 
   const avatarUrl = session?.user.user_metadata.avatar_url as string | undefined
+  const showSidePanel = isDesktop && (tab === 'today' || Boolean(lesson))
 
   return (
     <MotionConfig reducedMotion="user">
@@ -174,7 +209,7 @@ export default function RoadmapPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: EASE_OUT }}
         className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3 lg:max-w-[1440px] lg:px-8">
           <Link
             to="/"
             className="flex items-center gap-2.5 min-w-0 -ml-2 rounded-full py-1 pl-1 pr-3 hover:bg-foreground/[0.06] transition-colors"
@@ -224,7 +259,7 @@ export default function RoadmapPage() {
           </button>
           </div>
         </div>
-        <div className="mx-auto flex max-w-3xl items-center gap-4 px-4 pb-2.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <div className="mx-auto flex max-w-3xl items-center gap-4 px-4 pb-2.5 lg:max-w-[1440px] lg:px-8 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
           <span>
             <RollingValue value={`${overall}%`} /> plan
           </span>
@@ -240,9 +275,52 @@ export default function RoadmapPage() {
         </div>
       </motion.header>
 
-      <main className="mx-auto max-w-3xl px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]">
-        <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={tab} variants={fadeSwap} initial="initial" animate="animate" exit="exit">
+      <div
+        className={cn(
+          'mx-auto',
+          isDesktop
+            ? cn('grid max-w-[1440px] gap-10 px-8 pt-6 pb-16', showSidePanel ? 'grid-cols-[220px_minmax(0,1fr)_minmax(320px,400px)]' : 'grid-cols-[220px_minmax(0,1fr)]')
+            : 'max-w-3xl px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+6rem)]'
+        )}
+      >
+        {isDesktop && (
+          <aside className="sticky top-32 self-start">
+            <DesktopSidebar
+              tab={tab}
+              selectedDate={selectedDate}
+              today={today}
+              doneIds={doneIds}
+              onChangeTab={changeTab}
+              onSelectDate={(date) => {
+                setSelectedDate(date)
+                if (lesson) navigate('/roadmap')
+              }}
+            />
+          </aside>
+        )}
+        <main className="min-w-0">
+          <AnimatePresence mode="wait" initial={false}>
+            {lesson ? (
+              <motion.div key={`lesson-${lesson.id}`} variants={fadeSwap} initial="initial" animate="animate" exit="exit">
+                <LessonView
+                  lesson={lesson}
+                  isOwner={isOwner}
+                  passed={lessonProgress.data ?? new Set<string>()}
+                  savedCode={savedCodeQuery.data ?? new Map<string, string>()}
+                  isTaskDone={lessonTaskId ? doneIds.has(lessonTaskId) : null}
+                  onBack={closeLesson}
+                  onToggleDone={(isDone) => {
+                    if (lessonTaskId) handleToggle(lessonTaskId, isDone)
+                  }}
+                  onSaveCode={handleSaveCode}
+                  onPassed={(itemId) => {
+                    markPassed.mutate({ lessonId: lesson.id, itemId })
+                    setToast('Exercise passed')
+                  }}
+                />
+              </motion.div>
+            ) : (
+              <motion.div key={tab} variants={fadeSwap} initial="initial" animate="animate" exit="exit">
         {tab === 'today' && (
           <TodayView
             date={selectedDate}
@@ -260,6 +338,8 @@ export default function RoadmapPage() {
             onToggleReview={handleToggleReview}
             onCompleteReview={handleCompleteReview}
             focusMinutes={minutesByDay.get(selectedDate) ?? 0}
+            onOpenLesson={openLesson}
+            isDesktop={isDesktop}
           />
         )}
         {tab === 'plan' && (
@@ -275,9 +355,26 @@ export default function RoadmapPage() {
             onRequestSignIn={() => setIsAccountOpen(true)}
           />
         )}
-        </motion.div>
-        </AnimatePresence>
-      </main>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </main>
+        {showSidePanel && (
+          <aside className="sticky top-32 self-start max-h-[calc(100dvh-9rem)] overflow-y-auto pb-8 pr-1 [scrollbar-width:thin]">
+            <SidePanel
+              date={selectedDate}
+              isOwner={isOwner}
+              notes={notesQuery.data ?? []}
+              isNotesReady={notesQuery.isSuccess}
+              resources={resourcesQuery.data ?? []}
+              savedCode={savedCodeQuery.data ?? new Map<string, string>()}
+              isCodeReady={savedCodeQuery.isSuccess}
+              onSaveCode={handleSaveCode}
+              onRequestSignIn={() => setIsAccountOpen(true)}
+            />
+          </aside>
+        )}
+      </div>
 
       <AnimatePresence>
         {toast && (
@@ -288,14 +385,14 @@ export default function RoadmapPage() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
             transition={SPRING}
-            className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-50 mx-auto max-w-sm rounded-2xl bg-foreground px-4 py-3 text-center text-sm text-background shadow-lg"
+            className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5rem)] lg:bottom-6 z-50 mx-auto max-w-sm rounded-2xl bg-foreground px-4 py-3 text-center text-sm text-background shadow-lg"
           >
             {toast}
           </motion.div>
         )}
       </AnimatePresence>
 
-      <BottomTabBar active={tab} onChange={changeTab} />
+      {!isDesktop && <BottomTabBar active={tab} onChange={changeTab} />}
       <FocusSheet
         isOpen={isFocusOpen}
         isRunning={focus.timer !== null}

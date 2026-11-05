@@ -39,6 +39,8 @@ export interface TaskSeed {
   // NeetCode category, set on problem tasks only.
   category?: string
   reference?: TaskReference
+  // In-app lesson that teaches this task (data/lessons).
+  lessonId?: string
 }
 
 export interface RoadmapTask extends TaskSeed {

@@ -49,7 +49,7 @@ function Section({ icon: Icon, title, tone, children }: { icon: LucideIcon; titl
   )
 }
 
-function QuizItem({ question, answer }: { question: string; answer: string }) {
+export function QuizItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false)
   return (
     <li className="rounded-xl border border-border bg-background/40">
