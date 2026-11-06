@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ArrowUpRight, Check, ClipboardCheck, Clock, Info, Languages, Lightbulb, PlayCircle, Target, TriangleAlert, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, Check, ChevronLeft, ChevronRight, ClipboardCheck, Clock, Info, Languages, Lightbulb, PlayCircle, Target, TriangleAlert, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CodeCell } from '@/components/learn/CodeCell'
 import { InlineText } from '@/components/learn/InlineText'
@@ -9,7 +9,8 @@ import { MermaidDiagram } from '@/components/learn/MermaidDiagram'
 import { MarkdownPreview } from '@/components/roadmap/MarkdownPreview'
 import { QuizItem } from '@/components/roadmap/TheoryCard'
 import { listContainer, listItem } from '@/lib/motion'
-import { getExerciseIds, getLessonTerms } from '@/data/lessons'
+import { LESSONS, LESSON_ANCHORS, blockAnchor, getExerciseIds, getLessonTerms } from '@/data/lessons'
+import { LessonOutlineSheet } from '@/components/learn/LessonOutline'
 import { GLOSSARY } from '@/data/lessons/glossary'
 import type { CalloutTone, Lesson, LessonBlock } from '@/data/lessons/types'
 
@@ -35,9 +36,31 @@ interface LessonViewProps {
   onToggleDone: (isDone: boolean) => void
   onSaveCode: (key: string, code: string) => void
   onPassed: (itemId: string) => void
+  // Phones get the floating "Contents" menu; desktop shows the menu in the right column.
+  isDesktop: boolean
+  isTestPassed: boolean
+  onOpenLesson: (lessonId: string) => void
 }
 
-export function LessonView({ lesson, canSave, passed, savedCode, isTaskDone, isTestPending, onOpenTest, onBack, onToggleDone, onSaveCode, onPassed }: LessonViewProps) {
+export function LessonView({
+  lesson,
+  canSave,
+  passed,
+  savedCode,
+  isTaskDone,
+  isTestPending,
+  onOpenTest,
+  onBack,
+  onToggleDone,
+  onSaveCode,
+  onPassed,
+  isDesktop,
+  isTestPassed,
+  onOpenLesson,
+}: LessonViewProps) {
+  const position = LESSONS.findIndex((l) => l.id === lesson.id)
+  const previous = position > 0 ? LESSONS[position - 1] : null
+  const next = position >= 0 && position < LESSONS.length - 1 ? LESSONS[position + 1] : null
   const terms = getLessonTerms(lesson).filter((key) => GLOSSARY[key])
   const exerciseIds = getExerciseIds(lesson)
   const passedCount = exerciseIds.filter((id) => passed.has(`${lesson.id}:${id}`)).length
@@ -187,13 +210,13 @@ export function LessonView({ lesson, canSave, passed, savedCode, isTaskDone, isT
       )}
 
       {lesson.blocks.map((block, i) => (
-        <motion.div key={i} variants={listItem} className="mt-6">
+        <motion.div key={i} id={blockAnchor(i)} variants={listItem} className="mt-6 scroll-mt-32">
           {renderBlock(block)}
         </motion.div>
       ))}
 
       {terms.length > 0 && (
-        <motion.section variants={listItem} className="mt-10 border-t border-border pt-6">
+        <motion.section id={LESSON_ANCHORS.words} variants={listItem} className="mt-10 scroll-mt-32 border-t border-border pt-6">
           <p className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             <Languages className="h-3.5 w-3.5" /> Words in this lesson
           </p>
@@ -215,7 +238,7 @@ export function LessonView({ lesson, canSave, passed, savedCode, isTaskDone, isT
         </motion.section>
       )}
 
-      <motion.footer variants={listItem} className="mt-10 border-t border-border pt-6">
+      <motion.footer id={LESSON_ANCHORS.reading} variants={listItem} className="mt-10 scroll-mt-32 border-t border-border pt-6">
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Further reading</p>
         <div className="flex flex-wrap gap-2">
           {lesson.furtherReading.map((l) => (
@@ -238,6 +261,7 @@ export function LessonView({ lesson, canSave, passed, savedCode, isTaskDone, isT
           creators and only linked here.
         </p>
 
+        <div id={LESSON_ANCHORS.finish} className="scroll-mt-32" />
         {isTaskDone === false && isTestPending ? (
           <motion.button
             type="button"
@@ -262,7 +286,39 @@ export function LessonView({ lesson, canSave, passed, savedCode, isTaskDone, isT
             <Check className="h-4 w-4" /> {isTaskDone ? 'Lesson done' : 'Mark lesson as done'}
           </motion.button>
         )}
+
+        {(previous || next) && (
+          <nav aria-label="Other lessons" className="mt-8 grid grid-cols-2 gap-3">
+            {previous ? (
+              <button
+                type="button"
+                onClick={() => onOpenLesson(previous.id)}
+                className="group rounded-2xl border border-border p-3 text-left hover:border-foreground/40 hover:bg-foreground/[0.03] transition-colors"
+              >
+                <span className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  <ChevronLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" /> Previous
+                </span>
+                <span className="mt-1 block text-sm font-semibold leading-snug">{previous.title}</span>
+              </button>
+            ) : (
+              <span />
+            )}
+            {next && (
+              <button
+                type="button"
+                onClick={() => onOpenLesson(next.id)}
+                className="group rounded-2xl border border-border p-3 text-right hover:border-foreground/40 hover:bg-foreground/[0.03] transition-colors"
+              >
+                <span className="flex items-center justify-end gap-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Next <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                </span>
+                <span className="mt-1 block text-sm font-semibold leading-snug">{next.title}</span>
+              </button>
+            )}
+          </nav>
+        )}
       </motion.footer>
+      {!isDesktop && <LessonOutlineSheet lesson={lesson} passed={passed} isTestPassed={isTestPassed} />}
     </motion.article>
   )
 }

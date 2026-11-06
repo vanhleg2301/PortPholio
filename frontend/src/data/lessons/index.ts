@@ -6,7 +6,7 @@ import { DSA_TESTS } from './tests/dsa'
 import { PYTHON_TESTS } from './tests/python'
 import { TEST_SOURCES } from './tests/sources'
 import { CHOICE_VARIANTS } from './tests/variants'
-import type { ChoiceQuestion, Lesson, LessonTest } from './types'
+import type { ChoiceQuestion, Lesson, LessonTest, VisualId } from './types'
 
 export const LESSONS: Lesson[] = [...PYTHON_LESSONS, ...DSA_LESSONS, ...CS_LESSONS]
 export const LESSON_BY_ID = new Map(LESSONS.map((l) => [l.id, l]))
@@ -92,4 +92,68 @@ export function getLessonTerms(lesson: Lesson): string[] {
   })
   const keys = texts.flatMap((t) => [...t.matchAll(TERM_RE)].map((m) => m[1].trim().toLowerCase()))
   return [...new Set(keys)]
+}
+
+// Titles of the animated diagrams (shown in the lesson menu and search without loading them).
+export const VISUAL_TITLES: Record<VisualId, string> = {
+  aliasing: 'Names and objects',
+  slicing: 'Slicing playground',
+  'dynamic-array': 'list.append and resizing',
+  'hash-table': 'Inside a hash table',
+  'call-stack': 'The call stack',
+  heap: 'Min-heap',
+  'two-sum': 'Two Sum with a hash map',
+  'prefix-suffix': 'Product except self',
+  'bucket-sort': 'Top k with bucket sort',
+  handshake: 'New HTTPS connection',
+  'slow-start': 'Slow start',
+  'hol-blocking': 'Head-of-line blocking',
+}
+
+// Lesson markdown → plain text: glossary marks, links, emphasis and code ticks removed.
+export function toPlainText(md: string): string {
+  return md
+    .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2')
+    .replace(/\[\[([^\]]+)\]\]/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[*_`#>|]/g, '')
+    .replace(/-{3,}/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+export type OutlineKind = 'section' | 'visual' | 'exercise' | 'quiz' | 'words' | 'reading' | 'finish'
+
+export interface OutlineItem {
+  // DOM id of the place to scroll to.
+  anchor: string
+  label: string
+  kind: OutlineKind
+  exerciseId?: string
+}
+
+// DOM ids used by LessonView, so the menu and search can jump to a block.
+export const blockAnchor = (index: number) => `lesson-block-${index}`
+export const LESSON_ANCHORS = { words: 'lesson-words', reading: 'lesson-reading', finish: 'lesson-finish' } as const
+
+// The lesson menu, built from the lesson's own structure (every lesson has the same shape).
+export function getLessonOutline(lesson: Lesson): OutlineItem[] {
+  const items: OutlineItem[] = []
+  lesson.blocks.forEach((block, i) => {
+    const anchor = blockAnchor(i)
+    if (block.type === 'text') {
+      const heading = block.md.split('\n').find((line) => line.startsWith('## '))
+      if (heading) items.push({ anchor, label: toPlainText(heading.slice(3)), kind: 'section' })
+    } else if (block.type === 'visual') {
+      items.push({ anchor, label: VISUAL_TITLES[block.visual], kind: 'visual' })
+    } else if (block.type === 'exercise') {
+      items.push({ anchor, label: block.title, kind: 'exercise', exerciseId: block.id })
+    } else if (block.type === 'quiz') {
+      items.push({ anchor, label: 'Check yourself', kind: 'quiz' })
+    }
+  })
+  if (getLessonTerms(lesson).length > 0) items.push({ anchor: LESSON_ANCHORS.words, label: 'Words in this lesson', kind: 'words' })
+  items.push({ anchor: LESSON_ANCHORS.reading, label: 'Further reading', kind: 'reading' })
+  items.push({ anchor: LESSON_ANCHORS.finish, label: LESSON_TESTS[lesson.id] ? 'Finish · day test' : 'Finish', kind: 'finish' })
+  return items
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
-import { Flame, Timer, UserRound } from 'lucide-react'
+import { Flame, Search, Timer, UserRound } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { FocusSheet } from '@/components/roadmap/FocusSheet'
@@ -10,6 +10,9 @@ import { SidePanel } from '@/components/roadmap/SidePanel'
 import { LessonView } from '@/components/learn/LessonView'
 import { ReviewDeckProvider } from '@/components/learn/ReviewDeckContext'
 import { SelectionTranslator } from '@/components/learn/SelectionTranslator'
+import { LessonOutlinePanel, scrollToAnchor } from '@/components/learn/LessonOutline'
+import { SearchDialog } from '@/components/roadmap/SearchDialog'
+import type { SearchEntry } from '@/lib/searchIndex'
 import { LESSON_BY_ID, LESSON_TESTS, isLessonTestPassed } from '@/data/lessons'
 import { WEEK_TEST_LESSON, isTaskLocked } from '@/lib/testGate'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
@@ -81,6 +84,9 @@ export default function RoadmapPage() {
   const addSession = useAddSession()
   const focus = useFocusTimer()
   const [isFocusOpen, setIsFocusOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  // Section to scroll to once a lesson opened from search has rendered.
+  const [pendingAnchor, setPendingAnchor] = useState<string | null>(null)
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const location = useLocation()
   const navigate = useNavigate()
@@ -221,6 +227,43 @@ export default function RoadmapPage() {
     window.scrollTo({ top: 0 })
   }
 
+  // Ctrl+K / ⌘K opens search from anywhere.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setIsSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  useEffect(() => {
+    if (!pendingAnchor || !lesson) return
+    const first = setTimeout(() => scrollToAnchor(pendingAnchor), 450)
+    // The lesson animates in; a second try lands exactly once the layout has settled.
+    const second = setTimeout(() => {
+      scrollToAnchor(pendingAnchor)
+      setPendingAnchor(null)
+    }, 1100)
+    return () => {
+      clearTimeout(first)
+      clearTimeout(second)
+    }
+  }, [pendingAnchor, lesson])
+
+  function openLessonById(id: string, anchor?: string) {
+    navigate(`/roadmap/learn/${id}`)
+    if (anchor) setPendingAnchor(anchor)
+    else window.scrollTo({ top: 0 })
+  }
+
+  function handleSearchSelect(entry: SearchEntry) {
+    if (entry.action.type === 'lesson') openLessonById(entry.action.lessonId, entry.action.anchor)
+    else openDay(entry.action.date)
+  }
+
   function openLesson(task: RoadmapTask) {
     if (!task.lessonId) return
     navigate(`/roadmap/learn/${task.lessonId}`, { state: { taskId: task.id } })
@@ -272,6 +315,17 @@ export default function RoadmapPage() {
             <span className="font-display font-bold uppercase tracking-tight truncate">Road to Big Tech</span>
           </Link>
           <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsSearchOpen(true)}
+            aria-label="Search"
+            title="Search (Ctrl+K)"
+            className="flex h-9 items-center gap-2 rounded-full border border-border px-2.5 text-sm text-muted-foreground hover:border-foreground/50 hover:bg-foreground/[0.06] hover:text-foreground transition-colors lg:w-56 lg:px-3"
+          >
+            <Search className="h-4 w-4 shrink-0" />
+            <span className="hidden flex-1 text-left lg:inline">Search…</span>
+            <kbd className="hidden rounded border border-border px-1.5 font-sans text-[10px] lg:inline">Ctrl K</kbd>
+          </button>
           <motion.button
             type="button"
             layout
@@ -368,6 +422,9 @@ export default function RoadmapPage() {
                     if (lessonTaskId) handleToggle(lessonTaskId, isDone)
                   }}
                   onSaveCode={handleSaveCode}
+                  isDesktop={isDesktop}
+                  isTestPassed={isLessonTestPassed(lesson.id, passedItems)}
+                  onOpenLesson={(id) => openLessonById(id)}
                   onPassed={(itemId) => {
                     markPassed.mutate({ lessonId: lesson.id, itemId })
                     setToast('Exercise passed')
@@ -422,6 +479,7 @@ export default function RoadmapPage() {
         </main>
         {showSidePanel && (
           <aside className="sticky top-32 self-start max-h-[calc(100dvh-9rem)] overflow-y-auto pb-8 pr-1 [scrollbar-width:thin]">
+            {lesson && <LessonOutlinePanel lesson={lesson} passed={passedItems} isTestPassed={isLessonTestPassed(lesson.id, passedItems)} />}
             <SidePanel
               date={selectedDate}
               isOwner={isOwner}
@@ -454,6 +512,7 @@ export default function RoadmapPage() {
       </AnimatePresence>
 
       {!isDesktop && <BottomTabBar active={tab} onChange={changeTab} />}
+      <SearchDialog isOpen={isSearchOpen} notes={notesQuery.data ?? []} onClose={() => setIsSearchOpen(false)} onSelect={handleSearchSelect} />
       <FocusSheet
         isOpen={isFocusOpen}
         isRunning={focus.timer !== null}
