@@ -33,6 +33,16 @@ export function CodeCell({ initialCode, savedCode, tests, label = 'Python', isPa
   const [runCount, setRunCount] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const lastSaved = useRef(savedCode ?? initialCode)
+  // Saved code often arrives after the cell mounted (opening a lesson by URL). Show it,
+  // unless the learner has already typed something — then their text wins.
+  const [shownSaved, setShownSaved] = useState(savedCode)
+  if (savedCode !== shownSaved) {
+    setShownSaved(savedCode)
+    if (savedCode !== undefined && code === (shownSaved ?? initialCode)) {
+      setCode(savedCode)
+      lastSaved.current = savedCode
+    }
+  }
   const isExercise = tests !== undefined
 
   useEffect(() => onPythonReady(setIsReady), [])
