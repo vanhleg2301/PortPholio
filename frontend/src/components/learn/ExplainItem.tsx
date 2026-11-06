@@ -110,7 +110,7 @@ export function ExplainItem({ question, savedAnswer, isPassed, onSave, onPass }:
                 <button
                   type="button"
                   onClick={() => onPass(text)}
-                  className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600/85 transition-colors"
+                  className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 transition-colors"
                 >
                   {coveredCount === question.points.length ? 'I covered everything — done' : 'I learned the missing points — done'}
                 </button>

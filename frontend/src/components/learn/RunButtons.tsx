@@ -42,7 +42,7 @@ export function RunButtons({ state, isExercise, onAfterRun }: RunButtonsProps) {
         title={`Run (${MOD_KEY}+Enter)`}
         className={cn(
           'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60',
-          isExercise ? 'bg-white/10 text-white hover:bg-white/[0.16]' : 'bg-emerald-500 text-white hover:bg-emerald-600'
+          isExercise ? 'bg-white/10 text-white hover:bg-white/[0.16]' : 'bg-emerald-700 text-white hover:bg-emerald-800'
         )}
       >
         {state.isRunning && state.mode === 'run' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
@@ -55,7 +55,7 @@ export function RunButtons({ state, isExercise, onAfterRun }: RunButtonsProps) {
           onClick={() => void handle(state.submit)}
           disabled={state.isRunning}
           title={`Submit (${MOD_KEY}+Shift+Enter)`}
-          className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-60"
+          className="flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 transition-colors disabled:opacity-60"
         >
           {state.isRunning && state.mode === 'submit' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CloudUpload className="h-3.5 w-3.5" />}
           Submit

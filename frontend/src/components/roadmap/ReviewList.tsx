@@ -64,7 +64,7 @@ export function ReviewList({ reviews, today, isBusy, onComplete }: ReviewListPro
                   type="button"
                   disabled={isBusy}
                   onClick={() => onComplete(review, false)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 transition-colors disabled:opacity-50"
                 >
                   <Check className="h-3.5 w-3.5" /> Solved
                 </button>

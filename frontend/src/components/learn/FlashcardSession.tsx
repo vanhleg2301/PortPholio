@@ -190,7 +190,7 @@ export function FlashcardSession({ today }: FlashcardSessionProps) {
                 grade(card, true)
                 advance()
               }}
-              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600/85 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 transition-colors"
             >
               <Check className="h-4 w-4" /> I knew it
             </button>

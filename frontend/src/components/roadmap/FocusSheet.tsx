@@ -161,7 +161,7 @@ export function FocusSheet({
                   type="button"
                   whileTap={{ scale: 0.97 }}
                   onClick={() => onStart(preset, taskId || null)}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-3.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors"
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-700 py-3.5 text-sm font-semibold text-white hover:bg-emerald-800 transition-colors"
                 >
                   <Play className="h-4 w-4" /> Start focus
                 </motion.button>

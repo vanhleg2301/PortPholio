@@ -56,7 +56,7 @@ export function createEditor(parent: HTMLElement, options: EditorOptions): Edito
         EditorState.tabSize.of(4),
         oneDark,
         layout(options.isFill),
-        EditorView.contentAttributes.of({ autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false' }),
+        EditorView.contentAttributes.of({ autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false', 'aria-label': 'Python code editor' }),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) options.onChange(update.state.doc.toString())
         }),
