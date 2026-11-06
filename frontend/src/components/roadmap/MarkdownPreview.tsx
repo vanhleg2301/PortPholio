@@ -1,4 +1,4 @@
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { GlossTerm } from '@/components/learn/GlossTerm'
@@ -19,6 +19,23 @@ function linkGlossary(md: string): string {
     .join('')
 }
 
+// Defined once, outside the component. An inline `components` object gives `a` a new
+// component type on every render, so React would unmount and remount every GlossTerm —
+// closing an open definition card whenever the page re-rendered (e.g. after saving it to
+// the flashcards).
+const REMARK_PLUGINS = [remarkGfm]
+const REHYPE_PLUGINS = [rehypeHighlight]
+const COMPONENTS: Components = {
+  a: ({ node: _node, href, children, ...props }) =>
+    href?.startsWith(GLOSS_PREFIX) ? (
+      <GlossTerm termKey={decodeURIComponent(href.slice(GLOSS_PREFIX.length))}>{children}</GlossTerm>
+    ) : (
+      <a href={href} {...props} target="_blank" rel="noopener noreferrer">
+        {children}
+      </a>
+    ),
+}
+
 interface MarkdownPreviewProps {
   content: string
   withGlossary?: boolean
@@ -28,20 +45,7 @@ export function MarkdownPreview({ content, withGlossary = false }: MarkdownPrevi
   const text = keepLineBreaks(content)
   return (
     <div className="markdown text-[15px] leading-relaxed">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeHighlight]}
-        components={{
-          a: ({ node: _node, href, children, ...props }) =>
-            href?.startsWith(GLOSS_PREFIX) ? (
-              <GlossTerm termKey={decodeURIComponent(href.slice(GLOSS_PREFIX.length))}>{children}</GlossTerm>
-            ) : (
-              <a href={href} {...props} target="_blank" rel="noopener noreferrer">
-                {children}
-              </a>
-            ),
-        }}
-      >
+      <ReactMarkdown remarkPlugins={REMARK_PLUGINS} rehypePlugins={REHYPE_PLUGINS} components={COMPONENTS}>
         {withGlossary ? linkGlossary(text) : text}
       </ReactMarkdown>
     </div>
