@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { InlineText } from '@/components/learn/InlineText'
+import { useReviewDeck } from '@/components/learn/ReviewDeckContext'
 import { EASE_OUT } from '@/lib/motion'
 import { GLOSSARY } from '@/data/lessons/glossary'
 
@@ -12,6 +13,7 @@ interface GlossTermProps {
 // A technical word inside lesson text: tap it to show a plain-English explanation inline.
 export function GlossTerm({ termKey, children }: GlossTermProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const deck = useReviewDeck()
   const entry = GLOSSARY[termKey]
   if (!entry) return <>{children}</>
 
@@ -19,7 +21,10 @@ export function GlossTerm({ termKey, children }: GlossTermProps) {
     <>
       <button
         type="button"
-        onClick={() => setIsOpen((v) => !v)}
+        onClick={() => {
+          if (!isOpen) deck?.addTerm(termKey)
+          setIsOpen(!isOpen)
+        }}
         aria-expanded={isOpen}
         title={`${entry.en} (${entry.vi})`}
         className="cursor-help underline decoration-sky-500/70 decoration-dotted decoration-2 underline-offset-4 hover:text-sky-700 hover:decoration-solid dark:hover:text-sky-300 transition-colors"

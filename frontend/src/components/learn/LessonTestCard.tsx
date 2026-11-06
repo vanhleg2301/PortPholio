@@ -90,7 +90,7 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
             <div className="px-4 pb-5">
               <Part
                 title="Part 1 · Multiple choice"
-                note={`Answer all ${test.choice.length}, then check. You need ${getPassMark(test.choice.length)} correct. Read every explanation — also for the ones you got right.`}
+                note={`${test.choice.length} questions, one at a time. You see why right after each answer — read it even when you are right. You need ${getPassMark(test.choice.length)} correct. Wrong answers go to your flashcards.`}
                 isDone={has('test:choice')}
               >
                 <ChoiceTest

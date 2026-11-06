@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { format, parseISO } from 'date-fns'
 import { CalendarCheck, CircleCheck, Lock, Timer } from 'lucide-react'
 import { ChoiceTest } from '@/components/learn/ChoiceTest'
+import { FlashcardSession } from '@/components/learn/FlashcardSession'
+import { useReviewDeck } from '@/components/learn/ReviewDeckContext'
 import { LessonTestCard } from '@/components/learn/LessonTestCard'
 import { LESSON_BY_ID, LESSON_TESTS, isLessonTestPassed } from '@/data/lessons'
 import { WEEK_TEST_LESSON, WEEK_TEST_SIZE, getTestedLessonIds, getWeekTestQuestions, isTaskLocked, isWeekTestPassed } from '@/lib/testGate'
@@ -90,6 +92,8 @@ export function TodayView({
   const pendingReviews = reviews.filter((r) => !r.completed_at)
   const scheduledTaskIds = new Set(pendingReviews.map((r) => r.task_id))
   const dueReviews = pendingReviews.filter((r) => (date === today ? r.due_date <= today : r.due_date === date))
+  const reviewDeck = useReviewDeck()
+  const hasFlashcards = Boolean(reviewDeck?.isReady) && Object.keys(reviewDeck?.deck ?? {}).length > 0
   const testedLessonIds = getTestedLessonIds(tasks)
   const passedTests = testedLessonIds.filter((id) => isLessonTestPassed(id, passed)).length
   const hasWeekTest = Boolean(week) && tasks.some((t) => t.isWeekTest)
@@ -137,6 +141,13 @@ export function TodayView({
             <motion.p variants={section} className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
               <Timer className="h-3.5 w-3.5" /> Focused {formatMinutes(focusMinutes)}
             </motion.p>
+          )}
+
+          {date === today && hasFlashcards && (
+            <motion.section variants={section} layout="position">
+              <SectionTitle>Daily review</SectionTitle>
+              <FlashcardSession today={today} />
+            </motion.section>
           )}
 
           {isOwner && dueReviews.length > 0 && (

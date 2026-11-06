@@ -12,6 +12,11 @@ export const LESSON_BY_ID = new Map(LESSONS.map((l) => [l.id, l]))
 // Lesson id → its end-of-day test.
 export const LESSON_TESTS: Record<string, LessonTest> = { ...PYTHON_TESTS, ...DSA_TESTS, ...CS_TESTS }
 
+// Each multiple-choice question → the lesson whose test it belongs to (week tests mix lessons).
+export const CHOICE_LESSON = new Map(
+  Object.entries(LESSON_TESTS).flatMap(([lessonId, test]) => test.choice.map((q) => [q, lessonId] as const))
+)
+
 // Share of multiple-choice answers needed to pass a test.
 export const PASS_RATIO = 0.8
 

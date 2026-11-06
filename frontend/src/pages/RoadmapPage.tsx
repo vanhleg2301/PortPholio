@@ -8,6 +8,7 @@ import { FocusSheet } from '@/components/roadmap/FocusSheet'
 import { DesktopSidebar } from '@/components/roadmap/DesktopSidebar'
 import { SidePanel } from '@/components/roadmap/SidePanel'
 import { LessonView } from '@/components/learn/LessonView'
+import { ReviewDeckProvider } from '@/components/learn/ReviewDeckContext'
 import { LESSON_BY_ID, LESSON_TESTS, isLessonTestPassed } from '@/data/lessons'
 import { WEEK_TEST_LESSON, isTaskLocked } from '@/lib/testGate'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
@@ -243,6 +244,13 @@ export default function RoadmapPage() {
   const showSidePanel = isDesktop && (tab === 'today' || Boolean(lesson))
 
   return (
+    <ReviewDeckProvider
+      key={userId ?? 'guest'}
+      today={today}
+      isReady={isAnswersReady}
+      saved={savedCode}
+      onSave={canSaveAnswers ? handleSaveCode : () => undefined}
+    >
     <MotionConfig reducedMotion="user">
     <div className="min-h-[100dvh] bg-background">
       <motion.header
@@ -472,5 +480,6 @@ export default function RoadmapPage() {
       />
     </div>
     </MotionConfig>
+    </ReviewDeckProvider>
   )
 }
