@@ -24,13 +24,13 @@ import { TodayView } from '@/components/roadmap/TodayView'
 import { NEETCODE_150_TOTAL } from '@/data/roadmap/neetcode'
 import { useOwnerSession } from '@/hooks/useOwnerSession'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useSavedView } from '@/hooks/useSavedView'
 import { useRoadmapNotes } from '@/hooks/useRoadmapNotes'
 import { useRoadmapProgress, useToggleTask } from '@/hooks/useRoadmapProgress'
 import { useRoadmapResources } from '@/hooks/useRoadmapResources'
 import {
   ALL_TASKS,
   DAY_BY_DATE,
-  clampToPlan,
   getActivityDates,
   getNeetCodeSolved,
   getProgress,
@@ -62,8 +62,7 @@ function RollingValue({ value }: { value: string }) {
 export default function RoadmapPage() {
   useDocumentTitle('Road to Big Tech · Study plan')
   const today = getTodayIso()
-  const [tab, setTab] = useState<RoadmapTab>('today')
-  const [selectedDate, setSelectedDate] = useState(() => clampToPlan(today))
+  const { tab, setTab, selectedDate, setSelectedDate } = useSavedView(today)
   const [isAccountOpen, setIsAccountOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
