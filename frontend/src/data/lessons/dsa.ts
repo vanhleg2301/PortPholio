@@ -37,6 +37,11 @@ export const DSA_LESSONS: Lesson[] = [
         ),
       },
       {
+        type: 'visual',
+        visual: 'two-sum',
+        caption: 'The complement key in action: one pass, one dict.',
+      },
+      {
         type: 'diagram',
         caption: 'How to pick the approach for an array question.',
         mermaid: `flowchart TD
@@ -92,6 +97,11 @@ for value, count in Counter(nums).items():
 print(buckets)                         # [[], [3], [2], [1], [], [], []]`,
       },
       {
+        type: 'visual',
+        visual: 'bucket-sort',
+        caption: 'Counts become bucket indexes; walk from the top for the k most frequent.',
+      },
+      {
         type: 'text',
         md: md(
           '## Prefix and suffix passes',
@@ -104,6 +114,11 @@ print(buckets)                         # [[], [3], [2], [1], [], [], []]`,
           '| right product | 24 | 12 | 4 | 1 |',
           '| answer | 24 | 12 | 8 | 6 |',
         ),
+      },
+      {
+        type: 'visual',
+        visual: 'prefix-suffix',
+        caption: 'Left pass fills the left products, right pass multiplies in the right ones.',
       },
       {
         type: 'callout',

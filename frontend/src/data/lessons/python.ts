@@ -57,12 +57,9 @@ print(int("42") + 1, str(42) + "!", float("3.5"))      # 43 42! 3.5`,
         ),
       },
       {
-        type: 'diagram',
-        caption: 'Two names, one list: if you change it through b, you also see the change through a.',
-        mermaid: `flowchart LR
-  a([a]) --> L["list object: [1, 2, 3, 4]"]
-  b([b]) --> L
-  c([c]) --> C["another list: [1, 2, 3]"]`,
+        type: 'visual',
+        visual: 'aliasing',
+        caption: 'Choose what line 3 does, then press play: which changes reach a?',
       },
       {
         type: 'code',
@@ -173,6 +170,11 @@ assert digit_sum(10 ** 20) == 1`,
         code: `s = "python"
 print(s[0], s[-1], s[1:4], s[:2], s[2:], s[::-1])   # p n yth py thon nohtyp
 print(len(s), "th" in s, s.find("th"), s.find("x"))  # 6 True 2 -1`,
+      },
+      {
+        type: 'visual',
+        visual: 'slicing',
+        caption: 'Change start, stop and step — try a negative step.',
       },
       {
         type: 'text',
@@ -297,14 +299,9 @@ assert sum(letter_counts("")) == 0`,
         ),
       },
       {
-        type: 'diagram',
-        caption: 'Why append is O(1) on average: copying happens rarely, because the size grows by a factor each time.',
-        mermaid: `flowchart TD
-  A["append(x)"] --> B{"free space left?"}
-  B -- yes --> C["write x into the next slot: O(1)"]
-  B -- no --> D["get a bigger array"]
-  D --> E["copy all items once: O(n)"]
-  E --> C`,
+        type: 'visual',
+        visual: 'dynamic-array',
+        caption: 'Copying happens rarely, so the average work per append stays small.',
       },
       {
         type: 'code',
@@ -459,12 +456,8 @@ assert second_largest([-1, -5, -3]) == -3`,
         ),
       },
       {
-        type: 'diagram',
-        caption: 'Lookup in a dict: hash the key, go to the slot, done.',
-        mermaid: `flowchart LR
-  K["key: 'apple'"] --> H["hash('apple')"]
-  H --> S["slot 3"]
-  S --> V["value: 5"]`,
+        type: 'visual',
+        visual: 'hash-table',
       },
       {
         type: 'code',
@@ -644,14 +637,9 @@ def add_good(x, items=None):
 print(add_good(1), add_good(2))        # [1] [2]`,
       },
       {
-        type: 'diagram',
-        caption: 'Recursion: each call waits for a smaller call, then combines the result.',
-        mermaid: `flowchart TD
-  A["factorial(3)"] --> B["3 * factorial(2)"]
-  B --> C["2 * factorial(1)"]
-  C --> D["base case: 1"]
-  D --> E["2 * 1 = 2"]
-  E --> F["3 * 2 = 6"]`,
+        type: 'visual',
+        visual: 'call-stack',
+        caption: 'Each call waits on the stack until the smaller call returns.',
       },
       {
         type: 'text',
@@ -809,6 +797,11 @@ print(h[0], heapq.heappop(h), heapq.nsmallest(2, h))   # 1 1 [3, 5]
 max_heap = [-x for x in [5, 1, 8, 3]]
 heapq.heapify(max_heap)
 print(-max_heap[0])                    # 8`,
+      },
+      {
+        type: 'visual',
+        visual: 'heap',
+        caption: 'Push some numbers, then pop: watch them sift up and down.',
       },
       {
         type: 'text',

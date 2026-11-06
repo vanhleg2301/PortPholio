@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, ArrowUpRight, Check, ClipboardCheck, Clock, Info, Languages, Lightbulb, PlayCircle, Target, TriangleAlert, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -11,6 +12,8 @@ import { listContainer, listItem } from '@/lib/motion'
 import { getExerciseIds, getLessonTerms } from '@/data/lessons'
 import { GLOSSARY } from '@/data/lessons/glossary'
 import type { CalloutTone, Lesson, LessonBlock } from '@/data/lessons/types'
+
+const LessonVisual = lazy(() => import('@/components/learn/visuals'))
 
 const CALLOUT: Record<CalloutTone, { icon: LucideIcon; label: string; className: string }> = {
   tip: { icon: Lightbulb, label: 'Tip', className: 'border-sky-500/30 bg-sky-500/[0.06] text-sky-700 dark:text-sky-300' },
@@ -72,6 +75,12 @@ export function LessonView({ lesson, canSave, passed, savedCode, isTaskDone, isT
         )
       case 'diagram':
         return <MermaidDiagram source={block.mermaid} caption={block.caption} />
+      case 'visual':
+        return (
+          <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-foreground/[0.04]" />}>
+            <LessonVisual id={block.visual} caption={block.caption} />
+          </Suspense>
+        )
       case 'exercise': {
         const isPassed = passed.has(codeKey(block.id))
         const help = (

@@ -23,6 +23,22 @@ export type LessonBlock =
       solution: string
     }
   | { type: 'quiz'; items: Array<{ question: string; answer: string }> }
+  // Interactive, animated diagram (components/learn/visuals).
+  | { type: 'visual'; visual: VisualId; caption?: string }
+
+export type VisualId =
+  | 'aliasing'
+  | 'slicing'
+  | 'dynamic-array'
+  | 'hash-table'
+  | 'call-stack'
+  | 'heap'
+  | 'two-sum'
+  | 'prefix-suffix'
+  | 'bucket-sort'
+  | 'handshake'
+  | 'slow-start'
+  | 'hol-blocking'
 
 export interface ChoiceQuestion {
   id: string

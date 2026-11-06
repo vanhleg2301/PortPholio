@@ -63,21 +63,9 @@ for route, km in [("Hanoi - Singapore", 2_200), ("Hanoi - Frankfurt", 8_900), ("
         ),
       },
       {
-        type: 'diagram',
-        caption: 'A new HTTPS request with TLS 1.3: three round trips before the first response byte (plus DNS).',
-        mermaid: `sequenceDiagram
-  participant C as Client
-  participant S as Server
-  Note over C,S: RTT 1: TCP handshake
-  C->>S: SYN
-  S->>C: SYN-ACK
-  C->>S: ACK
-  Note over C,S: RTT 2: TLS 1.3 handshake
-  C->>S: ClientHello + key share
-  S->>C: ServerHello + certificate + Finished
-  Note over C,S: RTT 3: the actual request
-  C->>S: Finished + GET /api/feed
-  S->>C: 200 OK + first bytes`,
+        type: 'visual',
+        visual: 'handshake',
+        caption: 'Switch TLS 1.2 / 1.3 and change the RTT: count the round trips before the first byte.',
       },
       {
         type: 'text',
@@ -90,6 +78,11 @@ for route, km in [("Hanoi - Singapore", 2_200), ("Hanoi - Frankfurt", 8_900), ("
           '',
           'What this means in practice: **reuse connections** ([[keep-alive]], [[connection pool|connection pools]]) and **cut round trips** (batch requests, [[cache]], put servers close to users).',
         ),
+      },
+      {
+        type: 'visual',
+        visual: 'hol-blocking',
+        caption: 'Why one lost packet can stall a whole response.',
       },
       {
         type: 'code',
@@ -109,6 +102,11 @@ for size in [10, 50, 200, 1_000]:
 #    50 KB -> 3 round trips
 #   200 KB -> 4 round trips
 #  1000 KB -> 7 round trips`,
+      },
+      {
+        type: 'visual',
+        visual: 'slow-start',
+        caption: 'Try 50 KB, 200 KB and 1,000 KB.',
       },
       {
         type: 'callout',
