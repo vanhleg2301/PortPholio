@@ -64,7 +64,7 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
       icon: Code2,
       done: test.code.filter((q) => has(`test:code:${q.id}`)).length,
       total: test.code.length,
-      note: 'Like a coding round: think first, say the complexity, then write it. Use the hint only when you are stuck.',
+      note: 'Like a coding round: think first, say the complexity, then write it. Run checks your code against the test cases; Submit saves the task once every case passes. The ⤢ button opens a full-screen editor.',
     },
     {
       id: 'explain',
@@ -107,6 +107,18 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
             {test.code.map((q, i) => {
               const key = `${lesson.id}:test:${q.id}`
               const itemId = `test:code:${q.id}`
+              const help = (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {q.hint && (
+                    <Reveal label="Hint">
+                      <MarkdownPreview content={q.hint} />
+                    </Reveal>
+                  )}
+                  <Reveal label="Solution">
+                    <MarkdownPreview content={`\`\`\`python\n${q.solution}\n\`\`\``} />
+                  </Reveal>
+                </div>
+              )
               return (
                 <div key={q.id} className="rounded-xl border border-border/70 bg-background/40 p-3.5">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -137,17 +149,15 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
                     isPassed={has(itemId)}
                     onSave={canSave ? (code) => onSaveCode(key, code) : undefined}
                     onPassed={() => pass(itemId)}
+                    title={q.title}
+                    problem={
+                      <>
+                        <MarkdownPreview content={q.prompt} withGlossary />
+                        {help}
+                      </>
+                    }
                   />
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {q.hint && (
-                      <Reveal label="Hint">
-                        <MarkdownPreview content={q.hint} />
-                      </Reveal>
-                    )}
-                    <Reveal label="Solution">
-                      <MarkdownPreview content={`\`\`\`python\n${q.solution}\n\`\`\``} />
-                    </Reveal>
-                  </div>
+                  {help}
                 </div>
               )
             })}

@@ -4,61 +4,110 @@
 /* global loadPyodide */
 importScripts('https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js')
 
-// Runs the hidden tests and, when one fails, explains which check failed in plain words:
-// the check itself, the expected and the actual value (for `assert a == b`), or the error
-// and the line of the learner's code that raised it. Returns None when every test passes.
-const CHECK_TESTS = `
-import ast
+// Runs the hidden tests one top-level statement at a time, like the test cases on LeetCode:
+// every `assert` (or a loop that contains asserts) becomes one case with its input, the
+// expected value, the learner's value, any error and what it printed. Other statements are
+// setup. Returns the cases as JSON.
+const RUN_CASES = `
+import ast, contextlib, inspect, io, json
 
-def __check_tests(src, ns):
+def __error_text(e):
+    user_line = None
+    tb = e.__traceback__
+    while tb:
+        if tb.tb_frame.f_code.co_filename == "<exec>":
+            user_line = tb.tb_lineno
+        tb = tb.tb_next
+    text = type(e).__name__ + ": " + str(e)
+    if user_line:
+        text += " (your code, line " + str(user_line) + ")"
+    return text
+
+def __run_cases(src, ns):
     tree = ast.parse(src)
-    try:
-        exec(compile(tree, "<tests>", "exec"), ns)
-        return None
-    except Exception as e:
-        test_line = user_line = None
-        # Skip this function's own frame; the rest belong to the tests and the learner's code.
-        tb = e.__traceback__.tb_next
-        while tb:
-            name = tb.tb_frame.f_code.co_filename
-            if name == "<tests>":
-                test_line = tb.tb_lineno
-            elif name == "<exec>":
-                user_line = tb.tb_lineno
-            tb = tb.tb_next
-        node = next((n for n in ast.walk(tree) if isinstance(n, ast.Assert) and n.lineno == test_line), None)
-        check = ast.get_source_segment(src, node.test) if node else None
-        if check is None and test_line:
-            check = src.splitlines()[test_line - 1].strip()
+    lines = src.splitlines()
 
-        if isinstance(e, AssertionError) and node is not None:
-            lines = ["Failed check: " + check]
-            t = node.test
-            if isinstance(t, ast.Compare) and len(t.ops) == 1 and isinstance(t.ops[0], (ast.Eq, ast.Is)):
+    def ev(node):
+        return eval(compile(ast.Expression(node), "<tests>", "eval"), ns)
+
+    def run_stmt(stmt):
+        exec(compile(ast.Module([stmt], []), "<tests>", "exec"), ns)
+
+    def describe(node):
+        # A call to the learner's function shows its arguments by name: "n = 123".
+        if isinstance(node, ast.Call):
+            try:
+                fn = ev(node.func)
+                if getattr(getattr(fn, "__code__", None), "co_filename", "") == "<exec>":
+                    args = [ev(a) for a in node.args]
+                    kwargs = {k.arg: ev(k.value) for k in node.keywords if k.arg}
+                    bound = inspect.signature(fn).bind(*args, **kwargs)
+                    return "\\n".join(k + " = " + repr(v) for k, v in bound.arguments.items())
+            except Exception:
+                pass
+        return ast.get_source_segment(src, node)
+
+    def check_compare(case, test):
+        if isinstance(test, ast.Compare) and len(test.ops) == 1 and isinstance(test.ops[0], (ast.Eq, ast.Is)):
+            case["input"] = describe(test.left)
+            got = ev(test.left)
+            expected = ev(test.comparators[0])
+            case["got"], case["expected"] = repr(got), repr(expected)
+            return got == expected if isinstance(test.ops[0], ast.Eq) else got is expected
+        case["input"] = ast.get_source_segment(src, test)
+        ok = bool(ev(test))
+        case["expected"], case["got"] = "True", repr(ok)
+        return ok
+
+    def has_assert(stmt):
+        return any(isinstance(n, ast.Assert) for n in ast.walk(stmt))
+
+    cases = []
+    for stmt in tree.body:
+        out = io.StringIO()
+        if not has_assert(stmt):
+            try:
+                with contextlib.redirect_stdout(out):
+                    run_stmt(stmt)
+            except Exception as e:
+                cases.append({"label": ast.get_source_segment(src, stmt), "input": None, "expected": None, "got": None,
+                              "passed": False, "error": __error_text(e), "stdout": out.getvalue()})
+                break
+            continue
+
+        first_line = lines[stmt.lineno - 1].strip()
+        case = {"label": first_line, "input": None, "expected": None, "got": None, "passed": False, "error": None, "stdout": ""}
+        try:
+            with contextlib.redirect_stdout(out):
+                if isinstance(stmt, ast.Assert):
+                    case["passed"] = check_compare(case, stmt.test)
+                else:
+                    run_stmt(stmt)
+                    case["passed"] = True
+        except AssertionError as e:
+            # An assert inside a loop failed: describe that assert with the loop's current values.
+            line = None
+            tb = e.__traceback__
+            while tb:
+                if tb.tb_frame.f_code.co_filename == "<tests>":
+                    line = tb.tb_lineno
+                tb = tb.tb_next
+            node = next((n for n in ast.walk(stmt) if isinstance(n, ast.Assert) and n.lineno == line), None)
+            if node is not None:
                 try:
-                    got = eval(compile(ast.Expression(t.left), "<tests>", "eval"), ns)
-                    expected = eval(compile(ast.Expression(t.comparators[0]), "<tests>", "eval"), ns)
-                    lines.append("Expected: " + repr(expected))
-                    lines.append("Got:      " + repr(got))
-                    if got is None:
-                        lines.append("Tip: your function returned None. Did you forget 'return' (or is 'pass' still there)?")
-                except Exception:
-                    pass
-            return "\\n".join(lines)
-
-        lines = []
-        if check:
-            lines.append("While running check: " + check)
-        lines.append(type(e).__name__ + ": " + str(e))
-        if user_line:
-            lines.append("The error happened in your code, line " + str(user_line) + ".")
-        if "NoneType" in str(e):
-            lines.append("Tip: something is None here — does your function 'return' its result?")
-        return "\\n".join(lines)
+                    with contextlib.redirect_stdout(out):
+                        check_compare(case, node.test)
+                except Exception as inner:
+                    case["error"] = __error_text(inner)
+        except Exception as e:
+            case["error"] = __error_text(e)
+        case["stdout"] = out.getvalue()
+        cases.append(case)
+    return json.dumps(cases)
 `
 
 const ready = loadPyodide().then((py) => {
-  py.runPython(CHECK_TESTS)
+  py.runPython(RUN_CASES)
   self.postMessage({ type: 'ready' })
   return py
 })
@@ -87,22 +136,23 @@ self.onmessage = async (event) => {
     await py.runPythonAsync(code, { globals })
   } catch (err) {
     globals.destroy()
-    self.postMessage({ type: 'result', id, output, error: cleanError(err), passed: tests ? false : null })
+    self.postMessage({ type: 'result', id, output, error: cleanError(err), passed: tests ? false : null, cases: [] })
     return
   }
   if (!tests) {
     globals.destroy()
-    self.postMessage({ type: 'result', id, output, error: null, passed: null })
+    self.postMessage({ type: 'result', id, output, error: null, passed: null, cases: [] })
     return
   }
-  const checkTests = py.globals.get('__check_tests')
+  const runCases = py.globals.get('__run_cases')
   try {
-    const failure = checkTests(tests, globals)
-    self.postMessage({ type: 'result', id, output, error: failure ?? null, passed: failure == null })
+    const cases = JSON.parse(runCases(tests, globals))
+    const passed = cases.length > 0 && cases.every((c) => c.passed)
+    self.postMessage({ type: 'result', id, output, error: null, passed, cases })
   } catch (err) {
-    self.postMessage({ type: 'result', id, output, error: cleanError(err), passed: false })
+    self.postMessage({ type: 'result', id, output, error: cleanError(err), passed: false, cases: [] })
   } finally {
-    checkTests.destroy()
+    runCases.destroy()
     globals.destroy()
   }
 }

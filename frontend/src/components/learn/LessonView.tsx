@@ -64,6 +64,8 @@ export function LessonView({ lesson, canSave, passed, savedCode, isTaskDone, isT
               initialCode={block.code}
               savedCode={savedCode.get(codeKey(block.id))}
               onSave={canSave ? (code) => onSaveCode(codeKey(block.id), code) : undefined}
+              title={`Example · ${lesson.title}`}
+              problem={block.caption ? <p className="text-sm text-muted-foreground">{block.caption}</p> : undefined}
             />
             {block.caption && <p className="mt-2 text-xs text-muted-foreground">{block.caption}</p>}
           </div>
@@ -72,6 +74,18 @@ export function LessonView({ lesson, canSave, passed, savedCode, isTaskDone, isT
         return <MermaidDiagram source={block.mermaid} caption={block.caption} />
       case 'exercise': {
         const isPassed = passed.has(codeKey(block.id))
+        const help = (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {block.hint && (
+              <Reveal label="Hint">
+                <p className="text-sm text-muted-foreground">{block.hint}</p>
+              </Reveal>
+            )}
+            <Reveal label="Solution">
+              <MarkdownPreview content={`\`\`\`python\n${block.solution}\n\`\`\``} />
+            </Reveal>
+          </div>
+        )
         return (
           <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.04] p-4">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Exercise</p>
@@ -89,17 +103,15 @@ export function LessonView({ lesson, canSave, passed, savedCode, isTaskDone, isT
               onPassed={() => {
                 if (canSave && !isPassed) onPassed(block.id)
               }}
+              title={block.title}
+              problem={
+                <>
+                  <MarkdownPreview content={block.prompt} withGlossary />
+                  {help}
+                </>
+              }
             />
-            <div className="mt-3 flex flex-wrap gap-2">
-              {block.hint && (
-                <Reveal label="Hint">
-                  <p className="text-sm text-muted-foreground">{block.hint}</p>
-                </Reveal>
-              )}
-              <Reveal label="Solution">
-                <MarkdownPreview content={`\`\`\`python\n${block.solution}\n\`\`\``} />
-              </Reveal>
-            </div>
+            {help}
           </div>
         )
       }

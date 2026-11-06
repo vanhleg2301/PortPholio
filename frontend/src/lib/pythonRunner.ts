@@ -1,11 +1,25 @@
 // Thin client for public/pyodide-worker.js: one shared worker, one run at a time,
 // with a timeout that kills runaway code by recreating the worker.
 
+// One hidden test, shown like a LeetCode test case.
+export interface CaseResult {
+  label: string
+  // Arguments by name ("n = 123") or the checked expression.
+  input: string | null
+  expected: string | null
+  got: string | null
+  passed: boolean
+  error: string | null
+  stdout: string
+}
+
 export interface RunResult {
   output: string
+  // Error in the learner's code itself (before any test could run).
   error: string | null
   // true/false when tests were run, null for a plain run
   passed: boolean | null
+  cases: CaseResult[]
 }
 
 type Listener = (isReady: boolean) => void
@@ -33,7 +47,7 @@ function getWorker(): Worker {
     }
     const resolve = pending.get(data.id)
     pending.delete(data.id)
-    resolve?.({ output: data.output, error: data.error, passed: data.passed })
+    resolve?.({ output: data.output, error: data.error, passed: data.passed, cases: data.cases ?? [] })
   }
   return worker
 }
@@ -43,7 +57,7 @@ function resetWorker() {
   worker = null
   setReady(false)
   // Anything still waiting on the old worker will never get an answer.
-  pending.forEach((resolve) => resolve({ output: '', error: 'Python was restarted. Run again.', passed: null }))
+  pending.forEach((resolve) => resolve({ output: '', error: 'Python was restarted. Run again.', passed: null, cases: [] }))
   pending.clear()
 }
 
@@ -68,7 +82,7 @@ export function runPython(code: string, tests?: string): Promise<RunResult> {
       if (!pending.has(id)) return
       pending.delete(id)
       resetWorker()
-      resolve({ output: '', error: `Stopped after ${budget / 1000} s — is there an infinite loop?`, passed: tests ? false : null })
+      resolve({ output: '', error: `Stopped after ${budget / 1000} s — is there an infinite loop?`, passed: tests ? false : null, cases: [] })
     }, budget)
     pending.set(id, (result) => {
       clearTimeout(timer)
