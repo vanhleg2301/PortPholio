@@ -36,6 +36,8 @@ export interface ChoiceQuestion {
   options: string[]
   answer: number
   explain: string
+  // The page the fact comes from (filled in from tests/sources.ts).
+  ref?: TaskLink
 }
 
 export interface CodeQuestion {
@@ -46,6 +48,8 @@ export interface CodeQuestion {
   tests: string
   hint?: string
   solution: string
+  // The original problem, when there is one (filled in from tests/sources.ts).
+  ref?: TaskLink
 }
 
 // Interview-style open question: the learner answers in their own words, then compares
@@ -61,6 +65,8 @@ export interface LessonTest {
   choice: ChoiceQuestion[]
   code: CodeQuestion[]
   explain: ExplainQuestion[]
+  // References the test was written from.
+  sources?: TaskLink[]
 }
 
 export interface Lesson {

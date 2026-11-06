@@ -4,18 +4,28 @@ import { PYTHON_LESSONS } from './python'
 import { CS_TESTS } from './tests/cs'
 import { DSA_TESTS } from './tests/dsa'
 import { PYTHON_TESTS } from './tests/python'
+import { TEST_SOURCES } from './tests/sources'
 import { CHOICE_VARIANTS } from './tests/variants'
 import type { ChoiceQuestion, Lesson, LessonTest } from './types'
 
 export const LESSONS: Lesson[] = [...PYTHON_LESSONS, ...DSA_LESSONS, ...CS_LESSONS]
 export const LESSON_BY_ID = new Map(LESSONS.map((l) => [l.id, l]))
 
-// Lesson id → its end-of-day test (original questions plus the alternative question for each concept).
+// Lesson id → its end-of-day test: original questions plus the alternative question for each
+// concept, with the source of every concept and problem attached.
 export const LESSON_TESTS: Record<string, LessonTest> = Object.fromEntries(
-  Object.entries({ ...PYTHON_TESTS, ...DSA_TESTS, ...CS_TESTS }).map(([id, test]) => [
-    id,
-    { ...test, choice: [...test.choice, ...(CHOICE_VARIANTS[id] ?? [])] },
-  ])
+  Object.entries({ ...PYTHON_TESTS, ...DSA_TESTS, ...CS_TESTS }).map(([id, test]) => {
+    const { sources, refs } = TEST_SOURCES[id] ?? { sources: [], refs: {} }
+    return [
+      id,
+      {
+        ...test,
+        sources,
+        choice: [...test.choice, ...(CHOICE_VARIANTS[id] ?? [])].map((q) => ({ ...q, ref: refs[q.concept ?? q.id] })),
+        code: test.code.map((q) => ({ ...q, ref: refs[q.id] })),
+      },
+    ]
+  })
 )
 
 // Each multiple-choice question → the lesson whose test it belongs to (week tests mix lessons).

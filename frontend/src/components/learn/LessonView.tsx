@@ -176,6 +176,9 @@ export function LessonView({ lesson, canSave, passed, savedCode, isTaskDone, isT
           <p className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             <Languages className="h-3.5 w-3.5" /> Words in this lesson
           </p>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Plain-English explanations written by Claude (AI); the Vietnamese words are the usual translations used in Vietnamese IT.
+          </p>
           <dl className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
             {terms.map((key) => (
               <div key={key} className="text-sm">
@@ -206,6 +209,13 @@ export function LessonView({ lesson, canSave, passed, savedCode, isTaskDone, isT
             </a>
           ))}
         </div>
+
+        <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
+          <span className="font-semibold text-foreground">How this lesson was made.</span> Written for this app by Claude
+          (Anthropic’s AI), based on the official docs and books in “Further reading” above. Every code example was run in Python
+          3 and its printed output matches the comments; every exercise’s solution passes its tests. Videos are made by their
+          creators and only linked here.
+        </p>
 
         {isTaskDone === false && isTestPending ? (
           <motion.button

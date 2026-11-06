@@ -97,6 +97,9 @@ export function ExplainItem({ question, savedAnswer, isPassed, onSave, onPass }:
             <div className="mt-3 rounded-xl bg-violet-500/[0.06] px-3 py-2.5">
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-violet-700 dark:text-violet-300">A strong answer</p>
               <MarkdownPreview content={question.answer} withGlossary />
+              <p className="mt-2 border-t border-foreground/10 pt-2 text-[11px] text-muted-foreground">
+                Model answer written by Claude (AI) from the sources listed at the end of this test.
+              </p>
             </div>
             <div className="mt-3">
               {isPassed ? (

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowRight, ChevronDown, CircleCheck, ClipboardCheck, Code2, ListChecks, MessagesSquare, type LucideIcon } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, ChevronDown, Info, CircleCheck, ClipboardCheck, Code2, ListChecks, MessagesSquare, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ChoiceTest } from '@/components/learn/ChoiceTest'
 import { CodeCell } from '@/components/learn/CodeCell'
@@ -116,6 +116,16 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
                     {has(itemId) && <CircleCheck className="h-4 w-4 text-emerald-500" />}
                     {q.title}
                   </h5>
+                  {q.ref && (
+                    <a
+                      href={q.ref.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-0.5 text-xs text-muted-foreground underline decoration-foreground/20 underline-offset-2 hover:text-foreground transition-colors"
+                    >
+                      Based on {q.ref.label} <ArrowUpRight className="h-3 w-3" />
+                    </a>
+                  )}
                   <div className="mt-1 mb-3">
                     <MarkdownPreview content={q.prompt} withGlossary />
                   </div>
@@ -294,6 +304,33 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
                     </motion.section>
                   )
                 })}
+              </div>
+
+              <div className="mt-6 rounded-xl bg-foreground/[0.04] px-3.5 py-3 text-xs leading-relaxed text-muted-foreground">
+                <p className="mb-1 flex items-center gap-1.5 font-semibold text-foreground">
+                  <Info className="h-3.5 w-3.5" /> Where this test comes from
+                </p>
+                <p>
+                  The questions, explanations and model answers were written for this app by Claude (Anthropic’s AI), using the
+                  references below — they are not copied from a question bank. Every “What does this print?” answer and every coding
+                  test was checked by running real Python. Each explanation links the exact page behind it.
+                </p>
+                {test.sources && test.sources.length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {test.sources.map((s) => (
+                      <li key={s.url}>
+                        <a
+                          href={s.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-0.5 underline decoration-foreground/20 underline-offset-2 hover:text-foreground transition-colors"
+                        >
+                          {s.label} <ArrowUpRight className="h-3 w-3" />
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           </motion.div>

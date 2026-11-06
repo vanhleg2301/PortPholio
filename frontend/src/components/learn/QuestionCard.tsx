@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { CircleCheck, CircleX } from 'lucide-react'
+import { ArrowUpRight, CircleCheck, CircleX, FlaskConical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { InlineText } from '@/components/learn/InlineText'
 import { MarkdownPreview } from '@/components/roadmap/MarkdownPreview'
@@ -84,6 +84,23 @@ export function QuestionCard({ question, order, chosen, onChoose }: QuestionCard
               {isCorrect ? 'Correct — here is why' : 'Not quite — here is why'}
             </p>
             <MarkdownPreview content={question.explain} withGlossary />
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-foreground/10 pt-2 text-[11px] text-muted-foreground">
+              {question.question === PRINT && (
+                <span className="inline-flex items-center gap-1">
+                  <FlaskConical className="h-3 w-3" /> Output checked by running the code in Python 3
+                </span>
+              )}
+              {question.ref && (
+                <a
+                  href={question.ref.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-0.5 underline decoration-foreground/20 underline-offset-2 hover:text-foreground hover:decoration-foreground/60 transition-colors"
+                >
+                  Source: {question.ref.label} <ArrowUpRight className="h-3 w-3" />
+                </a>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
