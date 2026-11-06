@@ -65,27 +65,27 @@ assert reverse_int(5) == 5`,
     return sign * r`,
       },
       {
-        id: 'add-strings',
-        title: 'Add two numbers written as strings',
-        prompt: 'Two non-negative numbers are given as strings, for example `"456"` and `"77"`. Return their sum as a string **without** `int()` on the whole string. Add digit by digit from the right and keep a [[carry]], like you do on paper. Use `divmod`.',
-        starter: `def add_strings(a, b):
+        id: 'digit-count',
+        title: 'Count the digits',
+        prompt: 'Return how many digits an integer has: `2026 → 4`, `0 → 1`, `-15 → 2`. Do not use strings — use `//`. Think about the special cases first: 0 and negative numbers.',
+        starter: `def digit_count(n):
     # your code here
     pass`,
-        tests: `assert add_strings("456", "77") == "533"
-assert add_strings("0", "0") == "0"
-assert add_strings("999", "1") == "1000"
-assert add_strings("11", "123") == "134"`,
-        hint: 'Two indexes start at the end. Each step: `carry, digit = divmod(da + db + carry, 10)`. Collect digits in a list, then reverse and join.',
-        solution: `def add_strings(a, b):
-    i, j, carry, out = len(a) - 1, len(b) - 1, 0, []
-    while i >= 0 or j >= 0 or carry:
-        da = ord(a[i]) - ord("0") if i >= 0 else 0
-        db = ord(b[j]) - ord("0") if j >= 0 else 0
-        carry, digit = divmod(da + db + carry, 10)
-        out.append(str(digit))
-        i -= 1
-        j -= 1
-    return "".join(reversed(out))`,
+        tests: `assert digit_count(2026) == 4
+assert digit_count(0) == 1
+assert digit_count(-15) == 2
+assert digit_count(10 ** 18) == 19
+assert digit_count(9) == 1`,
+        hint: 'Handle `0` first (it has 1 digit). Then use `abs(n)` and count how many times you can do `n //= 10` before `n` becomes 0.',
+        solution: `def digit_count(n):
+    if n == 0:
+        return 1
+    n = abs(n)
+    count = 0
+    while n > 0:
+        n //= 10
+        count += 1
+    return count`,
       },
     ],
     explain: [
@@ -212,15 +212,15 @@ assert longest_common_prefix(["ab", "a"]) == "a"`,
       },
       {
         id: 'palindrome-o1',
-        question: 'Your Valid Palindrome solution builds a cleaned string and compares it with its reverse. The interviewer asks: “Can you do it with O(1) extra memory?” Explain your new solution and its complexity.',
+        question: 'Walk the interviewer through your Valid Palindrome solution: what does each step do, what is the time, and how much extra memory does it use? Where could it be improved?',
         points: [
-          'The first solution uses O(n) extra memory for the cleaned string and its reverse',
-          'Two pointers: one at the start, one at the end',
-          'Skip characters that are not letters or digits (`isalnum`)',
-          'Compare `lower()` of both; move the pointers towards the middle',
-          'O(n) time, O(1) memory',
+          'Clean the string: keep only letters and digits (`isalnum`) and make them lower case',
+          'Build the clean string with `"".join(...)`, not `+=` in a loop',
+          'Compare it with its reverse `clean[::-1]`',
+          'Time O(n): each step walks the string once',
+          'Extra memory O(n): the clean string and its reverse are new strings — it could be reduced by comparing from both ends without building them',
         ],
-        answer: 'The clean-and-reverse version is O(n) time but also O(n) extra memory, because it builds two new strings. Instead I use two pointers: `l` at the start and `r` at the end. While `l < r`, I move `l` forward past anything that is not a letter or digit, and `r` backward in the same way. Then I compare `s[l].lower()` with `s[r].lower()`; if they are different I return False, otherwise I move both pointers one step inwards. Each character is looked at once, so it is O(n) time, and I only use two integers, so the extra memory is O(1).',
+        answer: 'First I clean the input: I keep only the characters where `isalnum()` is True and turn them into lower case, and I build the result with `"".join(...)` so it stays O(n). Then I compare the clean string with its reverse, `clean[::-1]`. If they are equal, it is a palindrome. Each step walks the string once, so the time is O(n). The extra memory is also O(n), because the clean string and its reversed copy are new strings — strings are immutable, so every change makes a new one. To use less memory, I could compare characters from both ends of the original string and skip the ones that are not letters or digits, without building any new string.',
       },
     ],
   },
@@ -362,9 +362,9 @@ assert remove_duplicates(one) == 1 and one == [7]`,
       choice('two-sum-order', 'In Two Sum, why do we check `target - x in seen` **before** we add `x` to `seen`?',
         ['So that a number cannot pair with itself (for example `[3]` with target 6)', 'Because adding first is slower', 'Because the dict would lose the order', 'There is no reason; both orders always work'],
         'If you store `x` first, then `x = 3, target = 6` finds `3` — itself — and returns the same index twice. Checking first means `seen` only holds numbers **before** the current one. And `[3, 3]` still works, because the second 3 finds the first.'),
-      choice('equal-keys', PRINT, ["{1: 'c'}", "{1: 'a', 1.0: 'b', True: 'c'}", "{True: 'c'}", "{1: 'a'}"],
-        '`1`, `1.0` and `True` are **equal** and have the **same hash**, so they are the same key. Each assignment updates the value, but the dict keeps the first key object (`1`). Rule: if `a == b`, then `hash(a) == hash(b)` must be true.',
-        'd = {}\nd[1] = "a"\nd[1.0] = "b"\nd[True] = "c"\nprint(d)'),
+      choice('equal-keys', PRINT, ["{'a': 2} 1", "{'a': 1, 'a': 2} 2", "{'a': 1} 1", 'SyntaxError'],
+        'A key can appear only once. When the same key is written twice, the **last** value wins.',
+        'd = {"a": 1, "a": 2}\nprint(d, len(d))'),
       choice('mutate-while-iterating', 'What happens if you add new keys to a dict while you loop over it with `for k in d:`?',
         ['`RuntimeError: dictionary changed size during iteration`', 'The loop also visits the new keys', 'The new keys are ignored', 'Python makes a copy automatically'],
         'Loop over a copy instead: `for k in list(d):`. The same rule is true for sets.'),
@@ -456,9 +456,9 @@ assert intersect([1, 2], [3]) == []`,
       choice('mutable-default', PRINT, ['1 2 3', '1 1 1', '3 3 3', 'TypeError'],
         'The default list is created **once**, when Python runs the `def` line. Every call without `acc` uses the same list, so it keeps growing. Fix: `acc=None`, then `if acc is None: acc = []` inside.',
         'def f(x, acc=[]):\n    acc.append(x)\n    return len(acc)\n\nprint(f(1), f(2), f(3))'),
-      choice('late-binding', PRINT, ['[2, 2, 2]', '[0, 1, 2]', '[0, 0, 0]', 'NameError'],
-        'Each lambda remembers the **variable** `i`, not its value at that time. The lambdas run after the loop has finished, when `i` is 2. Fix: `lambda i=i: i` saves the value as a default.',
-        'funcs = [lambda: i for i in range(3)]\nprint([f() for f in funcs])'),
+      choice('break-continue', PRINT, ['0,2,', '0,1,2,', '0,2,3,4,', '0,'],
+        '`continue` skips the rest of this round (so 1 is not printed). `break` leaves the loop completely (so nothing after 3 is printed).',
+        'for x in range(5):\n    if x == 3:\n        break\n    if x == 1:\n        continue\n    print(x, end=",")'),
       choice('comp-filter', PRINT, ['[2, 6]', '[0, 4, 8]', '[2, 4, 6, 8]', '[1, 3]'],
         '`if x % 2` keeps odd numbers (1 and 3, because 1 is truthy). Then each one is doubled.',
         'print([x * 2 for x in range(5) if x % 2])'),
@@ -496,7 +496,7 @@ assert intersect([1, 2], [3]) == []`,
       {
         id: 'flatten',
         title: 'Flatten a nested list',
-        prompt: 'Return all numbers from a list that can contain lists inside lists, at any depth: `[1, [2, [3, 4]], 5]` → `[1, 2, 3, 4, 5]`. Use [[recursion]]. Think first: what is the [[base case]]?',
+        prompt: 'Return all numbers from a list that can contain lists inside lists, at any depth: `[1, [2, [3, 4]], 5]` → `[1, 2, 3, 4, 5]`. Use [[recursion]]. Think first: what is the [[base case]]? (`isinstance(item, list)` tells you if an item is a list.)',
         starter: `def flatten(items):
     # your code here
     pass`,
@@ -504,7 +504,7 @@ assert intersect([1, 2], [3]) == []`,
 assert flatten([]) == []
 assert flatten([[[]]]) == []
 assert flatten([[1], [[2]], 3]) == [1, 2, 3]`,
-        hint: 'For each item: if `isinstance(item, list)`, add everything from `flatten(item)`; otherwise add the item itself.',
+        hint: 'For each item: if `isinstance(item, list)`, add everything from `flatten(item)` (with `out += flatten(item)`); otherwise `out.append(item)`.',
         solution: `def flatten(items):
     out = []
     for item in items:
@@ -664,15 +664,15 @@ def merge_k(lists):
       },
       {
         id: 'top-k-compare',
-        question: 'Top K Frequent Elements: compare three solutions — sort the counts, a heap of size k, and bucket sort. Give the time and memory of each, and say which one you would write in an interview and why.',
+        question: 'Explain when you would use `Counter`, `defaultdict`, `deque` and `heapq`. Give one real interview problem (or real work task) for each, and the key cost that makes it the right tool.',
         points: [
-          'All three count with a dict/Counter first: O(n)',
-          'Sort the (value, count) pairs: O(n log n)',
-          'Min-heap of size k: O(n log k); better when k is small',
-          'Bucket sort by count (counts are ≤ n): O(n) time, O(n) memory',
-          'Interview: start with the simple one, then offer the heap/bucket version and explain the trade-off',
+          '`Counter`: counting things — anagrams, top-k frequent, word counts; counting is O(n)',
+          '`defaultdict(list)`: grouping without checking for missing keys — group anagrams, adjacency lists for graphs',
+          '`deque`: a queue — BFS, the last N items (`maxlen`); `append`/`popleft` are O(1), unlike `list.pop(0)`',
+          '`heapq`: always get the smallest item fast — k-th largest, top k, merge sorted lists, scheduling; push/pop O(log n)',
+          'Say the cost out loud: that is the reason for choosing the tool',
         ],
-        answer: 'Every version starts by counting with a Counter, which is O(n) time and O(n) memory. Then: (1) sort the distinct values by count — O(n log n); simple, but the slowest. (2) Keep a min-heap of size k — each value is pushed and maybe popped, O(n log k); much better when k is small, and it also works when data arrives as a stream. (3) Bucket sort: a count can never be more than n, so I make n + 1 buckets indexed by count and walk them from the top — O(n) time and O(n) memory. In an interview I would say the counting step first, mention sorting as the simple version, and then write the bucket sort (or the heap if they care about streaming), while saying the time and memory of each out loud.',
+        answer: 'I use `Counter` whenever the question is about how often things appear: checking anagrams, finding the top k frequent values, or counting words in logs — it counts in one O(n) pass. I use `defaultdict(list)` to group things without first checking if a key exists, for example grouping anagrams by their sorted letters or building the adjacency list of a graph. I use `deque` for queues: BFS, or keeping the last N events with `maxlen`, because `append` and `popleft` are O(1) while `list.pop(0)` is O(n). And I use `heapq` when I repeatedly need the smallest (or, with negative numbers, the largest) item: the k-th largest value, the top k items, merging sorted lists or scheduling jobs — push and pop are O(log n), and a heap of size k keeps the work at O(n log k).',
       },
     ],
   },
