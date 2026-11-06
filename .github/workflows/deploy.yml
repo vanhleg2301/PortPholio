@@ -1,8 +1,9 @@
 name: Deploy
 
+# Disabled: runs only when started by hand (Actions tab → Run workflow).
+# Vercel deploys the frontend through its own Git integration on every push to main.
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy-frontend:

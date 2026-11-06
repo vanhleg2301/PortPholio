@@ -1,10 +1,9 @@
 name: CI
 
+# Disabled: runs only when started by hand (Actions tab → Run workflow).
+# Vercel builds and deploys the frontend on every push to main by itself.
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   typecheck-frontend:
