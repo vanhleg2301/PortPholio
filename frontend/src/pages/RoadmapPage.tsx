@@ -9,6 +9,7 @@ import { DesktopSidebar } from '@/components/roadmap/DesktopSidebar'
 import { SidePanel } from '@/components/roadmap/SidePanel'
 import { LessonView } from '@/components/learn/LessonView'
 import { ReviewDeckProvider } from '@/components/learn/ReviewDeckContext'
+import { SelectionTranslator } from '@/components/learn/SelectionTranslator'
 import { LESSON_BY_ID, LESSON_TESTS, isLessonTestPassed } from '@/data/lessons'
 import { WEEK_TEST_LESSON, isTaskLocked } from '@/lib/testGate'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
@@ -252,6 +253,7 @@ export default function RoadmapPage() {
       onSave={canSaveAnswers ? handleSaveCode : () => undefined}
     >
     <MotionConfig reducedMotion="user">
+    <SelectionTranslator />
     <div className="min-h-[100dvh] bg-background">
       <motion.header
         initial={{ opacity: 0, y: -12 }}
