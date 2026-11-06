@@ -4,18 +4,44 @@ import { PYTHON_LESSONS } from './python'
 import { CS_TESTS } from './tests/cs'
 import { DSA_TESTS } from './tests/dsa'
 import { PYTHON_TESTS } from './tests/python'
-import type { Lesson, LessonTest } from './types'
+import { CHOICE_VARIANTS } from './tests/variants'
+import type { ChoiceQuestion, Lesson, LessonTest } from './types'
 
 export const LESSONS: Lesson[] = [...PYTHON_LESSONS, ...DSA_LESSONS, ...CS_LESSONS]
 export const LESSON_BY_ID = new Map(LESSONS.map((l) => [l.id, l]))
 
-// Lesson id → its end-of-day test.
-export const LESSON_TESTS: Record<string, LessonTest> = { ...PYTHON_TESTS, ...DSA_TESTS, ...CS_TESTS }
+// Lesson id → its end-of-day test (original questions plus the alternative question for each concept).
+export const LESSON_TESTS: Record<string, LessonTest> = Object.fromEntries(
+  Object.entries({ ...PYTHON_TESTS, ...DSA_TESTS, ...CS_TESTS }).map(([id, test]) => [
+    id,
+    { ...test, choice: [...test.choice, ...(CHOICE_VARIANTS[id] ?? [])] },
+  ])
+)
 
 // Each multiple-choice question → the lesson whose test it belongs to (week tests mix lessons).
 export const CHOICE_LESSON = new Map(
   Object.entries(LESSON_TESTS).flatMap(([lessonId, test]) => test.choice.map((q) => [q, lessonId] as const))
 )
+
+// "lessonId/concept": questions sharing it test the same idea.
+export function getConceptKey(question: ChoiceQuestion): string {
+  return `${CHOICE_LESSON.get(question) ?? ''}/${question.concept ?? question.id}`
+}
+
+// Questions grouped by concept, in order of first appearance.
+export function groupByConcept(questions: ChoiceQuestion[]): ChoiceQuestion[][] {
+  const groups = new Map<string, ChoiceQuestion[]>()
+  for (const q of questions) {
+    const key = getConceptKey(q)
+    groups.set(key, [...(groups.get(key) ?? []), q])
+  }
+  return [...groups.values()]
+}
+
+// Number of questions one attempt asks (one per concept).
+export function getConceptCount(questions: ChoiceQuestion[]): number {
+  return groupByConcept(questions).length
+}
 
 // Share of multiple-choice answers needed to pass a test.
 export const PASS_RATIO = 0.8

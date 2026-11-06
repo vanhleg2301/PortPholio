@@ -7,7 +7,7 @@ import { QuestionCard } from '@/components/learn/QuestionCard'
 import { useReviewDeck } from '@/components/learn/ReviewDeckContext'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { EASE_OUT } from '@/lib/motion'
-import { getPassMark } from '@/data/lessons'
+import { getPassMark, groupByConcept } from '@/data/lessons'
 import type { ChoiceQuestion } from '@/data/lessons/types'
 
 interface Attempt {
@@ -24,6 +24,14 @@ interface TestState {
   current: number
   startedAt: number | null
   finishedAt: number | null
+  // Every question id shown in this or earlier attempts, so retakes prefer new questions.
+  seen: string[]
+}
+
+interface History {
+  // Questions answered wrong last time: their concept gets a different question.
+  wrongIds: Set<string>
+  seen: Set<string>
 }
 
 const SWIPE_PX = 70
@@ -37,8 +45,23 @@ function shuffle<T>(items: T[]): T[] {
   return out
 }
 
-function createState(questions: ChoiceQuestion[], sampleSize?: number): TestState {
-  const picked = sampleSize ? shuffle(questions).slice(0, sampleSize) : questions
+const pickRandom = <T,>(items: T[]): T => items[Math.floor(Math.random() * items.length)]
+
+// One question per concept (a random sample of concepts for week tests). For each concept,
+// avoid the question answered wrong last time and prefer questions not seen yet.
+function pickQuestions(questions: ChoiceQuestion[], sampleSize: number | undefined, history: History): ChoiceQuestion[] {
+  const groups = groupByConcept(questions)
+  const chosenGroups = sampleSize ? shuffle(groups).slice(0, sampleSize) : groups
+  return chosenGroups.map((group) => {
+    const notWrong = group.filter((q) => !history.wrongIds.has(q.id))
+    const pool = notWrong.length > 0 ? notWrong : group
+    const unseen = pool.filter((q) => !history.seen.has(q.id))
+    return pickRandom(unseen.length > 0 ? unseen : pool)
+  })
+}
+
+function createState(questions: ChoiceQuestion[], sampleSize?: number, history: History = { wrongIds: new Set(), seen: new Set() }): TestState {
+  const picked = pickQuestions(questions, sampleSize, history)
   return {
     attempt: { questions: picked, orders: picked.map((q) => shuffle(q.options.map((_, i) => i))) },
     answers: picked.map(() => null),
@@ -46,6 +69,7 @@ function createState(questions: ChoiceQuestion[], sampleSize?: number): TestStat
     current: 0,
     startedAt: null,
     finishedAt: null,
+    seen: [...new Set([...history.seen, ...picked.map((q) => q.id)])],
   }
 }
 
@@ -58,6 +82,7 @@ const savedStateSchema = z.object({
   current: z.number().int().optional(),
   startedAt: z.number().nullable().optional(),
   finishedAt: z.number().nullable().optional(),
+  seen: z.array(z.string()).optional(),
 })
 
 // Returns null when the saved state no longer fits the questions (e.g. the test was edited).
@@ -81,6 +106,7 @@ function restoreState(saved: string | undefined, questions: ChoiceQuestion[]): T
       current: Math.min(s.current ?? (firstOpen === -1 ? 0 : firstOpen), picked.length - 1),
       startedAt: s.startedAt ?? null,
       finishedAt: s.finishedAt ?? null,
+      seen: s.seen ?? s.ids,
     }
   } catch {
     return null
@@ -96,6 +122,7 @@ function serializeState(s: TestState): string {
     current: s.current,
     startedAt: s.startedAt,
     finishedAt: s.finishedAt,
+    seen: s.seen,
   })
 }
 
@@ -180,9 +207,11 @@ export function ChoiceTest({ questions, sampleSize, isPassed, onPass, savedState
     if (score >= passMark && !isPassed) onPass()
   }
 
+  // New attempt: concepts answered wrong get a different question, and unseen questions come first.
   function retake() {
     setDirection(1)
-    update(createState(questions, sampleSize))
+    const wrongIds = new Set(attempt.questions.filter((q, i) => answers[i] !== q.answer).map((q) => q.id))
+    update(createState(questions, sampleSize, { wrongIds, seen: new Set(state.seen) }))
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
@@ -244,7 +273,7 @@ export function ChoiceTest({ questions, sampleSize, isPassed, onPass, savedState
             onClick={retake}
             className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors"
           >
-            <RotateCcw className="h-3.5 w-3.5" /> Retake with new order
+            <RotateCcw className="h-3.5 w-3.5" /> Retake with new questions
           </button>
         </div>
 

@@ -6,7 +6,7 @@ import { ChoiceTest } from '@/components/learn/ChoiceTest'
 import { FlashcardSession } from '@/components/learn/FlashcardSession'
 import { useReviewDeck } from '@/components/learn/ReviewDeckContext'
 import { LessonTestCard } from '@/components/learn/LessonTestCard'
-import { LESSON_BY_ID, LESSON_TESTS, isLessonTestPassed } from '@/data/lessons'
+import { LESSON_BY_ID, LESSON_TESTS, getConceptCount, isLessonTestPassed } from '@/data/lessons'
 import { WEEK_TEST_LESSON, WEEK_TEST_SIZE, getTestedLessonIds, getWeekTestQuestions, isTaskLocked, isWeekTestPassed } from '@/lib/testGate'
 import { DayNotes } from '@/components/roadmap/DayNotes'
 import { ResourceList } from '@/components/roadmap/ResourceList'
@@ -231,7 +231,7 @@ export function TodayView({
                   ) : (
                     <CalendarCheck className="h-5 w-5 text-violet-500" />
                   )}
-                  {Math.min(WEEK_TEST_SIZE, weekTestQuestions.length)} mixed questions from {week.label}
+                  {Math.min(WEEK_TEST_SIZE, getConceptCount(weekTestQuestions))} mixed questions from {week.label}
                 </p>
                 <p className="mt-1 mb-4 text-sm text-muted-foreground">
                   New questions are drawn at random on every attempt. Try it without opening the lessons — that is how memory gets stronger.

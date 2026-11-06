@@ -26,6 +26,9 @@ export type LessonBlock =
 
 export interface ChoiceQuestion {
   id: string
+  // Questions with the same concept test the same idea; a test asks one of them per attempt.
+  // Defaults to the question's own id.
+  concept?: string
   question: string
   // Python snippet shown under the question. For "What does this print?" questions
   // the correct option is the snippet's exact output.

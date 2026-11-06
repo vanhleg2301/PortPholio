@@ -8,7 +8,7 @@ import { ExplainItem } from '@/components/learn/ExplainItem'
 import { Reveal } from '@/components/learn/Reveal'
 import { MarkdownPreview } from '@/components/roadmap/MarkdownPreview'
 import { EASE_OUT } from '@/lib/motion'
-import { getPassMark, getTestItemIds } from '@/data/lessons'
+import { getConceptCount, getPassMark, getTestItemIds } from '@/data/lessons'
 import type { Lesson, LessonTest } from '@/data/lessons/types'
 
 type PartId = 'choice' | 'code' | 'explain'
@@ -41,6 +41,7 @@ const partVariants = {
 
 export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpenByDefault, onSaveCode, onPassed }: LessonTestCardProps) {
   const has = (itemId: string) => passed.has(`${lesson.id}:${itemId}`)
+  const questionCount = getConceptCount(test.choice)
   const itemIds = getTestItemIds(test)
   const doneCount = itemIds.filter(has).length
   const isAllDone = doneCount === itemIds.length
@@ -55,7 +56,7 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
       icon: ListChecks,
       done: has('test:choice') ? 1 : 0,
       total: 1,
-      note: `${test.choice.length} questions, one at a time. You see why right after each answer — read it even when you are right. You need ${getPassMark(test.choice.length)} correct. Wrong answers go to your flashcards.`,
+      note: `${questionCount} questions, one at a time. You see why right after each answer — read it even when you are right. You need ${getPassMark(questionCount)} correct. Wrong answers go to your flashcards.`,
     },
     {
       id: 'code',
@@ -190,7 +191,7 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
         <span className="min-w-0 flex-1">
           <span className="block text-[15px] font-semibold leading-snug">Test: {lesson.title}</span>
           <span className="block text-xs text-muted-foreground">
-            {test.choice.length} questions · {test.code.length} coding · {test.explain.length} interview
+            {questionCount} questions · {test.code.length} coding · {test.explain.length} interview
             {canSave && ` · ${isAllDone ? 'passed' : `${parts.filter(isPartDone).length}/3 parts done`}`}
           </span>
         </span>
@@ -244,7 +245,7 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
                         <span className={cn('truncate text-xs font-semibold sm:text-sm', !isActive && 'text-muted-foreground')}>{part.label}</span>
                       </span>
                       <span className="relative mt-0.5 block truncate pl-[26px] text-[11px] text-muted-foreground">
-                        {part.id === 'choice' ? (isDone ? 'passed' : `${test.choice.length} Qs`) : `${part.done}/${part.total} done`}
+                        {part.id === 'choice' ? (isDone ? 'passed' : `${questionCount} Qs`) : `${part.done}/${part.total} done`}
                       </span>
                     </button>
                   )

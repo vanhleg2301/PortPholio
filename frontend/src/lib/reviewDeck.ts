@@ -61,8 +61,14 @@ export function gradeCard(deck: Deck, id: string, isCorrect: boolean, today: str
 function resolveCard(id: string, card: DeckCard): ResolvedCard | null {
   if (card.kind === 'term') return GLOSSARY[card.ref] ? { id, card, kind: 'term', term: card.ref } : null
   const [lessonId, questionId] = card.ref.split('/')
-  const question = LESSON_TESTS[lessonId]?.choice.find((q) => q.id === questionId)
-  return question ? { id, card, kind: 'choice', question, lessonId } : null
+  const all = LESSON_TESTS[lessonId]?.choice ?? []
+  const missed = all.find((q) => q.id === questionId)
+  if (!missed) return null
+  // Ask the same idea with a different question when one exists, so the card tests understanding, not memory.
+  const concept = missed.concept ?? missed.id
+  const others = all.filter((q) => q !== missed && (q.concept ?? q.id) === concept)
+  const question = others.length > 0 ? others[Math.floor(Math.random() * others.length)] : missed
+  return { id, card, kind: 'choice', question, lessonId }
 }
 
 export function getDueCards(deck: Deck, today: string): ResolvedCard[] {
