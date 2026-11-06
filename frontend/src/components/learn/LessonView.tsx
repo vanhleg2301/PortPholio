@@ -152,7 +152,7 @@ export function LessonView({ lesson, canSave, passed, savedCode, isTaskDone, isT
         <h1 className="mt-1 font-display text-3xl font-bold leading-tight">{lesson.title}</h1>
         <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{lesson.summary}</p>
         <p className="mt-3 text-xs text-muted-foreground">
-          Words with a <span className="underline decoration-sky-500/70 decoration-dotted decoration-2 underline-offset-4">dotted line</span> are technical terms — tap one to see what it means.
+          Words with a <span className="underline decoration-sky-500/70 decoration-dotted decoration-2 underline-offset-4">dotted line</span> are technical terms — hover over one (or tap it on a phone) to see what it means. Tapping also adds it to your flashcards.
         </p>
       </motion.div>
 
