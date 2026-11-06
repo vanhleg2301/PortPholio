@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
+import { fetchAllRows } from '@/lib/fetchAllRows'
 import { supabase } from '@/lib/supabase'
 
 const progressRowSchema = z.object({ task_id: z.string(), completed_at: z.string() })
@@ -9,9 +10,9 @@ const PROGRESS_KEY = ['roadmap-progress'] as const
 
 async function fetchProgress(): Promise<ProgressRow[]> {
   if (!supabase) return []
-  const { data, error } = await supabase.from('roadmap_progress').select('task_id, completed_at')
-  if (error) throw error
-  return z.array(progressRowSchema).parse(data)
+  const client = supabase
+  const rows = await fetchAllRows((from, to) => client.from('roadmap_progress').select('task_id, completed_at').order('task_id').range(from, to))
+  return z.array(progressRowSchema).parse(rows)
 }
 
 interface ToggleInput {

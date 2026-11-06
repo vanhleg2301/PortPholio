@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
+import { fetchAllRows } from '@/lib/fetchAllRows'
 import { supabase } from '@/lib/supabase'
 
 // Lesson progress and saved answers belong to the signed-in account (RLS: user_id = auth.uid()).
@@ -11,16 +12,18 @@ const codeSchema = z.object({ key: z.string(), code: z.string() })
 
 async function fetchLessonProgress(userId: string): Promise<Set<string>> {
   if (!supabase) return new Set()
-  const { data, error } = await supabase.from('roadmap_lesson_progress').select('lesson_id, item_id').eq('user_id', userId)
-  if (error) throw error
-  return new Set(z.array(progressSchema).parse(data).map((r) => `${r.lesson_id}:${r.item_id}`))
+  const client = supabase
+  const rows = await fetchAllRows((from, to) =>
+    client.from('roadmap_lesson_progress').select('lesson_id, item_id').eq('user_id', userId).order('lesson_id').order('item_id').range(from, to)
+  )
+  return new Set(z.array(progressSchema).parse(rows).map((r) => `${r.lesson_id}:${r.item_id}`))
 }
 
 async function fetchSavedCode(userId: string): Promise<Map<string, string>> {
   if (!supabase) return new Map()
-  const { data, error } = await supabase.from('roadmap_code').select('key, code').eq('user_id', userId)
-  if (error) throw error
-  return new Map(z.array(codeSchema).parse(data).map((r) => [r.key, r.code]))
+  const client = supabase
+  const rows = await fetchAllRows((from, to) => client.from('roadmap_code').select('key, code').eq('user_id', userId).order('key').range(from, to))
+  return new Map(z.array(codeSchema).parse(rows).map((r) => [r.key, r.code]))
 }
 
 // "lessonId:itemId" for every passed exercise and test part.

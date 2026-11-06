@@ -35,6 +35,7 @@ import { useRoadmapProgress, useToggleTask } from '@/hooks/useRoadmapProgress'
 import { useRoadmapResources } from '@/hooks/useRoadmapResources'
 import {
   ALL_TASKS,
+  TASK_BY_ID,
   DAY_BY_DATE,
   getActivityDates,
   getNeetCodeSolved,
@@ -105,7 +106,7 @@ export default function RoadmapPage() {
   // that merely links to a lesson keeps its own checkbox.
   const openedTaskId = (location.state as { taskId?: string } | null)?.taskId
   const lessonTask =
-    ALL_TASKS.find((t) => t.id === openedTaskId) ?? ALL_TASKS.find((t) => t.lessonId === lessonId && t.title.startsWith('Lesson:'))
+    (openedTaskId ? TASK_BY_ID.get(openedTaskId) : undefined) ?? ALL_TASKS.find((t) => t.lessonId === lessonId && t.title.startsWith('Lesson:'))
   const lessonTaskId = lessonTask?.title.startsWith('Lesson:') ? lessonTask.id : null
 
   const doneIds = useMemo(() => new Set(rows.map((r) => r.task_id)), [rows])
@@ -121,7 +122,7 @@ export default function RoadmapPage() {
     return map
   }, [sessions])
   const todayTasks = DAY_BY_DATE.get(today)?.tasks ?? []
-  const runningTask = focus.timer?.taskId ? ALL_TASKS.find((t) => t.id === focus.timer?.taskId) : undefined
+  const runningTask = focus.timer?.taskId ? TASK_BY_ID.get(focus.timer.taskId) : undefined
 
   useEffect(() => {
     if (!toast) return
@@ -138,7 +139,7 @@ export default function RoadmapPage() {
       setIsAccountOpen(true)
       return
     }
-    const task = ALL_TASKS.find((t) => t.id === taskId)
+    const task = TASK_BY_ID.get(taskId)
     if (isDone && task && isTaskLocked(task, passedItems)) {
       setToast(task.isWeekTest ? 'Pass the week test first' : 'Pass the day test first')
       goToTest(taskId.slice(0, 10))

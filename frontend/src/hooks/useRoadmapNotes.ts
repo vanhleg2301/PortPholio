@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
+import { fetchAllRows } from '@/lib/fetchAllRows'
 import { supabase } from '@/lib/supabase'
 import { isNoteTopic, type NoteTopic } from '@/data/roadmap/topics'
 
@@ -28,9 +29,9 @@ function sortNotes(notes: RoadmapNote[]): RoadmapNote[] {
 
 async function fetchNotes(): Promise<RoadmapNote[]> {
   if (!supabase) return []
-  const { data, error } = await supabase.from('roadmap_notes').select(COLUMNS)
-  if (error) throw error
-  return sortNotes(z.array(noteSchema).parse(data))
+  const client = supabase
+  const rows = await fetchAllRows((from, to) => client.from('roadmap_notes').select(COLUMNS).order('id').range(from, to))
+  return sortNotes(z.array(noteSchema).parse(rows))
 }
 
 export interface NoteDraft {

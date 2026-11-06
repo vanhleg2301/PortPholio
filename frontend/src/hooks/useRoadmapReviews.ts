@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { addDays, format, parseISO } from 'date-fns'
 import { z } from 'zod'
+import { fetchAllRows } from '@/lib/fetchAllRows'
 import { supabase } from '@/lib/supabase'
 
 export const REVIEW_STEPS = [3, 7, 30] as const
@@ -28,9 +29,9 @@ const shiftDay = (day: string, days: number) => format(addDays(parseISO(day), da
 
 async function fetchReviews(): Promise<RoadmapReview[]> {
   if (!supabase) return []
-  const { data, error } = await supabase.from('roadmap_reviews').select(COLUMNS).order('due_date')
-  if (error) throw error
-  return z.array(reviewSchema).parse(data)
+  const client = supabase
+  const rows = await fetchAllRows((from, to) => client.from('roadmap_reviews').select(COLUMNS).order('due_date').order('id').range(from, to))
+  return z.array(reviewSchema).parse(rows)
 }
 
 interface ScheduleInput {

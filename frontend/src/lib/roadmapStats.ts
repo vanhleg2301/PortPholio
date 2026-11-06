@@ -4,6 +4,8 @@ import { ROADMAP_END, ROADMAP_START, WEEKS } from '@/data/roadmap/plan'
 import type { PhaseId, RoadmapDay, RoadmapTask, RoadmapWeek } from '@/data/roadmap/types'
 
 export const ALL_TASKS: RoadmapTask[] = WEEKS.flatMap((w) => w.days.flatMap((d) => d.tasks))
+// O(1) lookups by id (the plan has ~550 tasks; `find` ran on every render and tap).
+export const TASK_BY_ID = new Map(ALL_TASKS.map((t) => [t.id, t]))
 export const ALL_DAYS: RoadmapDay[] = WEEKS.flatMap((w) => w.days)
 export const DAY_BY_DATE = new Map(ALL_DAYS.map((d) => [d.date, d]))
 

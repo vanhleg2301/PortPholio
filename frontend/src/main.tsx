@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
 import App from './App'
+import { persistQueryCache, restoreQueryCache } from '@/lib/queryPersistence'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -12,6 +13,9 @@ const queryClient = new QueryClient({
     queries: { staleTime: 1000 * 60 * 5, retry: 1 },
   },
 })
+// Show the last known study data at once (and offline), then refresh it in the background.
+restoreQueryCache(queryClient)
+persistQueryCache(queryClient)
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {

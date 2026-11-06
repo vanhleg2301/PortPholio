@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
+import { fetchAllRows } from '@/lib/fetchAllRows'
 import { supabase } from '@/lib/supabase'
 
 const sessionSchema = z.object({
@@ -15,9 +16,11 @@ const SESSIONS_KEY = ['roadmap-sessions'] as const
 
 async function fetchSessions(): Promise<StudySession[]> {
   if (!supabase) return []
-  const { data, error } = await supabase.from('roadmap_sessions').select('id, day, started_at, minutes, task_id').order('started_at')
-  if (error) throw error
-  return z.array(sessionSchema).parse(data)
+  const client = supabase
+  const rows = await fetchAllRows((from, to) =>
+    client.from('roadmap_sessions').select('id, day, started_at, minutes, task_id').order('started_at').order('id').range(from, to)
+  )
+  return z.array(sessionSchema).parse(rows)
 }
 
 interface AddSessionInput {
