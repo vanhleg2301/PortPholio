@@ -97,7 +97,7 @@ export function TodayView({
   const testedLessonIds = getTestedLessonIds(tasks)
   const passedTests = testedLessonIds.filter((id) => isLessonTestPassed(id, passed)).length
   const hasWeekTest = Boolean(week) && tasks.some((t) => t.isWeekTest)
-  const weekTestQuestions = week && hasWeekTest ? getWeekTestQuestions(week) : []
+  const weekTestQuestions = week && hasWeekTest ? getWeekTestQuestions(week, date) : []
   const references = [...new Map(tasks.flatMap((t) => (t.reference ? [[t.reference.title, t.reference] as const] : []))).values()]
 
   // Slide direction follows the calendar: later day comes in from the right.
@@ -226,12 +226,12 @@ export function TodayView({
               <SectionTitle>Week test</SectionTitle>
               <div className="rounded-2xl border border-violet-500/30 bg-violet-500/[0.04] p-4">
                 <p className="flex items-center gap-2 font-semibold">
-                  {isWeekTestPassed(week.id, passed) ? (
+                  {isWeekTestPassed(date, passed) ? (
                     <CircleCheck className="h-5 w-5 text-emerald-500" />
                   ) : (
                     <CalendarCheck className="h-5 w-5 text-violet-500" />
                   )}
-                  {Math.min(WEEK_TEST_SIZE, getConceptCount(weekTestQuestions))} mixed questions from {week.label}
+                  {Math.min(WEEK_TEST_SIZE, getConceptCount(weekTestQuestions))} mixed questions from {week.label} so far
                 </p>
                 <p className="mt-1 mb-4 text-sm text-muted-foreground">
                   New questions are drawn at random on every attempt. Try it without opening the lessons — that is how memory gets stronger.
@@ -239,12 +239,12 @@ export function TodayView({
                 <ChoiceTest
                   questions={weekTestQuestions}
                   sampleSize={WEEK_TEST_SIZE}
-                  isPassed={isWeekTestPassed(week.id, passed)}
+                  isPassed={isWeekTestPassed(date, passed)}
                   onPass={() => {
-                    if (canSaveAnswers) onTestPassed(WEEK_TEST_LESSON, week.id)
+                    if (canSaveAnswers) onTestPassed(WEEK_TEST_LESSON, date)
                   }}
-                  savedState={savedCode.get(`${WEEK_TEST_LESSON}:${week.id}:choice-state`)}
-                  onSaveState={canSaveAnswers ? (state) => onSaveCode(`${WEEK_TEST_LESSON}:${week.id}:choice-state`, state) : undefined}
+                  savedState={savedCode.get(`${WEEK_TEST_LESSON}:${date}:choice-state`)}
+                  onSaveState={canSaveAnswers ? (state) => onSaveCode(`${WEEK_TEST_LESSON}:${date}:choice-state`, state) : undefined}
                 />
               </div>
             </motion.section>

@@ -789,11 +789,9 @@ function buildWeek(spec: WeekSpec): RoadmapWeek {
     if (weekday === 6) seeds = spec.saturday ?? [redoMissed]
     else if (weekday === 0) seeds = spec.sunday ?? [weeklyQuiz]
     else {
-      seeds = [
-        ...(spec.dailyDsa ? [spec.dailyDsa] : []),
-        ...dsaChunks[weekdayIndex],
-        ...studyChunks[weekdayIndex],
-      ]
+      const daySeeds = [...(spec.dailyDsa ? [spec.dailyDsa] : []), ...dsaChunks[weekdayIndex], ...studyChunks[weekdayIndex]]
+      const isLessonSeed = (seed: TaskSeed) => seed.title.startsWith('Lesson:')
+      seeds = [...daySeeds.filter(isLessonSeed), ...daySeeds.filter((seed) => !isLessonSeed(seed))]
       weekdayIndex++
     }
     const withTheory = seeds.map((seed) =>
