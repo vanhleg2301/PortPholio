@@ -1,6 +1,6 @@
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import rehypeHighlight from 'rehype-highlight'
+import rehypeHighlightLite from '@/lib/rehypeHighlightLite'
 import { GlossTerm } from '@/components/learn/GlossTerm'
 import { keepLineBreaks } from '@/lib/noteSections'
 
@@ -24,7 +24,7 @@ function linkGlossary(md: string): string {
 // closing an open definition card whenever the page re-rendered (e.g. after saving it to
 // the flashcards).
 const REMARK_PLUGINS = [remarkGfm]
-const REHYPE_PLUGINS = [rehypeHighlight]
+const REHYPE_PLUGINS = [rehypeHighlightLite]
 const COMPONENTS: Components = {
   a: ({ node: _node, href, children, ...props }) =>
     href?.startsWith(GLOSS_PREFIX) ? (

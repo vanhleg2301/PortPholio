@@ -68,8 +68,30 @@ function routeMetaPages(): Plugin {
   }
 }
 
+// Split the bundle by how often each part changes. Libraries change rarely, the study content
+// every week: kept apart, a content update only re-downloads the content chunk and returning
+// visitors (the iPhone PWA) keep the cached libraries.
+function manualChunks(id: string): string | undefined {
+  const file = id.split(path.sep).join('/')
+  if (file.includes('/node_modules/')) {
+    if (/\/node_modules\/(react|react-dom|scheduler|react-router|react-router-dom)\//.test(file)) return 'vendor-react'
+    if (/\/node_modules\/(framer-motion|motion-dom|motion-utils)\//.test(file)) return 'vendor-motion'
+    if (file.includes('/node_modules/@supabase/')) return 'vendor-supabase'
+    if (/\/node_modules\/(highlight\.js|lowlight)\//.test(file)) return 'vendor-highlight'
+    if (/\/node_modules\/(react-markdown|remark-[^/]+|rehype-[^/]+|micromark[^/]*|mdast-[^/]+|hast-[^/]+|unified|unist-[^/]+|vfile[^/]*)\//.test(file)) return 'vendor-markdown'
+    return undefined
+  }
+  if (file.includes('/src/data/lessons/') || file.includes('/src/data/roadmap/')) return 'study-content'
+  return undefined
+}
+
 export default defineConfig({
   plugins: [react(), routeMetaPages()],
+  build: {
+    rollupOptions: {
+      output: { manualChunks },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
