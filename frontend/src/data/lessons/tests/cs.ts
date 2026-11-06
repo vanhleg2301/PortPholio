@@ -1,5 +1,5 @@
 import type { LessonTest } from '../types'
-import { choice } from './helpers'
+import { PRINT, choice } from './helpers'
 
 export const CS_TESTS: Record<string, LessonTest> = {
   'net-latency-tcp': {
@@ -119,6 +119,107 @@ assert total_time_ms(0, 50, True) == 0`,
           'This is why connection reuse and fewer, smaller responses matter',
         ],
         answer: 'When a TCP connection starts, the sender has no idea how much the path can carry, and sending too much at once would fill router queues and cause loss for everyone. So it starts with a small congestion window, about 10 packets or 14 KB, and doubles it after every round trip in which the data was ACKed. When a packet is lost, it takes this as a sign of congestion and lowers the window. For a 1 MB download, 14 + 28 + 56 + … KB means about 7 round trips before all the data is sent, even if the line is very fast — with a 150 ms RTT, that is about a second. Short connections never reach full speed. That is why we reuse warm connections with keep-alive and pools, and why smaller responses load much faster.',
+      },
+    ],
+  },
+  'net-udp-tls': {
+    choice: [
+      choice('udp-features', 'Which is true for UDP?',
+        ['No handshake, no ordering and no resending — each datagram is on its own', 'It resends lost packets, like TCP', 'It always delivers packets in order', 'It needs a 3-way handshake first'],
+        'UDP adds almost nothing on top of IP: [[port|ports]] and a small checksum. Everything else is up to the application.'),
+      choice('udp-use', 'Which is the best fit for UDP?',
+        ['A live voice call', 'Downloading a PDF bank statement', 'Saving an order to a database', 'Loading a web page’s JavaScript'],
+        'In a call, a late packet is useless — better to skip it than to wait. The other three need every byte, in order.'),
+      choice('udp-loss', 'A UDP datagram is lost on the way. Who notices?',
+        ['Only the application, if it checks (for example with sequence numbers)', 'The UDP layer, which resends it', 'The receiver’s operating system, which asks for it again', 'Nobody can ever notice'],
+        'UDP has no ACKs. Apps that care add their own numbering and decide what to do: skip, ask again, or hide the gap.'),
+      choice('dns-udp', 'A DNS lookup over UDP with an RTT of 40 ms takes about…',
+        ['40 ms — one question, one answer, no setup', '80 ms', '120 ms', '0 ms'],
+        'No handshake is needed, so a small question and answer fit in one round trip. Over TCP it would be 80 ms; over a new HTTPS connection 120 ms.'),
+      choice('quic-why', 'Why was QUIC built on top of UDP instead of changing TCP?',
+        ['TCP is inside every operating system and many network boxes, so changing it takes years; UDP passes almost everywhere, so QUIC can ship inside apps', 'UDP is encrypted by default', 'TCP cannot be used on phones', 'UDP is always faster than TCP'],
+        'QUIC adds its own resending, per-stream ordering and TLS 1.3 — in the app, not in the operating system.'),
+      choice('tls-three', 'What three things does TLS give a connection?',
+        ['Privacy (encryption), authentication (who the server is) and integrity (changes are detected)', 'Speed, compression and caching', 'Privacy only', 'Ordering, resending and flow control'],
+        'Ordering and resending come from TCP. TLS adds the three security promises on top.'),
+      choice('sym-asym', 'Why is the actual data encrypted with a **symmetric** key?',
+        ['Symmetric encryption is much faster; asymmetric keys are only used to prove identity and agree on the key', 'Symmetric keys are more secure in every way', 'Asymmetric encryption cannot encrypt data', 'Browsers do not support asymmetric keys'],
+        'Public-key operations are slow, so TLS uses them only during the handshake. After that, fast AES or ChaCha20 protects every byte.'),
+      choice('dh-print', PRINT, ['10 17 True', '10 17 False', '8 19 True', '3 7 True'],
+        '`A = 5³ mod 23 = 10`, `B = 5⁷ mod 23 = 17`. Both sides then compute the same key without ever sending a or b.',
+        'p, g = 23, 5\na, b = 3, 7\nA = pow(g, a, p)\nB = pow(g, b, p)\nprint(A, B, pow(B, a, p) == pow(A, b, p))'),
+      choice('forward-secrecy', 'An attacker records your HTTPS traffic today and steals the server’s private key next year. With TLS 1.3, can they read the old traffic?',
+        ['No — each connection used new temporary secrets that were never sent, so the stolen key does not help', 'Yes, the private key decrypts everything', 'Only the first message', 'Yes, if they also know the domain name'],
+        'This is [[forward secrecy]]. The long-term private key only signs; the session keys come from a key exchange with temporary secrets.'),
+      choice('cert-checks', 'Which checks does the browser do on the server’s certificate?',
+        ['The chain leads to a trusted root, the name matches the site, and it has not expired', 'Only that it is encrypted', 'Only the expiry date', 'That the server is fast'],
+        'If any check fails, you get a certificate warning. That is the authentication part of TLS.'),
+      choice('verify-false', 'A developer gets a certificate error and adds `verify=False`. What is the real effect?',
+        ['Authentication is switched off: anyone in the middle can pretend to be the server', 'Nothing important — the data is still safe', 'The connection becomes faster but just as safe', 'The certificate gets renewed'],
+        'The data is still encrypted, but maybe encrypted to the attacker. Fix the real problem: the chain, the name, or the expiry.'),
+      choice('what-visible', 'With HTTPS, what can someone on the same Wi-Fi still see?',
+        ['Which site you visit (DNS and the SNI field) and the size and timing of the traffic', 'The full URL path and the page content', 'Your passwords', 'Nothing at all'],
+        'The path, headers and content are encrypted. The site name usually is not, and traffic patterns can say a lot.'),
+    ],
+    code: [
+      {
+        id: 'missing-packets',
+        title: 'Find the lost datagrams',
+        prompt: 'An app numbers its UDP datagrams 1..`total`. `arrivals` lists the numbers that arrived (any order, maybe duplicates). Return the **sorted** list of numbers that never arrived — the app could ask for these again.',
+        starter: `def missing_packets(arrivals, total):
+    # your code here
+    pass`,
+        tests: `assert missing_packets([1, 2, 4, 5], 5) == [3]
+assert missing_packets([5, 3, 1], 5) == [2, 4]
+assert missing_packets([2, 2, 1], 2) == []
+assert missing_packets([], 3) == [1, 2, 3]`,
+        hint: 'Put the arrivals in a set, then check every number from 1 to `total`.',
+        solution: `def missing_packets(arrivals, total):
+    got = set(arrivals)
+    return [n for n in range(1, total + 1) if n not in got]`,
+      },
+      {
+        id: 'first-byte-transport',
+        title: 'Time to first byte by transport',
+        prompt: 'Return the milliseconds until the first answer byte, given the RTT, for a **new** connection: `"udp"` (just ask: 1 RTT), `"tcp"` (handshake + request: 2), `"tls1.3"` (TCP + TLS 1.3 + request: 3), `"tls1.2"` (TCP + 2 for TLS 1.2 + request: 4), `"quic"` (one combined handshake + request: 2).',
+        starter: `def first_byte_ms(rtt_ms, transport):
+    # your code here
+    pass`,
+        tests: `assert first_byte_ms(50, "udp") == 50
+assert first_byte_ms(50, "tcp") == 100
+assert first_byte_ms(50, "tls1.3") == 150
+assert first_byte_ms(50, "tls1.2") == 200
+assert first_byte_ms(50, "quic") == 100`,
+        hint: 'A dict from transport to the number of round trips, then multiply.',
+        solution: `def first_byte_ms(rtt_ms, transport):
+    trips = {"udp": 1, "tcp": 2, "tls1.3": 3, "tls1.2": 4, "quic": 2}
+    return trips[transport] * rtt_ms`,
+      },
+    ],
+    explain: [
+      {
+        id: 'tcp-or-udp',
+        question: '“TCP or UDP?” Explain the trade-off with one real example for each, and say what QUIC changes.',
+        points: [
+          'TCP: handshake, ordered and reliable, congestion control — every byte arrives, maybe late',
+          'UDP: no setup, no order, no resending — the app decides what to do with loss',
+          'TCP example: APIs, files, database connections; UDP example: calls, games, live video, DNS',
+          'Late data is useless in real time, so waiting for a resend hurts',
+          'QUIC adds reliability, per-stream order and TLS 1.3 on top of UDP (HTTP/3)',
+        ],
+        answer: 'TCP gives a reliable, ordered byte stream: a handshake first, lost packets are resent, and congestion control adapts the speed. The cost is extra round trips and waiting: a lost packet holds back the data behind it. UDP gives none of that — no setup, no order, no resending — so it is ideal when late data is useless, like a voice call or a game, or when the exchange is tiny, like DNS. An API, a file download or a database connection must use TCP because every byte matters. QUIC is the modern middle way: it runs on UDP but adds resending, ordering per stream and TLS 1.3 in the app, so HTTP/3 gets faster setup and no head-of-line blocking between requests.',
+      },
+      {
+        id: 'https-walkthrough',
+        question: '“How does HTTPS keep my password safe?” Walk through a TLS connection step by step.',
+        points: [
+          'After TCP, the TLS handshake starts (1 RTT with TLS 1.3)',
+          'The server sends its certificate; the browser checks the chain to a trusted root, the name and the expiry',
+          'Both sides do a key exchange (Diffie–Hellman with temporary secrets) and get the same session key without sending it',
+          'All data is then encrypted with fast symmetric encryption, and changes are detected',
+          'Temporary keys give forward secrecy; the site name (SNI/DNS) is still visible',
+        ],
+        answer: 'After the TCP handshake, the browser starts TLS. The server sends its certificate, and the browser checks that it chains up to a root authority it trusts, that the name matches the site and that it has not expired — that is how I know I am talking to the real server and not someone in the middle. In the same round trip both sides do a Diffie–Hellman key exchange with fresh temporary secrets: they send only public values but compute the same session key. From then on every byte, including my password, is encrypted with fast symmetric encryption, and any change on the way is detected. Because the secrets are temporary, recorded traffic stays safe even if the server’s private key leaks later. What is still visible is which site I connect to and the size and timing of the traffic.',
       },
     ],
   },

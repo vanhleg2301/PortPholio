@@ -40,6 +40,9 @@ export type VisualId =
   | 'slow-start'
   | 'hol-blocking'
   | 'globe'
+  | 'two-pointers'
+  | 'sliding-window'
+  | 'udp-vs-tcp'
 
 export interface ChoiceQuestion {
   id: string

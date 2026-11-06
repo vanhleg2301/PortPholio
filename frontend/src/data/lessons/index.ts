@@ -59,6 +59,8 @@ export const PASS_RATIO = 0.8
 // NeetCode category → the lesson that teaches it (and has its exercises).
 export const CATEGORY_LESSON: Record<string, string> = {
   'Arrays & Hashing': 'dsa-arrays-hashing',
+  'Two Pointers': 'dsa-two-pointers',
+  'Sliding Window': 'dsa-sliding-window',
 }
 
 export function getExerciseIds(lesson: Lesson): string[] {
@@ -109,6 +111,9 @@ export const VISUAL_TITLES: Record<VisualId, string> = {
   'slow-start': 'Slow start',
   'hol-blocking': 'Head-of-line blocking',
   globe: 'Distance and the speed of light',
+  'two-pointers': 'Two pointers on a sorted array',
+  'sliding-window': 'Sliding window',
+  'udp-vs-tcp': 'UDP vs TCP: one lost packet',
 }
 
 // Lesson markdown → plain text: glossary marks, links, emphasis and code ticks removed.

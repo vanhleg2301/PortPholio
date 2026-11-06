@@ -60,6 +60,10 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   suffix: { en: 'the end of a sequence (everything after a position)', vi: 'hậu tố, phần cuối' },
   delimiter: { en: 'a character that separates pieces of data, like `,`', vi: 'ký tự phân tách' },
   subarray: { en: 'a continuous part of an array (no gaps)', vi: 'mảng con liên tiếp' },
+  'two pointers': { en: 'two indexes that move through the data instead of checking every pair', vi: 'hai con trỏ' },
+  invariant: { en: 'a rule that stays true at every step of a loop; it is why the algorithm is correct', vi: 'bất biến (điều luôn đúng)' },
+  'sliding window': { en: 'a range [l, r] that grows on the right and shrinks on the left as it moves over the data', vi: 'cửa sổ trượt' },
+  'monotonic queue': { en: 'a deque kept in increasing or decreasing order, so its front is always the min or max', vi: 'hàng đợi đơn điệu' },
 
   // Networking
   latency: { en: 'the waiting time for data to go from one place to another', vi: 'độ trễ' },
@@ -85,4 +89,15 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   quic: { en: 'a newer transport protocol on top of UDP, used by HTTP/3', vi: 'giao thức QUIC' },
   'keep-alive': { en: 'keeping a connection open to reuse it for the next requests', vi: 'giữ kết nối mở' },
   'connection pool': { en: 'a set of open connections that a program reuses', vi: 'nhóm kết nối dùng lại' },
+  datagram: { en: 'one UDP packet, sent on its own with no connection', vi: 'gói dữ liệu UDP' },
+  port: { en: 'a number (0–65535) that says which program on a machine the data is for, e.g. 443 for HTTPS', vi: 'cổng' },
+  encryption: { en: 'turning data into unreadable bytes that only someone with the key can turn back', vi: 'mã hóa' },
+  certificate: { en: 'a signed file that links a domain name to a public key, so you know who you are talking to', vi: 'chứng chỉ số' },
+  'certificate authority': { en: 'a trusted company that signs certificates after checking who owns a domain (CA)', vi: 'tổ chức cấp chứng chỉ (CA)' },
+  'symmetric encryption': { en: 'encryption where the same secret key locks and unlocks the data; very fast', vi: 'mã hóa đối xứng' },
+  'public key': { en: 'the half of a key pair that anyone may see; used to check signatures or lock data', vi: 'khóa công khai' },
+  'private key': { en: 'the secret half of a key pair; it never leaves its owner', vi: 'khóa bí mật' },
+  'key exchange': { en: 'a way for two sides to agree on a shared secret key while others are listening', vi: 'trao đổi khóa' },
+  'forward secrecy': { en: 'old recorded traffic stays safe even if the server’s private key is stolen later', vi: 'bảo mật chuyển tiếp' },
+  sni: { en: 'Server Name Indication: the site name the browser sends at the start of TLS, not encrypted', vi: 'tên máy chủ gửi trong TLS (SNI)' },
 }

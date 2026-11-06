@@ -163,4 +163,219 @@ assert sequential_vs_batched(1, 50, 10) == (60, 60)`,
       { label: 'HPBN: Transport Layer Security', url: `${HPBN}/transport-layer-security-tls/` },
     ],
   },
+  {
+    id: 'net-udp-tls',
+    title: 'UDP and TLS',
+    summary:
+      'UDP sends packets with no promises — no handshake, no order, no resending — and that is exactly why live video, games and DNS like it. TLS is what makes a connection private and proves who the server is.',
+    minutes: 60,
+    videos: [
+      { label: 'Hussein Nasser: TCP vs UDP Crash Course', url: 'https://www.youtube.com/watch?v=qqRYkcta6IE' },
+      { label: 'ByteByteGo: SSL, TLS, HTTPS Explained', url: 'https://www.youtube.com/watch?v=j9QmMEWmcfo' },
+      { label: 'Sunny Classroom: SSL/TLS handshake', url: 'https://www.youtube.com/watch?v=sEkw8ZcxtFk' },
+    ],
+    blocks: [
+      {
+        type: 'text',
+        md: md(
+          '## UDP: just send it',
+          'UDP sends [[datagram|datagrams]]: separate packets, each with a [[port]] number that says which app it is for. There is **no handshake, no ordering, no resending and no congestion control**. The header is only 8 bytes. If a datagram is lost, nobody notices — unless the application checks.',
+          '',
+          '| | TCP | UDP |',
+          '| --- | --- | --- |',
+          '| Setup | 3-way handshake (1 RTT) | none — send at once |',
+          '| Order | always in order | any order |',
+          '| Lost data | sent again | lost (the app decides) |',
+          '| Speed control | congestion control | none built in |',
+          '| Good for | web pages, APIs, files, databases | DNS, live video and voice, games, QUIC |',
+          '',
+          'UDP is not “bad TCP”. It is a choice: when **late data is useless** (a video frame, a game position), waiting for a resend only makes things worse.',
+        ),
+      },
+      {
+        type: 'visual',
+        visual: 'udp-vs-tcp',
+        caption: 'The same lost packet: TCP waits and delivers everything late; UDP delivers the rest at once.',
+      },
+      {
+        type: 'code',
+        id: 'dns-transport',
+        caption: 'Why DNS uses UDP: one small question, one small answer — no setup.',
+        code: `def lookup_ms(rtt_ms, transport):
+    if transport == "udp":
+        return 1 * rtt_ms      # question + answer
+    if transport == "tcp":
+        return 2 * rtt_ms      # handshake, then question + answer
+    if transport == "https":
+        return 3 * rtt_ms      # TCP + TLS 1.3 + question (DNS over HTTPS, new connection)
+
+for t in ["udp", "tcp", "https"]:
+    print(t, lookup_ms(40, t), "ms")
+# udp 40 ms
+# tcp 80 ms
+# https 120 ms`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## QUIC: reliability on top of UDP',
+          'HTTP/3 runs on [[quic|QUIC]], which is built on UDP. QUIC adds what the app needs: resending, order **per stream** (so one lost packet does not block other requests — no [[head-of-line blocking]] between streams) and TLS 1.3 built in, so a new connection needs only one round trip. Why not just change TCP? TCP lives inside every operating system and in many network boxes; changing it takes years. UDP passes through almost everywhere, so new ideas can ship inside apps.',
+        ),
+      },
+      {
+        type: 'text',
+        md: md(
+          '## TLS: three promises',
+          '[[tls|TLS]] (the S in HTTPS) gives a connection three things:',
+          '',
+          '1. **Privacy** — [[encryption]]: people on the network see only random-looking bytes.',
+          '2. **Authentication** — the server shows a [[certificate]] that a trusted [[certificate authority]] signed, so you know you are talking to the real `bank.com`.',
+          '3. **Integrity** — if someone changes the data on the way, the receiver notices.',
+          '',
+          'Encryption without authentication is not enough: an attacker in the middle could happily encrypt your traffic **to themselves**.',
+        ),
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Two kinds of keys',
+          '- [[symmetric encryption|Symmetric]]: one shared secret key encrypts and decrypts. Very fast (AES, ChaCha20). Used for all the actual data.',
+          '- **Asymmetric**: a [[public key]] that everyone may see and a [[private key]] that never leaves the server. Slow, so it is only used to set things up: to prove identity (signatures) and to agree on the shared key.',
+          '',
+          'How can two sides agree on a secret key while everyone listens? With a [[key exchange]] (Diffie–Hellman). Each side keeps a secret number, sends a public value, and both compute the **same** key — but someone who sees only the public values cannot. TLS 1.3 makes new secret numbers for every connection, so even if the server’s private key is stolen later, old recorded traffic stays safe: [[forward secrecy]].',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'diffie-hellman',
+        caption: 'A toy Diffie–Hellman with tiny numbers (real ones have hundreds of digits). Change a and b.',
+        code: `p, g = 23, 5        # public: a prime and a base
+a = 6               # Alice's secret, never sent
+b = 15              # Bob's secret, never sent
+
+A = pow(g, a, p)    # Alice sends A = g^a mod p
+B = pow(g, b, p)    # Bob sends   B = g^b mod p
+print("on the network:", A, B)
+
+print("Alice computes:", pow(B, a, p))   # (g^b)^a
+print("Bob computes:  ", pow(A, b, p))   # (g^a)^b  -> the same number
+# on the network: 8 19
+# Alice computes: 2
+# Bob computes:   2`,
+      },
+      {
+        type: 'visual',
+        visual: 'handshake',
+        caption: 'Switch between TLS 1.3 and 1.2: the certificate and key shares travel in the handshake before any request.',
+      },
+      {
+        type: 'diagram',
+        caption: 'A certificate chain: your device trusts a few root authorities; they vouch for intermediates, which vouch for the site.',
+        mermaid: `flowchart TD
+  R["Root CA<br/>(built into your OS / browser)"] -- signs --> I["Intermediate CA"]
+  I -- signs --> L["example.com certificate<br/>(public key of the server)"]
+  L -- "the server proves it has the matching private key" --> S["You are talking to example.com"]`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## What the browser checks — and what TLS does not hide',
+          '- The chain leads to a **trusted root**, the **name** in the certificate matches the site, and the certificate has **not expired**. If any check fails, you get a certificate error.',
+          '- Never “fix” such an error with `verify=False`: that switches off authentication, so anyone could pretend to be the server.',
+          '- TLS hides the content, not everything: the site name is still visible in DNS and in the [[sni|SNI]] field of the handshake, and the sizes and timing of messages can tell a lot.',
+          '- Expired certificates are a classic cause of outages. Renew them automatically (Let’s Encrypt) and watch the expiry date.',
+        ),
+      },
+      {
+        type: 'callout',
+        tone: 'interview',
+        md: '“TCP or UDP?” — give the trade-off and one example each: TCP when every byte must arrive in order (APIs, files); UDP when late data is useless (calls, games) or the exchange is tiny (DNS). For “How does HTTPS work?”, walk it in order: certificate check → key exchange → fast symmetric encryption, and mention that TLS 1.3 needs one round trip.',
+      },
+      {
+        type: 'exercise',
+        id: 'dh-shared',
+        title: 'Diffie–Hellman by hand',
+        prompt: 'Return a tuple `(A, B, alice_key, bob_key)`: the two public values `A = g^a mod p`, `B = g^b mod p`, and the key each side computes from what it received. Use `pow(x, y, p)`. Both keys must be equal.',
+        starter: `def dh_shared(p, g, a, b):
+    # your code here
+    pass`,
+        tests: `assert dh_shared(23, 5, 6, 15) == (8, 19, 2, 2)
+A, B, k1, k2 = dh_shared(10007, 5, 1234, 4321)
+assert k1 == k2 and A == pow(5, 1234, 10007)
+assert dh_shared(23, 5, 1, 1) == (5, 5, 5, 5)`,
+        hint: 'Alice uses B and her own a: `pow(B, a, p)`. Bob uses A and his own b.',
+        solution: `def dh_shared(p, g, a, b):
+    A = pow(g, a, p)
+    B = pow(g, b, p)
+    return A, B, pow(B, a, p), pow(A, b, p)`,
+      },
+      {
+        type: 'exercise',
+        id: 'tcp-deliver',
+        title: 'What TCP gives to the app',
+        prompt: 'Packets numbered 1, 2, 3, … arrive in the order given by `arrivals` (some may be missing). TCP gives bytes to the app **only in order**: a packet is delivered as soon as every packet before it has arrived. Return the list of packets delivered to the app, in the order the app gets them.',
+        starter: `def tcp_deliver(arrivals):
+    # your code here
+    pass`,
+        tests: `assert tcp_deliver([1, 2, 3]) == [1, 2, 3]
+assert tcp_deliver([1, 2, 4, 5, 3]) == [1, 2, 3, 4, 5]
+assert tcp_deliver([1, 3, 4]) == [1]
+assert tcp_deliver([2, 1]) == [1, 2]
+assert tcp_deliver([]) == []`,
+        hint: 'Keep `next_needed = 1` and a set `waiting`. After each arrival, while `next_needed` is in `waiting`, deliver it and add 1.',
+        solution: `def tcp_deliver(arrivals):
+    waiting = set()
+    next_needed = 1
+    out = []
+    for p in arrivals:
+        waiting.add(p)
+        while next_needed in waiting:
+            waiting.remove(next_needed)
+            out.append(next_needed)
+            next_needed += 1
+    return out`,
+      },
+      {
+        type: 'exercise',
+        id: 'is-trusted',
+        title: 'Check a certificate chain',
+        prompt: '`chain` is a list of certificates from the site up, each a dict with `"subject"`, `"issuer"` and `"expired"`. Return `True` only if: the first subject equals `host`, no certificate is expired, every certificate’s issuer is the subject of the next one, and the last issuer is in `roots`. (Real browsers also check signatures — skipped here.)',
+        starter: `def is_trusted(chain, host, roots):
+    # your code here
+    pass`,
+        tests: `site = {"subject": "example.com", "issuer": "R3", "expired": False}
+inter = {"subject": "R3", "issuer": "ISRG Root X1", "expired": False}
+roots = {"ISRG Root X1"}
+assert is_trusted([site, inter], "example.com", roots) is True
+assert is_trusted([site, inter], "evil.com", roots) is False
+assert is_trusted([site, dict(inter, expired=True)], "example.com", roots) is False
+assert is_trusted([site, dict(inter, issuer="Unknown CA")], "example.com", roots) is False
+assert is_trusted([dict(site, issuer="Other")] + [inter], "example.com", roots) is False
+assert is_trusted([], "example.com", roots) is False`,
+        hint: 'Check the host and the empty chain first. Loop with an index: compare `chain[i]["issuer"]` with `chain[i + 1]["subject"]`.',
+        solution: `def is_trusted(chain, host, roots):
+    if not chain or chain[0]["subject"] != host:
+        return False
+    for i, cert in enumerate(chain):
+        if cert["expired"]:
+            return False
+        if i + 1 < len(chain) and cert["issuer"] != chain[i + 1]["subject"]:
+            return False
+    return chain[-1]["issuer"] in roots`,
+      },
+      {
+        type: 'quiz',
+        items: [
+          { question: 'Why does live video often use UDP?', answer: 'A frame that arrives late is useless. Waiting for TCP to resend it would freeze the picture; skipping it is better.' },
+          { question: 'What are the three things TLS gives you?', answer: 'Privacy (encryption), authentication (a certificate signed by a trusted CA) and integrity (changes are detected).' },
+          { question: 'Why is symmetric encryption used for the data and not asymmetric?', answer: 'Symmetric encryption is much faster. Asymmetric keys are only used to prove identity and agree on the shared key.' },
+        ],
+      },
+    ],
+    furtherReading: [
+      { label: 'HPBN: Building blocks of UDP', url: `${HPBN}/building-blocks-of-udp/` },
+      { label: 'HPBN: Transport Layer Security', url: `${HPBN}/transport-layer-security-tls/` },
+      { label: 'Cloudflare: What happens in a TLS handshake?', url: 'https://www.cloudflare.com/learning/ssl/what-happens-in-a-tls-handshake/' },
+    ],
+  },
 ]

@@ -273,3 +273,56 @@ export function HeadOfLineVisual({ caption }: { caption?: string }) {
     </VisualCard>
   )
 }
+
+// ── UDP vs TCP when one packet is lost ───────────────────────────────────────
+
+interface TransportFrame {
+  tcp: { app: number[]; buffer: number[]; lost: number[] }
+  udp: { app: number[]; lost: number[] }
+  note: string
+}
+
+const TRANSPORT_FRAMES: TransportFrame[] = [
+  { tcp: { app: [], buffer: [], lost: [] }, udp: { app: [], lost: [] }, note: 'Both senders send 5 packets of a live video. On the way, packet 3 will be lost.' },
+  { tcp: { app: [1, 2], buffer: [], lost: [] }, udp: { app: [1, 2], lost: [] }, note: 'Packets 1 and 2 arrive. Both apps get them right away.' },
+  { tcp: { app: [1, 2], buffer: [4, 5], lost: [3] }, udp: { app: [1, 2, 4, 5], lost: [3] }, note: 'Packet 3 is lost. TCP keeps 4 and 5 waiting in its buffer (bytes must stay in order). UDP gives 4 and 5 to the app at once — the app can just skip one video frame.' },
+  { tcp: { app: [1, 2, 3, 4, 5], buffer: [], lost: [] }, udp: { app: [1, 2, 4, 5], lost: [3] }, note: 'One round trip later TCP has resent 3 and delivers 3, 4, 5 together. Everything is there, but late. UDP never resends: for live video, a late frame is useless anyway.' },
+]
+
+function PacketRow({ label, packets, tone }: { label: string; packets: number[]; tone: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-20 shrink-0 text-right text-[11px] text-muted-foreground">{label}</span>
+      <div className="flex min-h-8 flex-1 flex-wrap items-center gap-1 rounded-lg bg-foreground/[0.03] px-1.5 py-1">
+        {packets.map((p) => (
+          <motion.span key={p} initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} className={cn('flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold', tone)}>
+            {p}
+          </motion.span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function UdpVsTcpVisual({ caption }: { caption?: string }) {
+  const stepper = useStepper(TRANSPORT_FRAMES.length)
+  const f = TRANSPORT_FRAMES[stepper.index]
+  return (
+    <VisualCard title="UDP vs TCP: one lost packet" caption={caption} stepper={stepper} note={f.note}>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5 rounded-xl border border-sky-500/30 p-3">
+          <p className="text-xs font-bold text-sky-600 dark:text-sky-400">TCP — reliable, in order</p>
+          <PacketRow label="lost" packets={f.tcp.lost} tone="bg-red-500/20 text-red-700 line-through dark:text-red-300" />
+          <PacketRow label="waiting" packets={f.tcp.buffer} tone="bg-amber-500/20 text-amber-700 dark:text-amber-300" />
+          <PacketRow label="app gets" packets={f.tcp.app} tone="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300" />
+        </div>
+        <div className="space-y-1.5 rounded-xl border border-violet-500/30 p-3">
+          <p className="text-xs font-bold text-violet-600 dark:text-violet-400">UDP — no guarantees, no waiting</p>
+          <PacketRow label="lost" packets={f.udp.lost} tone="bg-red-500/20 text-red-700 line-through dark:text-red-300" />
+          <PacketRow label="waiting" packets={[]} tone="" />
+          <PacketRow label="app gets" packets={f.udp.app} tone="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300" />
+        </div>
+      </div>
+    </VisualCard>
+  )
+}

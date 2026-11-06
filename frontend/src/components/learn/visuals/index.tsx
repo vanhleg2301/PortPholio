@@ -1,7 +1,8 @@
 import { lazy, Suspense } from 'react'
 import type { VisualId } from '@/data/lessons/types'
 import { BucketSortVisual, PrefixSuffixVisual, TwoSumVisual } from './arrays'
-import { HandshakeVisual, HeadOfLineVisual, SlowStartVisual } from './network'
+import { HandshakeVisual, HeadOfLineVisual, SlowStartVisual, UdpVsTcpVisual } from './network'
+import { SlidingWindowVisual, TwoPointersVisual } from './windows'
 import { AliasingVisual, SlicingVisual } from './python'
 import { CallStackVisual, DynamicArrayVisual, HashTableVisual, HeapVisual } from './structures'
 
@@ -30,6 +31,9 @@ const VISUALS: Record<VisualId, (props: { caption?: string }) => React.JSX.Eleme
   'slow-start': SlowStartVisual,
   'hol-blocking': HeadOfLineVisual,
   globe: LazyGlobe,
+  'two-pointers': TwoPointersVisual,
+  'sliding-window': SlidingWindowVisual,
+  'udp-vs-tcp': UdpVsTcpVisual,
 }
 
 // Loaded lazily from LessonView, so the animations only download with a lesson that uses them.
