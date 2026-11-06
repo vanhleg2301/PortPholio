@@ -54,6 +54,8 @@ export function GlossTerm({ termKey, children }: GlossTermProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [mode, setMode] = useState<'hover' | 'pinned' | null>(null)
+  // A touch already toggled the card; ignore the click the browser may send after it.
+  const isTouchHandled = useRef(false)
   const [position, setPosition] = useState<Position | null>(null)
   const isOpen = mode !== null
   const isInDeck = Boolean(deck?.deck[`term:${termKey}`])
@@ -99,6 +101,16 @@ export function GlossTerm({ termKey, children }: GlossTermProps) {
 
   if (!entry) return <>{children}</>
 
+  function toggle() {
+    if (timer.current) clearTimeout(timer.current)
+    if (mode === 'pinned') {
+      setMode(null)
+      return
+    }
+    deck?.addTerm(termKey)
+    setMode('pinned')
+  }
+
   const openOnHover = (e: ReactPointerEvent) => {
     if (e.pointerType !== 'mouse' || mode === 'pinned') return
     schedule(() => setMode('hover'), OPEN_DELAY_MS)
@@ -115,20 +127,26 @@ export function GlossTerm({ termKey, children }: GlossTermProps) {
         type="button"
         onPointerEnter={openOnHover}
         onPointerLeave={closeOnLeave}
-        onFocus={() => mode === null && setMode('hover')}
+        // Keyboard focus only: on phones a tap must not open the card twice (focus, then tap).
+        onFocus={(e) => {
+          if (mode === null && e.currentTarget.matches(':focus-visible')) setMode('hover')
+        }}
         onBlur={() => mode === 'hover' && setMode(null)}
+        // Phones and tablets: act on the touch itself. iOS (especially an installed PWA) can
+        // swallow the click that would follow a tap, so the card would never open.
+        onPointerUp={(e) => {
+          if (e.pointerType === 'mouse') return
+          isTouchHandled.current = true
+          setTimeout(() => (isTouchHandled.current = false), 500)
+          toggle()
+        }}
         onClick={() => {
-          if (timer.current) clearTimeout(timer.current)
-          if (mode === 'pinned') {
-            setMode(null)
-            return
-          }
-          deck?.addTerm(termKey)
-          setMode('pinned')
+          if (isTouchHandled.current) return
+          toggle()
         }}
         aria-describedby={isOpen ? tooltipId : undefined}
         className={cn(
-          'cursor-help rounded-sm underline decoration-dotted decoration-2 underline-offset-4 transition-colors',
+          'cursor-help touch-manipulation rounded-sm underline decoration-dotted decoration-2 underline-offset-4 transition-colors',
           isOpen
             ? 'bg-sky-500/15 text-sky-700 decoration-sky-500 dark:text-sky-300'
             : 'decoration-sky-500/70 hover:bg-sky-500/10 hover:text-sky-700 hover:decoration-sky-500 dark:hover:text-sky-300'
