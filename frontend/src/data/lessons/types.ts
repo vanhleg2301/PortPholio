@@ -39,6 +39,7 @@ export type VisualId =
   | 'handshake'
   | 'slow-start'
   | 'hol-blocking'
+  | 'globe'
 
 export interface ChoiceQuestion {
   id: string

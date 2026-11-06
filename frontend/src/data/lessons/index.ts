@@ -108,6 +108,7 @@ export const VISUAL_TITLES: Record<VisualId, string> = {
   handshake: 'New HTTPS connection',
   'slow-start': 'Slow start',
   'hol-blocking': 'Head-of-line blocking',
+  globe: 'Distance and the speed of light',
 }
 
 // Lesson markdown → plain text: glossary marks, links, emphasis and code ticks removed.

@@ -51,6 +51,11 @@ for route, km in [("Hanoi - Singapore", 2_200), ("Hanoi - Frankfurt", 8_900), ("
 # Hanoi - California: at least 125 ms per round trip`,
       },
       {
+        type: 'visual',
+        visual: 'globe',
+        caption: 'Pick two cities: the distance alone sets a floor on latency.',
+      },
+      {
         type: 'text',
         md: md(
           '## What happens before the first byte',
