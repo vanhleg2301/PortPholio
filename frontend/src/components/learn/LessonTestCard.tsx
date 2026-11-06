@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronDown, CircleCheck, ClipboardCheck } from 'lucide-react'
+import { ArrowRight, ChevronDown, CircleCheck, ClipboardCheck, Code2, ListChecks, MessagesSquare, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ChoiceTest } from '@/components/learn/ChoiceTest'
 import { CodeCell } from '@/components/learn/CodeCell'
@@ -10,6 +10,17 @@ import { MarkdownPreview } from '@/components/roadmap/MarkdownPreview'
 import { EASE_OUT } from '@/lib/motion'
 import { getPassMark, getTestItemIds } from '@/data/lessons'
 import type { Lesson, LessonTest } from '@/data/lessons/types'
+
+type PartId = 'choice' | 'code' | 'explain'
+
+interface PartInfo {
+  id: PartId
+  label: string
+  icon: LucideIcon
+  done: number
+  total: number
+  note: string
+}
 
 interface LessonTestCardProps {
   lesson: Lesson
@@ -23,29 +34,139 @@ interface LessonTestCardProps {
   onPassed: (itemId: string) => void
 }
 
-function Part({ title, note, isDone, children }: { title: string; note: string; isDone: boolean; children: ReactNode }) {
-  return (
-    <section className="mt-6 first:mt-2">
-      <h4 className="flex items-center gap-1.5 font-display text-base font-bold">
-        {isDone && <CircleCheck className="h-4 w-4 text-emerald-500" />}
-        {title}
-      </h4>
-      <p className="mb-3 text-xs text-muted-foreground">{note}</p>
-      {children}
-    </section>
-  )
+const partVariants = {
+  enter: (direction: number) => ({ opacity: 0, x: direction * 24, transition: { duration: 0 } }),
+  center: { opacity: 1, x: 0, transition: { duration: 0.26, ease: EASE_OUT } },
 }
 
 export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpenByDefault, onSaveCode, onPassed }: LessonTestCardProps) {
-  const [isOpen, setIsOpen] = useState(isOpenByDefault)
   const has = (itemId: string) => passed.has(`${lesson.id}:${itemId}`)
   const itemIds = getTestItemIds(test)
   const doneCount = itemIds.filter(has).length
   const isAllDone = doneCount === itemIds.length
-  const codeDone = test.code.filter((q) => has(`test:code:${q.id}`)).length
-  const explainDone = test.explain.filter((q) => has(`test:explain:${q.id}`)).length
   const pass = (itemId: string) => {
     if (canSave && !has(itemId)) onPassed(itemId)
+  }
+
+  const parts: PartInfo[] = [
+    {
+      id: 'choice',
+      label: 'Quiz',
+      icon: ListChecks,
+      done: has('test:choice') ? 1 : 0,
+      total: 1,
+      note: `${test.choice.length} questions, one at a time. You see why right after each answer — read it even when you are right. You need ${getPassMark(test.choice.length)} correct. Wrong answers go to your flashcards.`,
+    },
+    {
+      id: 'code',
+      label: 'Coding',
+      icon: Code2,
+      done: test.code.filter((q) => has(`test:code:${q.id}`)).length,
+      total: test.code.length,
+      note: 'Like a coding round: think first, say the complexity, then write it. Use the hint only when you are stuck.',
+    },
+    {
+      id: 'explain',
+      label: 'Interview',
+      icon: MessagesSquare,
+      done: test.explain.filter((q) => has(`test:explain:${q.id}`)).length,
+      total: test.explain.length,
+      note: 'Answer in your own words, as if the interviewer asked you. Then compare with the key points. Saying it out loud in English is great practice.',
+    },
+  ]
+  const isPartDone = (part: PartInfo) => part.done === part.total
+
+  const [isOpen, setIsOpen] = useState(isOpenByDefault)
+  // Open on the first part that is not finished yet.
+  const [activeId, setActiveId] = useState<PartId>(() => parts.find((p) => !isPartDone(p))?.id ?? 'choice')
+  const [direction, setDirection] = useState(1)
+  const activeIndex = parts.findIndex((p) => p.id === activeId)
+
+  function selectPart(id: PartId) {
+    const index = parts.findIndex((p) => p.id === id)
+    setDirection(index > activeIndex ? 1 : -1)
+    setActiveId(id)
+  }
+
+  function renderPart(id: PartId) {
+    switch (id) {
+      case 'choice':
+        return (
+          <ChoiceTest
+            questions={test.choice}
+            isPassed={has('test:choice')}
+            onPass={() => pass('test:choice')}
+            savedState={savedCode.get(`${lesson.id}:test:choice-state`)}
+            onSaveState={canSave ? (state) => onSaveCode(`${lesson.id}:test:choice-state`, state) : undefined}
+          />
+        )
+      case 'code':
+        return (
+          <div className="space-y-4">
+            {test.code.map((q, i) => {
+              const key = `${lesson.id}:test:${q.id}`
+              const itemId = `test:code:${q.id}`
+              return (
+                <div key={q.id} className="rounded-xl border border-border/70 bg-background/40 p-3.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    Task {i + 1} of {test.code.length}
+                  </p>
+                  <h5 className="flex items-center gap-1.5 font-semibold">
+                    {has(itemId) && <CircleCheck className="h-4 w-4 text-emerald-500" />}
+                    {q.title}
+                  </h5>
+                  <div className="mt-1 mb-3">
+                    <MarkdownPreview content={q.prompt} withGlossary />
+                  </div>
+                  <CodeCell
+                    label="Your solution"
+                    initialCode={q.starter}
+                    savedCode={savedCode.get(key)}
+                    tests={q.tests}
+                    isPassed={has(itemId)}
+                    onSave={canSave ? (code) => onSaveCode(key, code) : undefined}
+                    onPassed={() => pass(itemId)}
+                  />
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {q.hint && (
+                      <Reveal label="Hint">
+                        <MarkdownPreview content={q.hint} />
+                      </Reveal>
+                    )}
+                    <Reveal label="Solution">
+                      <MarkdownPreview content={`\`\`\`python\n${q.solution}\n\`\`\``} />
+                    </Reveal>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )
+      case 'explain':
+        return (
+          <div className="space-y-4">
+            {test.explain.map((q) => {
+              const key = `${lesson.id}:test:explain:${q.id}`
+              const itemId = `test:explain:${q.id}`
+              return (
+                <ExplainItem
+                  key={q.id}
+                  question={q}
+                  savedAnswer={savedCode.get(key)}
+                  isPassed={has(itemId)}
+                  onSave={(text) => {
+                    if (canSave && text.trim()) onSaveCode(key, text)
+                  }}
+                  onPass={(text) => {
+                    if (canSave && text.trim()) onSaveCode(key, text)
+                    pass(itemId)
+                  }}
+                />
+              )
+            })}
+          </div>
+        )
+    }
   }
 
   return (
@@ -70,7 +191,7 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
           <span className="block text-[15px] font-semibold leading-snug">Test: {lesson.title}</span>
           <span className="block text-xs text-muted-foreground">
             {test.choice.length} questions · {test.code.length} coding · {test.explain.length} interview
-            {canSave && ` · ${isAllDone ? 'passed' : `${doneCount}/${itemIds.length} parts done`}`}
+            {canSave && ` · ${isAllDone ? 'passed' : `${parts.filter(isPartDone).length}/3 parts done`}`}
           </span>
         </span>
         <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
@@ -88,87 +209,91 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
             className="overflow-hidden"
           >
             <div className="px-4 pb-5">
-              <Part
-                title="Part 1 · Multiple choice"
-                note={`${test.choice.length} questions, one at a time. You see why right after each answer — read it even when you are right. You need ${getPassMark(test.choice.length)} correct. Wrong answers go to your flashcards.`}
-                isDone={has('test:choice')}
-              >
-                <ChoiceTest
-                  questions={test.choice}
-                  isPassed={has('test:choice')}
-                  onPass={() => pass('test:choice')}
-                  savedState={savedCode.get(`${lesson.id}:test:choice-state`)}
-                  onSaveState={canSave ? (state) => onSaveCode(`${lesson.id}:test:choice-state`, state) : undefined}
-                />
-              </Part>
-
-              <Part
-                title={`Part 2 · Coding (${codeDone}/${test.code.length})`}
-                note="Like a coding round: think first, say the complexity, then write it. Use the hint only when you are stuck."
-                isDone={codeDone === test.code.length}
-              >
-                <div className="space-y-4">
-                  {test.code.map((q) => {
-                    const key = `${lesson.id}:test:${q.id}`
-                    const itemId = `test:code:${q.id}`
-                    return (
-                      <div key={q.id} className="rounded-xl border border-border/70 bg-background/40 p-3.5">
-                        <h5 className="font-semibold">{q.title}</h5>
-                        <div className="mt-1 mb-3">
-                          <MarkdownPreview content={q.prompt} withGlossary />
-                        </div>
-                        <CodeCell
-                          label="Your solution"
-                          initialCode={q.starter}
-                          savedCode={savedCode.get(key)}
-                          tests={q.tests}
-                          isPassed={has(itemId)}
-                          onSave={canSave ? (code) => onSaveCode(key, code) : undefined}
-                          onPassed={() => pass(itemId)}
+              <div role="tablist" aria-label="Test parts" className="grid grid-cols-3 gap-1 rounded-2xl bg-foreground/[0.05] p-1">
+                {parts.map((part, i) => {
+                  const isActive = part.id === activeId
+                  const isDone = isPartDone(part)
+                  return (
+                    <button
+                      key={part.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => selectPart(part.id)}
+                      className={cn(
+                        'relative rounded-xl px-2 py-2 text-left transition-colors',
+                        !isActive && 'hover:bg-foreground/[0.05]'
+                      )}
+                    >
+                      {isActive && (
+                        <motion.span
+                          layoutId={`test-tab-${lesson.id}`}
+                          transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                          className="absolute inset-0 rounded-xl bg-background shadow-sm ring-1 ring-border"
                         />
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {q.hint && (
-                            <Reveal label="Hint">
-                              <MarkdownPreview content={q.hint} />
-                            </Reveal>
+                      )}
+                      <span className="relative flex items-center gap-1.5">
+                        <span
+                          className={cn(
+                            'flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
+                            isDone ? 'bg-emerald-500 text-white' : isActive ? 'bg-violet-500 text-white' : 'bg-foreground/10 text-muted-foreground'
                           )}
-                          <Reveal label="Solution">
-                            <MarkdownPreview content={`\`\`\`python\n${q.solution}\n\`\`\``} />
-                          </Reveal>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </Part>
+                        >
+                          {isDone ? <CircleCheck className="h-3.5 w-3.5" /> : i + 1}
+                        </span>
+                        <span className={cn('truncate text-xs font-semibold sm:text-sm', !isActive && 'text-muted-foreground')}>{part.label}</span>
+                      </span>
+                      <span className="relative mt-0.5 block truncate pl-[26px] text-[11px] text-muted-foreground">
+                        {part.id === 'choice' ? (isDone ? 'passed' : `${test.choice.length} Qs`) : `${part.done}/${part.total} done`}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
 
-              <Part
-                title={`Part 3 · Interview questions (${explainDone}/${test.explain.length})`}
-                note="Answer in your own words, as if the interviewer asked you. Then compare with the key points. Saying it out loud in English is great practice."
-                isDone={explainDone === test.explain.length}
-              >
-                <div className="space-y-4">
-                  {test.explain.map((q) => {
-                    const key = `${lesson.id}:test:explain:${q.id}`
-                    const itemId = `test:explain:${q.id}`
-                    return (
-                      <ExplainItem
-                        key={q.id}
-                        question={q}
-                        savedAnswer={savedCode.get(key)}
-                        isPassed={has(itemId)}
-                        onSave={(text) => {
-                          if (canSave && text.trim()) onSaveCode(key, text)
-                        }}
-                        onPass={(text) => {
-                          if (canSave && text.trim()) onSaveCode(key, text)
-                          pass(itemId)
-                        }}
-                      />
-                    )
-                  })}
-                </div>
-              </Part>
+              {/* All parts stay mounted, so switching tabs keeps unsaved answers (e.g. when signed out). */}
+              <div className="overflow-hidden">
+                {parts.map((part, i) => {
+                  const isActive = part.id === activeId
+                  const following = parts[i + 1]
+                  return (
+                    <motion.section
+                      key={part.id}
+                      role="tabpanel"
+                      hidden={!isActive}
+                      custom={direction}
+                      variants={partVariants}
+                      initial={false}
+                      animate={isActive ? 'center' : 'enter'}
+                      className="pt-4"
+                    >
+                      <h4 className="flex items-center gap-2 font-display text-lg font-bold">
+                        <part.icon className="h-5 w-5 text-violet-500" />
+                        Part {i + 1} · {part.label}
+                      </h4>
+                      <p className="mt-1 mb-4 text-xs leading-relaxed text-muted-foreground">{part.note}</p>
+                      {renderPart(part.id)}
+
+                      {following && (
+                        <div className="mt-5 flex justify-end border-t border-border/60 pt-4">
+                          <button
+                            type="button"
+                            onClick={() => selectPart(following.id)}
+                            className={cn(
+                              'inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-colors',
+                              isPartDone(part)
+                                ? 'bg-violet-600 text-white hover:bg-violet-600/85'
+                                : 'border border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground'
+                            )}
+                          >
+                            Part {i + 2}: {following.label} <ArrowRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </motion.section>
+                  )
+                })}
+              </div>
             </div>
           </motion.div>
         )}
