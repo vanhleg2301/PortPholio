@@ -83,10 +83,14 @@ export default function RoadmapPage() {
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const location = useLocation()
   const navigate = useNavigate()
-  const lessonProgress = useLessonProgress(isOwner)
-  const savedCodeQuery = useSavedCode(isOwner)
-  const markPassed = useMarkExercisePassed()
-  const saveCode = useSaveCode()
+  // Lesson progress and answers are saved per account; tasks, notes and files stay owner-only.
+  const userId = session?.user.id
+  const canSaveAnswers = Boolean(userId)
+  const lessonProgress = useLessonProgress(userId)
+  const savedCodeQuery = useSavedCode(userId)
+  const markPassed = useMarkExercisePassed(userId)
+  const saveCode = useSaveCode(userId)
+  const isAnswersReady = !canSaveAnswers || (lessonProgress.isSuccess && savedCodeQuery.isSuccess)
 
   const lessonId = /^\/roadmap\/learn\/([^/]+)/.exec(location.pathname)?.[1]
   const lesson = lessonId ? LESSON_BY_ID.get(lessonId) : undefined
@@ -342,7 +346,7 @@ export default function RoadmapPage() {
               <motion.div key={`lesson-${lesson.id}`} variants={fadeSwap} initial="initial" animate="animate" exit="exit">
                 <LessonView
                   lesson={lesson}
-                  isOwner={isOwner}
+                  canSave={canSaveAnswers}
                   passed={passedItems}
                   savedCode={savedCode}
                   isTaskDone={lessonTaskId ? doneIds.has(lessonTaskId) : null}
@@ -382,6 +386,8 @@ export default function RoadmapPage() {
             focusMinutes={minutesByDay.get(selectedDate) ?? 0}
             onOpenLesson={openLesson}
             isDesktop={isDesktop}
+            canSaveAnswers={canSaveAnswers}
+            isAnswersReady={isAnswersReady}
             passed={passedItems}
             savedCode={savedCode}
             onSaveCode={handleSaveCode}

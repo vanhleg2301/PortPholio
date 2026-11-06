@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { z } from 'zod'
 import { AnimatePresence, motion } from 'framer-motion'
 import { CircleCheck, CircleX, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -29,18 +30,67 @@ function createAttempt(questions: ChoiceQuestion[], sampleSize?: number): Attemp
   return { questions: picked, orders: picked.map((q) => shuffle(q.options.map((_, i) => i))) }
 }
 
+// What is saved for the account: the questions and option order shown, the answers and whether they were checked.
+const savedStateSchema = z.object({
+  ids: z.array(z.string()),
+  orders: z.array(z.array(z.number().int())),
+  answers: z.array(z.number().int().nullable()),
+  isSubmitted: z.boolean(),
+})
+
+interface TestState {
+  attempt: Attempt
+  answers: Array<number | null>
+  isSubmitted: boolean
+}
+
+// Returns null when the saved state no longer fits the questions (e.g. the test was edited).
+function restoreState(saved: string | undefined, questions: ChoiceQuestion[]): TestState | null {
+  if (!saved) return null
+  try {
+    const state = savedStateSchema.parse(JSON.parse(saved))
+    const byId = new Map(questions.map((q) => [q.id, q]))
+    const picked = state.ids.map((id) => byId.get(id))
+    const isValid =
+      picked.length > 0 &&
+      state.orders.length === picked.length &&
+      state.answers.length === picked.length &&
+      picked.every((q, i) => q && state.orders[i].length === q.options.length)
+    if (!isValid) return null
+    return { attempt: { questions: picked as ChoiceQuestion[], orders: state.orders }, answers: state.answers, isSubmitted: state.isSubmitted }
+  } catch {
+    return null
+  }
+}
+
+function serializeState({ attempt, answers, isSubmitted }: TestState): string {
+  return JSON.stringify({ ids: attempt.questions.map((q) => q.id), orders: attempt.orders, answers, isSubmitted })
+}
+
 interface ChoiceTestProps {
   questions: ChoiceQuestion[]
   // Week test: draw this many questions at random on every attempt.
   sampleSize?: number
   isPassed: boolean
   onPass: () => void
+  // Saved answers of the signed-in account (JSON), and how to save new ones.
+  savedState?: string
+  onSaveState?: (state: string) => void
 }
 
-export function ChoiceTest({ questions, sampleSize, isPassed, onPass }: ChoiceTestProps) {
-  const [attempt, setAttempt] = useState(() => createAttempt(questions, sampleSize))
-  const [answers, setAnswers] = useState<Array<number | null>>(() => attempt.questions.map(() => null))
-  const [isSubmitted, setIsSubmitted] = useState(false)
+export function ChoiceTest({ questions, sampleSize, isPassed, onPass, savedState, onSaveState }: ChoiceTestProps) {
+  const [state, setState] = useState<TestState>(() => {
+    const restored = restoreState(savedState, questions)
+    if (restored) return restored
+    const attempt = createAttempt(questions, sampleSize)
+    return { attempt, answers: attempt.questions.map(() => null), isSubmitted: false }
+  })
+  const { attempt, answers, isSubmitted } = state
+
+  function update(next: TestState) {
+    setState(next)
+    onSaveState?.(serializeState(next))
+  }
 
   const total = attempt.questions.length
   const answered = answers.filter((a) => a !== null).length
@@ -49,15 +99,17 @@ export function ChoiceTest({ questions, sampleSize, isPassed, onPass }: ChoiceTe
   const isPassingScore = score >= passMark
 
   function submit() {
-    setIsSubmitted(true)
+    update({ ...state, isSubmitted: true })
     if (score >= passMark && !isPassed) onPass()
   }
 
   function retake() {
     const next = createAttempt(questions, sampleSize)
-    setAttempt(next)
-    setAnswers(next.questions.map(() => null))
-    setIsSubmitted(false)
+    update({ attempt: next, answers: next.questions.map(() => null), isSubmitted: false })
+  }
+
+  function choose(questionIndex: number, optionIndex: number) {
+    update({ ...state, answers: answers.map((a, i) => (i === questionIndex ? optionIndex : a)) })
   }
 
   return (
@@ -92,7 +144,7 @@ export function ChoiceTest({ questions, sampleSize, isPassed, onPass }: ChoiceTe
                       key={optionIndex}
                       type="button"
                       disabled={isSubmitted}
-                      onClick={() => setAnswers((prev) => prev.map((a, i) => (i === qi ? optionIndex : a)))}
+                      onClick={() => choose(qi, optionIndex)}
                       className={cn(
                         'rounded-xl border px-3 py-2.5 text-left text-sm leading-snug transition-colors disabled:cursor-default',
                         q.question === PRINT && 'font-mono text-[13px]',

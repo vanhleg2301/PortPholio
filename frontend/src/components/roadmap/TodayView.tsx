@@ -41,6 +41,9 @@ interface TodayViewProps {
   onOpenLesson: (task: RoadmapTask) => void
   // On desktop the week list and the notes/resources live in side columns.
   isDesktop: boolean
+  // Signed-in account (any, not only the owner): test answers and progress are saved for it.
+  canSaveAnswers: boolean
+  isAnswersReady: boolean
   // "lessonId:itemId" keys of passed exercises and test parts.
   passed: Set<string>
   savedCode: Map<string, string>
@@ -70,6 +73,8 @@ export function TodayView({
   focusMinutes,
   onOpenLesson,
   isDesktop,
+  canSaveAnswers,
+  isAnswersReady,
   passed,
   savedCode,
   onSaveCode,
@@ -166,10 +171,22 @@ export function TodayView({
 
           {testedLessonIds.length > 0 && (
             <motion.section variants={section} layout="position" id="day-test" className="scroll-mt-20">
-              <SectionTitle>{`Day test · ${isOwner ? `${passedTests}/${testedLessonIds.length} passed` : `${testedLessonIds.length}`}`}</SectionTitle>
+              <SectionTitle>{`Day test · ${canSaveAnswers ? `${passedTests}/${testedLessonIds.length} passed` : `${testedLessonIds.length}`}`}</SectionTitle>
               <p className="mb-3 text-sm text-muted-foreground">
                 Study the lessons first, then test yourself here. A lesson can be ticked only after its test is passed.
               </p>
+              {!canSaveAnswers && (
+                <button
+                  type="button"
+                  onClick={onRequestSignIn}
+                  className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-3 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-foreground/[0.03] transition-colors"
+                >
+                  <Lock className="h-4 w-4" /> Sign in with Google to save your answers
+                </button>
+              )}
+              {!isAnswersReady ? (
+                <div className="h-16 rounded-2xl bg-foreground/[0.04] animate-pulse" />
+              ) : (
               <div className="flex flex-col gap-3">
                 {testedLessonIds.map((id, i) => {
                   const lesson = LESSON_BY_ID.get(id)
@@ -179,7 +196,7 @@ export function TodayView({
                       key={id}
                       lesson={lesson}
                       test={LESSON_TESTS[id]}
-                      isOwner={isOwner}
+                      canSave={canSaveAnswers}
                       passed={passed}
                       savedCode={savedCode}
                       isOpenByDefault={i === 0 && !isLessonTestPassed(id, passed)}
@@ -189,10 +206,11 @@ export function TodayView({
                   )
                 })}
               </div>
+              )}
             </motion.section>
           )}
 
-          {week && weekTestQuestions.length > 0 && (
+          {week && weekTestQuestions.length > 0 && isAnswersReady && (
             <motion.section variants={section} layout="position" id="day-test" className="scroll-mt-20">
               <SectionTitle>Week test</SectionTitle>
               <div className="rounded-2xl border border-violet-500/30 bg-violet-500/[0.04] p-4">
@@ -212,8 +230,10 @@ export function TodayView({
                   sampleSize={WEEK_TEST_SIZE}
                   isPassed={isWeekTestPassed(week.id, passed)}
                   onPass={() => {
-                    if (isOwner) onTestPassed(WEEK_TEST_LESSON, week.id)
+                    if (canSaveAnswers) onTestPassed(WEEK_TEST_LESSON, week.id)
                   }}
+                  savedState={savedCode.get(`${WEEK_TEST_LESSON}:${week.id}:choice-state`)}
+                  onSaveState={canSaveAnswers ? (state) => onSaveCode(`${WEEK_TEST_LESSON}:${week.id}:choice-state`, state) : undefined}
                 />
               </div>
             </motion.section>

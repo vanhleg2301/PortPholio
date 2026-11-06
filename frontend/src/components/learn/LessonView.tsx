@@ -20,7 +20,8 @@ const CALLOUT: Record<CalloutTone, { icon: LucideIcon; label: string; className:
 
 interface LessonViewProps {
   lesson: Lesson
-  isOwner: boolean
+  // Signed in: code and exercise progress are saved to this account.
+  canSave: boolean
   passed: Set<string>
   savedCode: Map<string, string>
   isTaskDone: boolean | null
@@ -33,7 +34,7 @@ interface LessonViewProps {
   onPassed: (itemId: string) => void
 }
 
-export function LessonView({ lesson, isOwner, passed, savedCode, isTaskDone, isTestPending, onOpenTest, onBack, onToggleDone, onSaveCode, onPassed }: LessonViewProps) {
+export function LessonView({ lesson, canSave, passed, savedCode, isTaskDone, isTestPending, onOpenTest, onBack, onToggleDone, onSaveCode, onPassed }: LessonViewProps) {
   const terms = getLessonTerms(lesson).filter((key) => GLOSSARY[key])
   const exerciseIds = getExerciseIds(lesson)
   const passedCount = exerciseIds.filter((id) => passed.has(`${lesson.id}:${id}`)).length
@@ -62,7 +63,7 @@ export function LessonView({ lesson, isOwner, passed, savedCode, isTaskDone, isT
             <CodeCell
               initialCode={block.code}
               savedCode={savedCode.get(codeKey(block.id))}
-              onSave={isOwner ? (code) => onSaveCode(codeKey(block.id), code) : undefined}
+              onSave={canSave ? (code) => onSaveCode(codeKey(block.id), code) : undefined}
             />
             {block.caption && <p className="mt-2 text-xs text-muted-foreground">{block.caption}</p>}
           </div>
@@ -84,9 +85,9 @@ export function LessonView({ lesson, isOwner, passed, savedCode, isTaskDone, isT
               savedCode={savedCode.get(codeKey(block.id))}
               tests={block.tests}
               isPassed={isPassed}
-              onSave={isOwner ? (code) => onSaveCode(codeKey(block.id), code) : undefined}
+              onSave={canSave ? (code) => onSaveCode(codeKey(block.id), code) : undefined}
               onPassed={() => {
-                if (isOwner && !isPassed) onPassed(block.id)
+                if (canSave && !isPassed) onPassed(block.id)
               }}
             />
             <div className="mt-3 flex flex-wrap gap-2">

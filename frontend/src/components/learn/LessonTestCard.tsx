@@ -14,7 +14,8 @@ import type { Lesson, LessonTest } from '@/data/lessons/types'
 interface LessonTestCardProps {
   lesson: Lesson
   test: LessonTest
-  isOwner: boolean
+  // Signed in: answers and progress are saved to this account.
+  canSave: boolean
   passed: Set<string>
   savedCode: Map<string, string>
   isOpenByDefault: boolean
@@ -35,7 +36,7 @@ function Part({ title, note, isDone, children }: { title: string; note: string; 
   )
 }
 
-export function LessonTestCard({ lesson, test, isOwner, passed, savedCode, isOpenByDefault, onSaveCode, onPassed }: LessonTestCardProps) {
+export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpenByDefault, onSaveCode, onPassed }: LessonTestCardProps) {
   const [isOpen, setIsOpen] = useState(isOpenByDefault)
   const has = (itemId: string) => passed.has(`${lesson.id}:${itemId}`)
   const itemIds = getTestItemIds(test)
@@ -44,7 +45,7 @@ export function LessonTestCard({ lesson, test, isOwner, passed, savedCode, isOpe
   const codeDone = test.code.filter((q) => has(`test:code:${q.id}`)).length
   const explainDone = test.explain.filter((q) => has(`test:explain:${q.id}`)).length
   const pass = (itemId: string) => {
-    if (isOwner && !has(itemId)) onPassed(itemId)
+    if (canSave && !has(itemId)) onPassed(itemId)
   }
 
   return (
@@ -69,7 +70,7 @@ export function LessonTestCard({ lesson, test, isOwner, passed, savedCode, isOpe
           <span className="block text-[15px] font-semibold leading-snug">Test: {lesson.title}</span>
           <span className="block text-xs text-muted-foreground">
             {test.choice.length} questions · {test.code.length} coding · {test.explain.length} interview
-            {isOwner && ` · ${isAllDone ? 'passed' : `${doneCount}/${itemIds.length} parts done`}`}
+            {canSave && ` · ${isAllDone ? 'passed' : `${doneCount}/${itemIds.length} parts done`}`}
           </span>
         </span>
         <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
@@ -92,7 +93,13 @@ export function LessonTestCard({ lesson, test, isOwner, passed, savedCode, isOpe
                 note={`Answer all ${test.choice.length}, then check. You need ${getPassMark(test.choice.length)} correct. Read every explanation — also for the ones you got right.`}
                 isDone={has('test:choice')}
               >
-                <ChoiceTest questions={test.choice} isPassed={has('test:choice')} onPass={() => pass('test:choice')} />
+                <ChoiceTest
+                  questions={test.choice}
+                  isPassed={has('test:choice')}
+                  onPass={() => pass('test:choice')}
+                  savedState={savedCode.get(`${lesson.id}:test:choice-state`)}
+                  onSaveState={canSave ? (state) => onSaveCode(`${lesson.id}:test:choice-state`, state) : undefined}
+                />
               </Part>
 
               <Part
@@ -116,7 +123,7 @@ export function LessonTestCard({ lesson, test, isOwner, passed, savedCode, isOpe
                           savedCode={savedCode.get(key)}
                           tests={q.tests}
                           isPassed={has(itemId)}
-                          onSave={isOwner ? (code) => onSaveCode(key, code) : undefined}
+                          onSave={canSave ? (code) => onSaveCode(key, code) : undefined}
                           onPassed={() => pass(itemId)}
                         />
                         <div className="mt-3 flex flex-wrap gap-2">
@@ -151,10 +158,10 @@ export function LessonTestCard({ lesson, test, isOwner, passed, savedCode, isOpe
                         savedAnswer={savedCode.get(key)}
                         isPassed={has(itemId)}
                         onSave={(text) => {
-                          if (isOwner && text.trim()) onSaveCode(key, text)
+                          if (canSave && text.trim()) onSaveCode(key, text)
                         }}
                         onPass={(text) => {
-                          if (isOwner && text.trim()) onSaveCode(key, text)
+                          if (canSave && text.trim()) onSaveCode(key, text)
                           pass(itemId)
                         }}
                       />

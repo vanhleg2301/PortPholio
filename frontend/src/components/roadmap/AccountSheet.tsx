@@ -60,7 +60,7 @@ export function AccountSheet({ isOpen, session, isOwner, onClose, onSignIn, onSi
               <>
                 <p className="text-sm text-muted-foreground">Signed in as</p>
                 <p className="font-semibold">{session.user.email}</p>
-                {!isOwner && <p className="mt-2 text-sm text-hard">This account can only view. Only the owner can edit.</p>}
+                {!isOwner && <p className="mt-2 text-sm text-muted-foreground">Your lesson progress and test answers are saved to this account. Only the owner can edit the study plan, notes and files.</p>}
                 {isOwner && <ReminderToggle />}
                 <button
                   type="button"
