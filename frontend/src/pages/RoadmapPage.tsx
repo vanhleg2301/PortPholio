@@ -68,6 +68,9 @@ function RollingValue({ value }: { value: string }) {
   )
 }
 
+// Data updated after this moment came from the server in this page session.
+const PAGE_LOADED_AT = Date.now()
+
 export default function RoadmapPage() {
   useDocumentTitle('Road to Big Tech · Study plan')
   const today = getTodayIso()
@@ -107,9 +110,17 @@ export default function RoadmapPage() {
   const saveCode = useSaveCode(userId)
   // Tests and flashcards start from this account's latest server copy, not from the copy stored on
   // this device (it may be older than what another device saved). Offline, the stored copy is used.
+  // ("Fetched in this page session" = updated after the page loaded; the stored copy has updatedAt 0.)
   const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
-  const isFresh = (query: { isSuccess: boolean; isFetchedAfterMount: boolean }) => query.isSuccess && (query.isFetchedAfterMount || isOffline)
+  const isFresh = (query: { isSuccess: boolean; dataUpdatedAt: number }) => query.isSuccess && (query.dataUpdatedAt >= PAGE_LOADED_AT || isOffline)
   const isAnswersReady = !canSaveAnswers || (isFresh(lessonProgress) && isFresh(savedCodeQuery))
+  // Loading failed (and is not retrying): show a message with a retry button instead of a skeleton.
+  const isAnswersFailed =
+    canSaveAnswers && !isAnswersReady && (lessonProgress.isError || savedCodeQuery.isError) && !lessonProgress.isFetching && !savedCodeQuery.isFetching
+  const retryAnswers = () => {
+    void lessonProgress.refetch()
+    void savedCodeQuery.refetch()
+  }
 
   const lessonId = /^\/roadmap\/learn\/([^/]+)/.exec(location.pathname)?.[1]
   const lesson = lessonId ? LESSON_BY_ID.get(lessonId) : undefined
@@ -485,6 +496,8 @@ export default function RoadmapPage() {
             isDesktop={isDesktop}
             canSaveAnswers={canSaveAnswers}
             isAnswersReady={isAnswersReady}
+            isAnswersFailed={isAnswersFailed}
+            onRetryAnswers={retryAnswers}
             passed={passedItems}
             savedCode={savedCode}
             onSaveCode={handleSaveCode}

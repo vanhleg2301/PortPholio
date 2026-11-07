@@ -46,6 +46,9 @@ interface TodayViewProps {
   // Signed-in account (any, not only the owner): test answers and progress are saved for it.
   canSaveAnswers: boolean
   isAnswersReady: boolean
+  // Loading the saved answers failed; offer a retry instead of a skeleton that never ends.
+  isAnswersFailed?: boolean
+  onRetryAnswers?: () => void
   // "lessonId:itemId" keys of passed exercises and test parts.
   passed: Set<string>
   savedCode: Map<string, string>
@@ -77,6 +80,8 @@ export function TodayView({
   isDesktop,
   canSaveAnswers,
   isAnswersReady,
+  isAnswersFailed = false,
+  onRetryAnswers,
   passed,
   savedCode,
   onSaveCode,
@@ -195,7 +200,18 @@ export function TodayView({
                   <Lock className="h-4 w-4" /> Sign in with Google to save your answers
                 </button>
               )}
-              {!isAnswersReady ? (
+              {!isAnswersReady && isAnswersFailed ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/[0.06] px-4 py-3 text-sm">
+                  <span>Could not load your saved answers. Check your connection, then try again.</span>
+                  <button
+                    type="button"
+                    onClick={onRetryAnswers}
+                    className="rounded-full bg-foreground px-3.5 py-1.5 text-xs font-semibold text-background hover:bg-foreground/85 transition-colors"
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : !isAnswersReady ? (
                 <div className="h-16 rounded-2xl bg-foreground/[0.04] animate-pulse" />
               ) : (
               <div className="flex flex-col gap-3">

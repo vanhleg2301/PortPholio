@@ -49,8 +49,9 @@ export function restoreQueryCache(client: QueryClient) {
     if (!Array.isArray(stored.entries) || Date.now() - stored.savedAt > MAX_AGE_MS) return
     for (const entry of stored.entries) {
       if (!PERSISTED_KEYS.has(String(entry.key[0]))) continue
-      // The old timestamp marks the copy as stale, so React Query refreshes it right away.
-      client.setQueryData(entry.key, entry.data, { updatedAt: entry.updatedAt })
+      // updatedAt 0: the stored copy is always stale, so React Query fetches the server copy as
+      // soon as the query is used — even if this device saved it a few seconds ago (a quick reload).
+      client.setQueryData(entry.key, entry.data, { updatedAt: 0 })
     }
   } catch {
     // A broken or blocked store just means a normal, uncached start.
