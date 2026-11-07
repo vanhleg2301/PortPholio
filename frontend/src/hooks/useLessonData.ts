@@ -32,6 +32,8 @@ export function useLessonProgress(userId: string | undefined) {
     queryKey: progressKey(userId),
     queryFn: () => fetchLessonProgress(userId ?? ''),
     enabled: Boolean(userId),
+    // The copy restored from this device's storage may be older than what another device saved.
+    refetchOnMount: 'always',
   })
 }
 
@@ -54,7 +56,9 @@ export function useSavedCode(userId: string | undefined) {
     queryKey: codeKey(userId),
     queryFn: () => fetchSavedCode(userId ?? ''),
     enabled: Boolean(userId),
-    staleTime: Infinity,
+    // Was `staleTime: Infinity`: together with the offline copy in localStorage, each device kept
+    // showing its own old answers, test state and flashcards and never loaded the other device's.
+    refetchOnMount: 'always',
   })
 }
 

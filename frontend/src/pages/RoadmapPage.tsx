@@ -105,7 +105,11 @@ export default function RoadmapPage() {
   const savedCodeQuery = useSavedCode(userId)
   const markPassed = useMarkExercisePassed(userId)
   const saveCode = useSaveCode(userId)
-  const isAnswersReady = !canSaveAnswers || (lessonProgress.isSuccess && savedCodeQuery.isSuccess)
+  // Tests and flashcards start from this account's latest server copy, not from the copy stored on
+  // this device (it may be older than what another device saved). Offline, the stored copy is used.
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
+  const isFresh = (query: { isSuccess: boolean; isFetchedAfterMount: boolean }) => query.isSuccess && (query.isFetchedAfterMount || isOffline)
+  const isAnswersReady = !canSaveAnswers || (isFresh(lessonProgress) && isFresh(savedCodeQuery))
 
   const lessonId = /^\/roadmap\/learn\/([^/]+)/.exec(location.pathname)?.[1]
   const lesson = lessonId ? LESSON_BY_ID.get(lessonId) : undefined

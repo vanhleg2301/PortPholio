@@ -29,7 +29,7 @@ async function toggleTask({ taskId, isDone }: ToggleInput) {
 }
 
 export function useRoadmapProgress() {
-  return useQuery({ queryKey: PROGRESS_KEY, queryFn: fetchProgress, staleTime: 30_000 })
+  return useQuery({ queryKey: PROGRESS_KEY, queryFn: fetchProgress, refetchOnMount: 'always' })
 }
 
 export function useToggleTask() {

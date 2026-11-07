@@ -25,10 +25,15 @@ export function ReviewDeckProvider({ today, isReady, saved, onSave, children }: 
   const [deck, setDeck] = useState<Deck | null>(null)
   // Latest deck, so quick successive changes build on each other instead of on a stale render.
   const deckRef = useRef<Deck>({})
-  if (isReady && deck === null) {
-    const loaded = parseDeck(saved.get(DECK_KEY))
+  // The saved JSON the deck was last loaded from. When it changes (a refresh brought in what
+  // another device saved, or our own save came back), the deck reloads from it.
+  const savedJson = saved.get(DECK_KEY)
+  const [loadedFrom, setLoadedFrom] = useState<string | undefined>(undefined)
+  if (isReady && (deck === null || savedJson !== loadedFrom)) {
+    const loaded = parseDeck(savedJson)
     deckRef.current = loaded
     setDeck(loaded)
+    setLoadedFrom(savedJson)
   }
 
   function commit(update: (prev: Deck) => Deck) {

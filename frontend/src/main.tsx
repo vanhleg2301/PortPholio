@@ -8,9 +8,11 @@ import App from './App'
 import { persistQueryCache, restoreQueryCache } from '@/lib/queryPersistence'
 import './index.css'
 
+// Study data is used on several devices (desktop web + iPhone PWA): keep it short-lived, so
+// opening or returning to the app (focus / reconnect) always pulls what another device saved.
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { staleTime: 1000 * 60 * 5, retry: 1 },
+    queries: { staleTime: 30_000, retry: 1 },
   },
 })
 // Show the last known study data at once (and offline), then refresh it in the background.
