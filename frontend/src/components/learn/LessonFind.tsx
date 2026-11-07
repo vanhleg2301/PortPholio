@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type RefObject } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent, type RefObject } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDown, ChevronUp, Search, X } from 'lucide-react'
 import { EASE_OUT } from '@/lib/motion'
@@ -132,6 +132,16 @@ export function LessonFind({ rootRef, isOpen, onClose }: LessonFindProps) {
     event.preventDefault()
   }
 
+  // Arrows react on touch-down, not on click: with the iPhone keyboard open, iOS often drops the
+  // click of the first tap (the page is still settling after the jump to a match), so the arrow
+  // only worked after tapping the screen once. Keyboard Enter/Space still comes in as a click
+  // with detail 0.
+  function pressArrow(event: PointerEvent, delta: number) {
+    if (event.button !== 0) return
+    event.preventDefault()
+    step(delta)
+  }
+
   function close() {
     onClose()
     setQuery('')
@@ -179,8 +189,9 @@ export function LessonFind({ rootRef, isOpen, onClose }: LessonFindProps) {
               </span>
               <button
                 type="button"
+                onPointerDown={(e) => pressArrow(e, -1)}
                 onMouseDown={keepFocus}
-                onClick={() => step(-1)}
+                onClick={(e) => e.detail === 0 && step(-1)}
                 disabled={ranges.length === 0}
                 aria-label="Previous match"
                 className="rounded-lg p-2.5 text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-30 transition-colors"
@@ -189,8 +200,9 @@ export function LessonFind({ rootRef, isOpen, onClose }: LessonFindProps) {
               </button>
               <button
                 type="button"
+                onPointerDown={(e) => pressArrow(e, 1)}
                 onMouseDown={keepFocus}
-                onClick={() => step(1)}
+                onClick={(e) => e.detail === 0 && step(1)}
                 disabled={ranges.length === 0}
                 aria-label="Next match"
                 className="rounded-lg p-2.5 text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-30 transition-colors"
