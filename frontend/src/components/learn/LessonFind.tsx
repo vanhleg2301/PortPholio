@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type RefObject } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDown, ChevronUp, Search, X } from 'lucide-react'
 import { EASE_OUT } from '@/lib/motion'
@@ -59,11 +59,15 @@ function findRanges(root: HTMLElement, query: string): Range[] {
 interface LessonFindProps {
   // The lesson content to search in.
   rootRef: RefObject<HTMLElement | null>
+  isOpen: boolean
+  onClose: () => void
 }
 
 // "Find in this lesson": phones have no Ctrl+F in a home-screen app, so the lesson brings its own.
-export function LessonFind({ rootRef }: LessonFindProps) {
-  const [isOpen, setIsOpen] = useState(false)
+// Render it as the first child of the lesson: the bar is sticky, not fixed. On iPhone, while the
+// keyboard is open and the page scrolls by code, taps on a fixed bar land in the wrong place, so
+// the arrows did nothing until the screen was touched once.
+export function LessonFind({ rootRef, isOpen, onClose }: LessonFindProps) {
   const [query, setQuery] = useState('')
   const [ranges, setRanges] = useState<Range[]>([])
   const [current, setCurrent] = useState(0)
@@ -123,8 +127,13 @@ export function LessonFind({ rootRef }: LessonFindProps) {
     scrollToRange(ranges[nextIndex])
   }
 
+  // Tapping an arrow should not close the phone keyboard (that moves the page under the finger).
+  function keepFocus(event: MouseEvent) {
+    event.preventDefault()
+  }
+
   function close() {
-    setIsOpen(false)
+    onClose()
     setQuery('')
     setRanges([])
   }
@@ -141,15 +150,7 @@ export function LessonFind({ rootRef }: LessonFindProps) {
   const status = query.trim().length < 2 ? '' : ranges.length === 0 ? 'No results' : `${current + 1} of ${ranges.length}`
 
   return (
-    <>
-      <button
-        type="button"
-        data-find-skip
-        onClick={() => setIsOpen(true)}
-        className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground transition-colors"
-      >
-        <Search className="h-4 w-4" /> Find in lesson
-      </button>
+    <div data-find-skip style={{ top: top + 8 }} className="sticky z-[45] h-0">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -158,10 +159,9 @@ export function LessonFind({ rootRef }: LessonFindProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.18, ease: EASE_OUT }}
-            style={{ top: top + 8 }}
-            className="fixed inset-x-0 z-[45] mx-auto w-[calc(100%-2rem)] max-w-xl"
+            className="absolute inset-x-0 top-0"
           >
-            <div role="search" className="flex items-center gap-1 rounded-2xl border border-border bg-background/95 py-1.5 pl-3 pr-1.5 shadow-lg shadow-black/20 backdrop-blur-md">
+            <div role="search" className="flex items-center gap-0.5 rounded-2xl border border-border bg-background/95 py-1 pl-3 pr-1 shadow-lg shadow-black/20 backdrop-blur-md">
               <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
               <input
                 ref={inputRef}
@@ -179,19 +179,21 @@ export function LessonFind({ rootRef }: LessonFindProps) {
               </span>
               <button
                 type="button"
+                onMouseDown={keepFocus}
                 onClick={() => step(-1)}
                 disabled={ranges.length === 0}
                 aria-label="Previous match"
-                className="rounded-lg p-1.5 text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-30 transition-colors"
+                className="rounded-lg p-2.5 text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-30 transition-colors"
               >
                 <ChevronUp className="h-4 w-4" />
               </button>
               <button
                 type="button"
+                onMouseDown={keepFocus}
                 onClick={() => step(1)}
                 disabled={ranges.length === 0}
                 aria-label="Next match"
-                className="rounded-lg p-1.5 text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-30 transition-colors"
+                className="rounded-lg p-2.5 text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-30 transition-colors"
               >
                 <ChevronDown className="h-4 w-4" />
               </button>
@@ -199,7 +201,7 @@ export function LessonFind({ rootRef }: LessonFindProps) {
                 type="button"
                 onClick={close}
                 aria-label="Close search"
-                className="rounded-lg p-1.5 text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground transition-colors"
+                className="rounded-lg p-2.5 text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -207,6 +209,6 @@ export function LessonFind({ rootRef }: LessonFindProps) {
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   )
 }

@@ -1,6 +1,6 @@
-import { lazy, Suspense, useRef } from 'react'
+import { lazy, Suspense, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ArrowUpRight, Check, ChevronLeft, ChevronRight, ClipboardCheck, Clock, Info, Languages, Lightbulb, PlayCircle, Target, TriangleAlert, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, Check, ChevronLeft, ChevronRight, ClipboardCheck, Clock, Info, Languages, Lightbulb, PlayCircle, Search, Target, TriangleAlert, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CodeCell } from '@/components/learn/CodeCell'
 import { InlineText } from '@/components/learn/InlineText'
@@ -67,6 +67,7 @@ export function LessonView({
   const passedCount = exerciseIds.filter((id) => passed.has(`${lesson.id}:${id}`)).length
   const codeKey = (blockId: string) => `${lesson.id}:${blockId}`
   const articleRef = useRef<HTMLElement>(null)
+  const [isFindOpen, setIsFindOpen] = useState(false)
 
   function renderBlock(block: LessonBlock) {
     switch (block.type) {
@@ -167,6 +168,7 @@ export function LessonView({
 
   return (
     <motion.article ref={articleRef} variants={listContainer} initial="hidden" animate="show" className="pb-10">
+      <LessonFind rootRef={articleRef} isOpen={isFindOpen} onClose={() => setIsFindOpen(false)} />
       <motion.div variants={listItem}>
         <div className="flex items-center justify-between gap-2">
           <button
@@ -176,7 +178,14 @@ export function LessonView({
           >
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
-          <LessonFind rootRef={articleRef} />
+          <button
+            type="button"
+            data-find-skip
+            onClick={() => setIsFindOpen(true)}
+            className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground transition-colors"
+          >
+            <Search className="h-4 w-4" /> Find in lesson
+          </button>
         </div>
         <p className="mt-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
           Lesson <span>·</span> <Clock className="h-3.5 w-3.5" /> {lesson.minutes} min
