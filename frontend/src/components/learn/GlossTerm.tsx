@@ -11,7 +11,7 @@ import { GLOSSARY } from '@/data/lessons/glossary'
 const OPEN_DELAY_MS = 120
 const CLOSE_DELAY_MS = 160
 const GUTTER = 12
-const MAX_WIDTH = 320
+const MAX_WIDTH = 340
 
 interface GlossTermProps {
   termKey: string
@@ -34,7 +34,7 @@ function measure(anchor: HTMLElement): Position {
   const width = Math.min(MAX_WIDTH, viewport - GUTTER * 2)
   const center = rect.left + rect.width / 2
   const left = Math.min(Math.max(center - width / 2, GUTTER), viewport - width - GUTTER)
-  const isAbove = rect.top > 190
+  const isAbove = rect.top > 300
   return {
     top: isAbove ? rect.top - 10 : rect.bottom + 10,
     left,
@@ -194,9 +194,9 @@ export function GlossTerm({ termKey, children }: GlossTermProps) {
               <p className="mt-1.5 text-sm leading-relaxed text-foreground">
                 <InlineText text={entry.en} />
               </p>
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                <span className="mr-1.5 rounded bg-foreground/[0.07] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider">VI</span>
-                {entry.vi}
+              <p className="mt-2 rounded-xl bg-sky-500/[0.07] px-2.5 py-2 text-[13px] leading-relaxed text-muted-foreground">
+                <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300">For example</span>
+                <InlineText text={entry.example} />
               </p>
               {deck && (
                 <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border/70 pt-2 text-xs text-muted-foreground">

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, ArrowUpRight, Check, ChevronLeft, ChevronRight, ClipboardCheck, Clock, Info, Languages, Lightbulb, PlayCircle, Target, TriangleAlert, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -11,6 +11,7 @@ import { QuizItem } from '@/components/roadmap/TheoryCard'
 import { listContainer, listItem } from '@/lib/motion'
 import { LESSONS, LESSON_ANCHORS, blockAnchor, getExerciseIds, getLessonTerms } from '@/data/lessons'
 import { LessonOutlineSheet } from '@/components/learn/LessonOutline'
+import { LessonFind } from '@/components/learn/LessonFind'
 import { GLOSSARY } from '@/data/lessons/glossary'
 import type { CalloutTone, Lesson, LessonBlock } from '@/data/lessons/types'
 
@@ -65,6 +66,7 @@ export function LessonView({
   const exerciseIds = getExerciseIds(lesson)
   const passedCount = exerciseIds.filter((id) => passed.has(`${lesson.id}:${id}`)).length
   const codeKey = (blockId: string) => `${lesson.id}:${blockId}`
+  const articleRef = useRef<HTMLElement>(null)
 
   function renderBlock(block: LessonBlock) {
     switch (block.type) {
@@ -164,15 +166,18 @@ export function LessonView({
   }
 
   return (
-    <motion.article variants={listContainer} initial="hidden" animate="show" className="pb-10">
+    <motion.article ref={articleRef} variants={listContainer} initial="hidden" animate="show" className="pb-10">
       <motion.div variants={listItem}>
-        <button
-          type="button"
-          onClick={onBack}
-          className="-ml-2 flex items-center gap-1.5 rounded-full px-2 py-1 text-sm text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back
-        </button>
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={onBack}
+            className="-ml-2 flex items-center gap-1.5 rounded-full px-2 py-1 text-sm text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back
+          </button>
+          <LessonFind rootRef={articleRef} />
+        </div>
         <p className="mt-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
           Lesson <span>·</span> <Clock className="h-3.5 w-3.5" /> {lesson.minutes} min
           {exerciseIds.length > 0 && (
@@ -220,17 +225,16 @@ export function LessonView({
           <p className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             <Languages className="h-3.5 w-3.5" /> Words in this lesson
           </p>
-          <p className="mb-3 text-xs text-muted-foreground">
-            Plain-English explanations written by Claude (AI); the Vietnamese words are the usual translations used in Vietnamese IT.
-          </p>
+          <p className="mb-3 text-xs text-muted-foreground">Plain-English explanations with a real-life example, written by Claude (AI).</p>
           <dl className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
             {terms.map((key) => (
               <div key={key} className="text-sm">
-                <dt className="font-semibold">
-                  {key} <span className="font-normal text-muted-foreground">· {GLOSSARY[key].vi}</span>
-                </dt>
+                <dt className="font-semibold">{key}</dt>
                 <dd className="text-muted-foreground">
                   <InlineText text={GLOSSARY[key].en} />
+                </dd>
+                <dd className="mt-0.5 text-[13px] text-muted-foreground/80">
+                  <span className="font-medium">e.g.</span> <InlineText text={GLOSSARY[key].example} />
                 </dd>
               </div>
             ))}

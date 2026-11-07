@@ -152,7 +152,10 @@ export function FlashcardSession({ today }: FlashcardSessionProps) {
                   <p>
                     <InlineText text={GLOSSARY[card.term].en} />
                   </p>
-                  <p className="mt-1 text-muted-foreground">{GLOSSARY[card.term].vi}</p>
+                  <p className="mt-2 text-muted-foreground">
+                    <span className="font-semibold">For example: </span>
+                    <InlineText text={GLOSSARY[card.term].example} />
+                  </p>
                 </motion.div>
               ) : (
                 <p className="mt-2 text-sm text-muted-foreground">Say what it means in English, then check.</p>

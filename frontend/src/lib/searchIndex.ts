@@ -79,7 +79,7 @@ function buildStaticEntries(): SearchEntry[] {
   }
   for (const [key, value] of Object.entries(GLOSSARY)) {
     const place = termPlace.get(key) ?? { lessonId: LESSONS[0].id }
-    entries.push(entry(`word:${key}`, 'Words', key, `${value.vi} — ${value.en}`, { type: 'lesson', ...place }))
+    entries.push(entry(`word:${key}`, 'Words', key, `${value.en} — e.g. ${value.example}`, { type: 'lesson', ...place }))
   }
 
   const seenProblems = new Set<string>()
