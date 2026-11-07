@@ -1,5 +1,6 @@
 import { createProblemTask, getCategorySlugs } from './neetcode'
 import { CS_REFERENCES, PYTHON_REFERENCES, SD_REFERENCES } from './references'
+import { getPracticalReference } from './practicalReferences'
 import { CS_LESSONS } from '../lessons/cs'
 import { DSA_LESSONS } from '../lessons/dsa'
 import { PYTHON_LESSONS } from '../lessons/python'
@@ -803,7 +804,7 @@ function buildWeek(spec: WeekSpec): RoadmapWeek {
             reference: seed.reference ?? spec.csReference,
             lessonId: seed.lessonId ?? spec.csLessonId,
           }
-        : seed
+        : { ...seed, reference: seed.reference ?? getPracticalReference(seed.kind, seed.title) }
     )
     return { date, tasks: assignIds(date, withTheory) }
   })
