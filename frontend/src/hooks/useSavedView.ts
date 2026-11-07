@@ -3,7 +3,7 @@ import type { RoadmapTab } from '@/components/roadmap/BottomTabBar'
 import { clampToPlan } from '@/lib/roadmapStats'
 
 const STORAGE_KEY = 'roadmap:view'
-const TABS: RoadmapTab[] = ['today', 'plan', 'notes']
+const TABS: RoadmapTab[] = ['today', 'plan', 'library', 'notes']
 
 interface SavedView {
   tab: RoadmapTab

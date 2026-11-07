@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { addDays, format, parseISO, startOfWeek } from 'date-fns'
-import { CalendarCheck, ChevronLeft, ChevronRight, Map as MapIcon, NotebookPen, type LucideIcon } from 'lucide-react'
+import { CalendarCheck, ChevronLeft, ChevronRight, Library, Map as MapIcon, NotebookPen, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SPRING } from '@/lib/motion'
 import { DAY_BY_DATE, clampToPlan, getWeekForDate } from '@/lib/roadmapStats'
@@ -9,6 +9,7 @@ import type { RoadmapTab } from '@/components/roadmap/BottomTabBar'
 const NAV: Array<{ id: RoadmapTab; label: string; icon: LucideIcon }> = [
   { id: 'today', label: 'Today', icon: CalendarCheck },
   { id: 'plan', label: 'Plan', icon: MapIcon },
+  { id: 'library', label: 'Library', icon: Library },
   { id: 'notes', label: 'Notes', icon: NotebookPen },
 ]
 

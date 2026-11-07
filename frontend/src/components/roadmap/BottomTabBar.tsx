@@ -1,13 +1,14 @@
-import { CalendarCheck, Map as MapIcon, NotebookPen, type LucideIcon } from 'lucide-react'
+import { CalendarCheck, Library, Map as MapIcon, NotebookPen, type LucideIcon } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { SPRING } from '@/lib/motion'
 
-export type RoadmapTab = 'today' | 'plan' | 'notes'
+export type RoadmapTab = 'today' | 'plan' | 'library' | 'notes'
 
 const TABS: Array<{ id: RoadmapTab; label: string; icon: LucideIcon }> = [
   { id: 'today', label: 'Today', icon: CalendarCheck },
   { id: 'plan', label: 'Plan', icon: MapIcon },
+  { id: 'library', label: 'Library', icon: Library },
   { id: 'notes', label: 'Notes', icon: NotebookPen },
 ]
 
@@ -19,7 +20,7 @@ interface BottomTabBarProps {
 export function BottomTabBar({ active, onChange }: BottomTabBarProps) {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/85 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
-      <div className="mx-auto grid max-w-lg grid-cols-3">
+      <div className="mx-auto grid max-w-lg grid-cols-4">
         {TABS.map(({ id, label, icon: Icon }) => (
           <motion.button
             key={id}

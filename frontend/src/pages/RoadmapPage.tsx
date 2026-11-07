@@ -23,6 +23,7 @@ import { useAddSession, useStudySessions } from '@/hooks/useStudySessions'
 import type { RoadmapTask } from '@/data/roadmap/types'
 import { AccountSheet } from '@/components/roadmap/AccountSheet'
 import { BottomTabBar, type RoadmapTab } from '@/components/roadmap/BottomTabBar'
+import { LibraryView } from '@/components/roadmap/LibraryView'
 import { NotesView } from '@/components/roadmap/NotesView'
 import { PlanView } from '@/components/roadmap/PlanView'
 import { TodayView } from '@/components/roadmap/TodayView'
@@ -464,6 +465,7 @@ export default function RoadmapPage() {
         {tab === 'plan' && (
           <PlanView doneIds={doneIds} today={today} onToggle={handleToggle} onOpenDay={openDay} sessions={sessions} />
         )}
+        {tab === 'library' && <LibraryView onOpenLesson={(id) => openLessonById(id)} />}
         {tab === 'notes' && (
           <NotesView
             isOwner={isOwner}
