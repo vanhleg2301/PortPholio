@@ -90,9 +90,10 @@ interface TheoryCardProps {
   isOpenByDefault?: boolean
   // Extra line under the summary, e.g. a topic badge and the matching text of a search.
   headerExtra?: ReactNode
+  onOpenChange?: (isOpen: boolean) => void
 }
 
-export function TheoryCard({ reference, isOpenByDefault = true, headerExtra }: TheoryCardProps) {
+export function TheoryCard({ reference, isOpenByDefault = true, headerExtra, onOpenChange }: TheoryCardProps) {
   const [isOpen, setIsOpen] = useState(isOpenByDefault)
   const sources = [reference.source, ...(reference.extraSource ? [reference.extraSource] : [])]
 
@@ -100,7 +101,10 @@ export function TheoryCard({ reference, isOpenByDefault = true, headerExtra }: T
     <div className="rounded-2xl border border-sky-500/25 bg-sky-500/[0.04]">
       <button
         type="button"
-        onClick={() => setIsOpen((v) => !v)}
+        onClick={() => {
+          setIsOpen(!isOpen)
+          onOpenChange?.(!isOpen)
+        }}
         aria-expanded={isOpen}
         className="group flex w-full items-start gap-3 rounded-2xl px-4 py-3.5 text-left hover:bg-sky-500/[0.06] transition-colors"
       >
@@ -126,7 +130,7 @@ export function TheoryCard({ reference, isOpenByDefault = true, headerExtra }: T
             transition={{ duration: 0.3, ease: EASE_OUT }}
             className="overflow-hidden"
           >
-            <div className="border-t border-sky-500/15 px-4 pb-4 pt-4">
+            <div data-card-body className="border-t border-sky-500/15 px-4 pb-4 pt-4">
               {reference.recognize && (
                 <Section icon={ScanSearch} title={reference.recognizeTitle ?? 'Spot it when you see'}>
                   <div className="flex flex-wrap gap-2">

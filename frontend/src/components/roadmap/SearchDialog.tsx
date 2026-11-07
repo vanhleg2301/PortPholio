@@ -1,20 +1,21 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { BookOpen, CalendarDays, Clock, CornerDownLeft, Languages, NotebookPen, Search, SquareCode, X, type LucideIcon } from 'lucide-react'
+import { BookMarked, BookOpen, CalendarDays, Clock, CornerDownLeft, Languages, NotebookPen, Search, SquareCode, X, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EASE_OUT } from '@/lib/motion'
 import { getSearchEntries, search, type SearchEntry, type SearchGroup, type SearchNote } from '@/lib/searchIndex'
 
 const GROUP_ICON: Record<SearchGroup, LucideIcon> = {
   Lessons: BookOpen,
+  Theory: BookMarked,
   Words: Languages,
   Problems: SquareCode,
   Plan: CalendarDays,
   Notes: NotebookPen,
 }
 const RECENT_KEY = 'roadmap:recent-searches'
-const SUGGESTIONS = ['latency', 'two sum', 'heap', 'độ trễ', 'slicing', 'Week 2']
+const SUGGESTIONS = ['latency', 'two sum', 'heap', 'deadlock', 'RAG', 'Week 2']
 
 function readRecent(): string[] {
   try {
@@ -38,7 +39,8 @@ interface SearchDialogProps {
   isOpen: boolean
   notes: SearchNote[]
   onClose: () => void
-  onSelect: (entry: SearchEntry) => void
+  // `query` is what was typed, so the page can jump to the first place it appears.
+  onSelect: (entry: SearchEntry, query: string) => void
 }
 
 // Search everything in the app: lessons and their sections, glossary words (English or
@@ -71,7 +73,7 @@ export function SearchDialog({ isOpen, notes, onClose, onSelect }: SearchDialogP
 
   function choose(entry: SearchEntry) {
     if (query.trim()) saveRecent(query.trim())
-    onSelect(entry)
+    onSelect(entry, query.trim())
     onClose()
   }
 
@@ -123,7 +125,7 @@ export function SearchDialog({ isOpen, notes, onClose, onSelect }: SearchDialogP
                   setQuery(e.target.value)
                   setCursor(0)
                 }}
-                placeholder="Search lessons, words, problems, notes…"
+                placeholder="Search lessons, theory, words, problems, notes…"
                 aria-label="Search"
                 autoCapitalize="off"
                 autoCorrect="off"
@@ -160,7 +162,7 @@ export function SearchDialog({ isOpen, notes, onClose, onSelect }: SearchDialogP
                       ))}
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">Accents are optional: “do tre” finds “độ trễ”.</p>
+                  <p className="text-xs text-muted-foreground">Opening a result jumps to the first place your words appear and marks it.</p>
                 </div>
               ) : results.length === 0 ? (
                 <p className="p-6 text-center text-sm text-muted-foreground">No results for “{query}”.</p>

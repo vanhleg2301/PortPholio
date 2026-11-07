@@ -1,5 +1,6 @@
 // Find text on the page and mark it with the CSS Custom Highlight API (no DOM changes, so
-// React-rendered content is never touched). Used by "Find in lesson" and the Library search.
+// React-rendered content is never touched). Used by "Find in lesson", the Library and the
+// jump to a search result.
 
 interface HighlightRegistry {
   set: (name: string, value: unknown) => void
@@ -51,4 +52,61 @@ export function findRanges(root: HTMLElement, query: string, isWordStart = false
     ranges.push(range)
   }
   return ranges
+}
+
+// Ranges for the whole query; if the words never appear together, for its longest word.
+export function findBestRanges(root: HTMLElement, query: string): { ranges: Range[]; used: string } {
+  const phrase = query.trim()
+  const whole = findRanges(root, phrase, true)
+  if (whole.length > 0) return { ranges: whole, used: phrase }
+  const longest = phrase.split(/\s+/).sort((a, b) => b.length - a.length)[0] ?? ''
+  return { ranges: longest && longest !== phrase ? findRanges(root, longest, true) : [], used: longest }
+}
+
+// True when `range` starts inside `element` or anywhere after it in the page.
+export function isAtOrAfter(range: Range, element: Element): boolean {
+  const node = range.startContainer
+  return element.contains(node) || Boolean(element.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)
+}
+
+export function scrollToRange(range: Range, behavior: ScrollBehavior = 'smooth') {
+  const rect = range.getBoundingClientRect()
+  if (rect.width === 0 && rect.height === 0) return
+  window.scrollTo({ top: window.scrollY + rect.top - window.innerHeight / 3, behavior })
+}
+
+const FLASH = 'search-current'
+
+interface FlashOptions {
+  // Prefer the first match inside or after this element.
+  after?: () => Element | null
+  onMiss?: () => void
+}
+
+// After opening a search result: wait for the content to appear, scroll to the first match and
+// mark it for a few seconds. Returns a cancel function.
+export function flashFirstMatch(getRoot: () => HTMLElement | null, query: string, { after, onMiss }: FlashOptions = {}): () => void {
+  const timers: Array<ReturnType<typeof setTimeout>> = []
+  const api = getHighlightApi()
+  const attempt = (triesLeft: number) => {
+    const root = getRoot()
+    const { ranges } = root ? findBestRanges(root, query) : { ranges: [] }
+    const anchor = after?.()
+    const target = (anchor && ranges.find((r) => isAtOrAfter(r, anchor))) || ranges[0]
+    if (!target) {
+      if (triesLeft > 0) timers.push(setTimeout(() => attempt(triesLeft - 1), 250))
+      else onMiss?.()
+      return
+    }
+    scrollToRange(target)
+    // Content may still be animating in; correct the position once it has settled.
+    timers.push(setTimeout(() => scrollToRange(target), 650))
+    api?.registry.set(FLASH, new api.Highlight(target))
+    timers.push(setTimeout(() => api?.registry.delete(FLASH), 4000))
+  }
+  timers.push(setTimeout(() => attempt(8), 200))
+  return () => {
+    timers.forEach(clearTimeout)
+    api?.registry.delete(FLASH)
+  }
 }

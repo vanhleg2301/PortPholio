@@ -11,7 +11,7 @@ import { QuizItem } from '@/components/roadmap/TheoryCard'
 import { listContainer, listItem } from '@/lib/motion'
 import { LESSONS, LESSON_ANCHORS, blockAnchor, getExerciseIds, getLessonTerms } from '@/data/lessons'
 import { LessonOutlineSheet } from '@/components/learn/LessonOutline'
-import { LessonFind } from '@/components/learn/LessonFind'
+import { LessonFind, type LessonFindRequest } from '@/components/learn/LessonFind'
 import { GLOSSARY } from '@/data/lessons/glossary'
 import type { CalloutTone, Lesson, LessonBlock } from '@/data/lessons/types'
 
@@ -24,6 +24,9 @@ const CALLOUT: Record<CalloutTone, { icon: LucideIcon; label: string; className:
 }
 
 interface LessonViewProps {
+  // Opened from a search: find and show the first match.
+  findRequest?: LessonFindRequest | null
+  onFindMiss?: (request: LessonFindRequest) => void
   lesson: Lesson
   // Signed in: code and exercise progress are saved to this account.
   canSave: boolean
@@ -44,6 +47,8 @@ interface LessonViewProps {
 }
 
 export function LessonView({
+  findRequest,
+  onFindMiss,
   lesson,
   canSave,
   passed,
@@ -67,7 +72,13 @@ export function LessonView({
   const passedCount = exerciseIds.filter((id) => passed.has(`${lesson.id}:${id}`)).length
   const codeKey = (blockId: string) => `${lesson.id}:${blockId}`
   const articleRef = useRef<HTMLElement>(null)
-  const [isFindOpen, setIsFindOpen] = useState(false)
+  const activeRequest = findRequest && findRequest.lessonId === lesson.id ? findRequest : null
+  const [isFindOpen, setIsFindOpen] = useState(Boolean(activeRequest))
+  const [openedFor, setOpenedFor] = useState(activeRequest?.id ?? null)
+  if (activeRequest && activeRequest.id !== openedFor) {
+    setOpenedFor(activeRequest.id)
+    setIsFindOpen(true)
+  }
 
   function renderBlock(block: LessonBlock) {
     switch (block.type) {
@@ -168,7 +179,7 @@ export function LessonView({
 
   return (
     <motion.article ref={articleRef} variants={listContainer} initial="hidden" animate="show" className="pb-10">
-      <LessonFind rootRef={articleRef} isOpen={isFindOpen} onClose={() => setIsFindOpen(false)} />
+      <LessonFind rootRef={articleRef} isOpen={isFindOpen} onClose={() => setIsFindOpen(false)} request={activeRequest} onMiss={onFindMiss} />
       <motion.div variants={listItem}>
         <div className="flex items-center justify-between gap-2">
           <button

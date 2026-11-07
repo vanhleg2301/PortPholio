@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { BookMarked, ChevronRight, Clock, GraduationCap, Library, Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { InlineText } from '@/components/learn/InlineText'
-import { findRanges, getHighlightApi } from '@/lib/textHighlight'
+import { findRanges, flashFirstMatch, getHighlightApi } from '@/lib/textHighlight'
 import { TheoryCard } from '@/components/roadmap/TheoryCard'
 import { listContainer, listItem } from '@/lib/motion'
 import { LIBRARY, LIBRARY_TOPICS, searchLibrary, type LibraryHit, type LibraryTopic } from '@/data/library'
@@ -44,12 +44,21 @@ function Highlight({ text, tokens }: { text: string; tokens: string[] }) {
   )
 }
 
+// Opened from the global search: show this query and open this card at its first match.
+export interface LibraryRequest {
+  id: number
+  query: string
+  entryId?: string
+}
+
 interface LibraryViewProps {
-  onOpenLesson: (lessonId: string) => void
+  // `query` is passed when the lesson is opened from a search result.
+  onOpenLesson: (lessonId: string, query?: string) => void
+  request?: LibraryRequest | null
 }
 
 // One tab with everything the app teaches — lessons, theory cards and words — and a search over all of it.
-export function LibraryView({ onOpenLesson }: LibraryViewProps) {
+export function LibraryView({ onOpenLesson, request }: LibraryViewProps) {
   const [query, setQueryState] = useState(lastView.query)
   const [topic, setTopicState] = useState<LibraryTopic | 'all'>(lastView.topic)
   const setQuery = (value: string) => {
@@ -59,6 +68,15 @@ export function LibraryView({ onOpenLesson }: LibraryViewProps) {
   const setTopic = (value: LibraryTopic | 'all') => {
     lastView.topic = value
     setTopicState(value)
+  }
+  // A card opened by a search request, keyed by the request so it mounts already open.
+  const [openRequest, setOpenRequest] = useState<LibraryRequest | null>(null)
+  if (request && request.id !== openRequest?.id) {
+    setOpenRequest(request)
+    lastView.query = request.query
+    lastView.topic = 'all'
+    setQueryState(request.query)
+    setTopicState('all')
   }
   const deferredQuery = useDeferredValue(query)
   const isSearching = deferredQuery.trim().length > 0
@@ -71,13 +89,26 @@ export function LibraryView({ onOpenLesson }: LibraryViewProps) {
   const allHits = useMemo(() => (hasExact ? searchHits.filter((h) => h.isExact) : searchHits), [searchHits, hasExact])
   const partialHits = hasExact ? searchHits.filter((h) => !h.isExact && (topic === 'all' || h.entry.topic === topic)) : []
   const [partialFor, setPartialFor] = useState<string | null>(null)
-  const isPartialOpen = partialFor === deferredQuery
+  const isPartialOpen = partialFor === deferredQuery || partialHits.some((h) => h.entry.id === openRequest?.entryId)
   const hits = topic === 'all' ? allHits : allHits.filter((h) => h.entry.topic === topic)
   const countByTopic = useMemo(() => {
     const counts = new Map<string, number>()
     for (const h of allHits) counts.set(h.entry.topic, (counts.get(h.entry.topic) ?? 0) + 1)
     return counts
   }, [allHits])
+
+  // Opening a card while searching scrolls to the first match inside it.
+  const cancelJump = useRef<(() => void) | null>(null)
+  function jumpInsideCard(entryId: string, words: string) {
+    cancelJump.current?.()
+    if (words.trim().length < 2) return
+    const card = () => resultsRef.current?.querySelector<HTMLElement>(`[data-entry-id="${CSS.escape(entryId)}"] [data-card-body]`) ?? null
+    cancelJump.current = flashFirstMatch(card, words)
+  }
+  useEffect(() => {
+    if (openRequest?.entryId) jumpInsideCard(openRequest.entryId, openRequest.query)
+    return () => cancelJump.current?.()
+  }, [openRequest])
 
   // Marks every match in the results, including inside a theory card once it is opened.
   const resultsRef = useRef<HTMLDivElement>(null)
@@ -120,7 +151,7 @@ export function LibraryView({ onOpenLesson }: LibraryViewProps) {
       return (
         <button
           type="button"
-          onClick={() => onOpenLesson(entry.lesson.id)}
+          onClick={() => onOpenLesson(entry.lesson.id, isSearching ? deferredQuery : undefined)}
           className="group flex w-full items-start gap-3 rounded-2xl border border-violet-500/25 bg-violet-500/[0.04] px-4 py-3.5 text-left hover:border-violet-500/50 hover:bg-violet-500/[0.08] transition-colors"
         >
           <GraduationCap className="mt-0.5 h-4 w-4 shrink-0 text-violet-600 dark:text-violet-400" />
@@ -144,8 +175,12 @@ export function LibraryView({ onOpenLesson }: LibraryViewProps) {
     if (entry.kind === 'theory') {
       return (
         <TheoryCard
+          key={entry.id === openRequest?.entryId ? `${entry.id}-${openRequest.id}` : entry.id}
           reference={entry.reference}
-          isOpenByDefault={false}
+          isOpenByDefault={entry.id === openRequest?.entryId}
+          onOpenChange={(isOpen) => {
+            if (isOpen && isSearching) jumpInsideCard(entry.id, deferredQuery)
+          }}
           headerExtra={
             (topicChip || snippetLine) && (
               <span className="mt-1.5 block">
@@ -206,7 +241,7 @@ export function LibraryView({ onOpenLesson }: LibraryViewProps) {
               {entries
                 .filter((h) => h.entry.group === group)
                 .map((h) => (
-                  <div key={h.entry.id} className="min-w-0">
+                  <div key={h.entry.id} data-entry-id={h.entry.id} className="min-w-0">
                     {renderEntry(h, false)}
                   </div>
                 ))}
@@ -343,7 +378,7 @@ export function LibraryView({ onOpenLesson }: LibraryViewProps) {
               </p>
               <div className="grid grid-cols-1 gap-2">
                 {hits.map((h) => (
-                  <div key={h.entry.id} className="min-w-0">{renderEntry(h, topic === 'all')}</div>
+                  <div key={h.entry.id} data-entry-id={h.entry.id} className="min-w-0">{renderEntry(h, topic === 'all')}</div>
                 ))}
               </div>
               {partialHits.length > 0 && (
@@ -361,7 +396,7 @@ export function LibraryView({ onOpenLesson }: LibraryViewProps) {
                   {isPartialOpen && (
                     <div className="mt-2 grid grid-cols-1 gap-2">
                       {partialHits.map((h) => (
-                        <div key={h.entry.id} className="min-w-0">{renderEntry(h, topic === 'all')}</div>
+                        <div key={h.entry.id} data-entry-id={h.entry.id} className="min-w-0">{renderEntry(h, topic === 'all')}</div>
                       ))}
                     </div>
                   )}

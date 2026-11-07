@@ -8,6 +8,8 @@ import { FocusSheet } from '@/components/roadmap/FocusSheet'
 import { DesktopSidebar } from '@/components/roadmap/DesktopSidebar'
 import { SidePanel } from '@/components/roadmap/SidePanel'
 import { LessonView } from '@/components/learn/LessonView'
+import type { LessonFindRequest } from '@/components/learn/LessonFind'
+import { flashFirstMatch } from '@/lib/textHighlight'
 import { ReviewDeckProvider } from '@/components/learn/ReviewDeckContext'
 import { SelectionTranslator } from '@/components/learn/SelectionTranslator'
 import { LessonOutlinePanel, scrollToAnchor } from '@/components/learn/LessonOutline'
@@ -23,7 +25,7 @@ import { useAddSession, useStudySessions } from '@/hooks/useStudySessions'
 import type { RoadmapTask } from '@/data/roadmap/types'
 import { AccountSheet } from '@/components/roadmap/AccountSheet'
 import { BottomTabBar, type RoadmapTab } from '@/components/roadmap/BottomTabBar'
-import { LibraryView } from '@/components/roadmap/LibraryView'
+import { LibraryView, type LibraryRequest } from '@/components/roadmap/LibraryView'
 import { NotesView } from '@/components/roadmap/NotesView'
 import { PlanView } from '@/components/roadmap/PlanView'
 import { TodayView } from '@/components/roadmap/TodayView'
@@ -89,6 +91,10 @@ export default function RoadmapPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   // Section to scroll to once a lesson opened from search has rendered.
   const [pendingAnchor, setPendingAnchor] = useState<string | null>(null)
+  // Opening a search result: where to look for the words that were searched.
+  const [lessonFind, setLessonFind] = useState<LessonFindRequest | null>(null)
+  const [dayFind, setDayFind] = useState<{ id: number; query: string } | null>(null)
+  const [libraryRequest, setLibraryRequest] = useState<LibraryRequest | null>(null)
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const location = useLocation()
   const navigate = useNavigate()
@@ -255,16 +261,33 @@ export default function RoadmapPage() {
     }
   }, [pendingAnchor, lesson])
 
-  function openLessonById(id: string, anchor?: string) {
+  // With `query`, the lesson opens its find bar on the first match (inside or after `anchor`).
+  function openLessonById(id: string, anchor?: string, query?: string) {
     navigate(`/roadmap/learn/${id}`)
-    if (anchor) setPendingAnchor(anchor)
+    if (query && query.trim().length >= 2) {
+      window.scrollTo({ top: 0 })
+      setLessonFind({ id: Date.now(), lessonId: id, query: query.trim(), anchor })
+    } else if (anchor) setPendingAnchor(anchor)
     else window.scrollTo({ top: 0 })
   }
 
-  function handleSearchSelect(entry: SearchEntry) {
-    if (entry.action.type === 'lesson') openLessonById(entry.action.lessonId, entry.action.anchor)
-    else openDay(entry.action.date)
+  function handleSearchSelect(entry: SearchEntry, query: string) {
+    const { action } = entry
+    if (action.type === 'lesson') openLessonById(action.lessonId, action.anchor, query)
+    else if (action.type === 'library') {
+      changeTab('library')
+      setLibraryRequest({ id: Date.now(), query, entryId: action.entryId })
+    } else {
+      openDay(action.date)
+      if (query.length >= 2) setDayFind({ id: Date.now(), query })
+    }
   }
+
+  // A plan task, problem or note opened from search: scroll to where the words appear on Today.
+  useEffect(() => {
+    if (!dayFind || tab !== 'today' || lesson) return
+    return flashFirstMatch(() => document.querySelector('main'), dayFind.query)
+  }, [dayFind, tab, lesson])
 
   function openLesson(task: RoadmapTask) {
     if (!task.lessonId) return
@@ -410,6 +433,8 @@ export default function RoadmapPage() {
             {lesson ? (
               <motion.div key={`lesson-${lesson.id}`} variants={fadeSwap} initial="initial" animate="animate" exit="exit">
                 <LessonView
+                  findRequest={lessonFind}
+                  onFindMiss={(request) => request.anchor && setPendingAnchor(request.anchor)}
                   lesson={lesson}
                   canSave={canSaveAnswers}
                   passed={passedItems}
@@ -465,7 +490,9 @@ export default function RoadmapPage() {
         {tab === 'plan' && (
           <PlanView doneIds={doneIds} today={today} onToggle={handleToggle} onOpenDay={openDay} sessions={sessions} />
         )}
-        {tab === 'library' && <LibraryView onOpenLesson={(id) => openLessonById(id)} />}
+        {tab === 'library' && (
+          <LibraryView request={libraryRequest} onOpenLesson={(id, query) => openLessonById(id, undefined, query)} />
+        )}
         {tab === 'notes' && (
           <NotesView
             isOwner={isOwner}

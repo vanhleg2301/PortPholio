@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type 
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDown, ChevronUp, Search, X } from 'lucide-react'
 import { EASE_OUT } from '@/lib/motion'
-import { findRanges, getHighlightApi } from '@/lib/textHighlight'
+import { findBestRanges, findRanges, getHighlightApi, isAtOrAfter, scrollToRange } from '@/lib/textHighlight'
 
 const HIGHLIGHT = 'lesson-find'
 const CURRENT = 'lesson-find-current'
@@ -12,37 +12,86 @@ interface LessonFindProps {
   rootRef: RefObject<HTMLElement | null>
   isOpen: boolean
   onClose: () => void
+  // Opened from a search result: search for this right away, starting at `anchor` if given.
+  request?: LessonFindRequest | null
+  onMiss?: (request: LessonFindRequest) => void
+}
+
+export interface LessonFindRequest {
+  id: number
+  lessonId: string
+  query: string
+  anchor?: string
 }
 
 // "Find in this lesson": phones have no Ctrl+F in a home-screen app, so the lesson brings its own.
 // Render it as the first child of the lesson: the bar is sticky, not fixed. On iPhone, while the
 // keyboard is open and the page scrolls by code, taps on a fixed bar land in the wrong place, so
 // the arrows did nothing until the screen was touched once.
-export function LessonFind({ rootRef, isOpen, onClose }: LessonFindProps) {
+export function LessonFind({ rootRef, isOpen, onClose, request, onMiss }: LessonFindProps) {
   const [query, setQuery] = useState('')
   const [ranges, setRanges] = useState<Range[]>([])
   const [current, setCurrent] = useState(0)
   const [top, setTop] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  // The search result being opened, until its first match has been shown.
+  const pending = useRef<LessonFindRequest | null>(null)
+  const [handledId, setHandledId] = useState<number | null>(null)
+  const onMissRef = useRef(onMiss)
+  useEffect(() => {
+    onMissRef.current = onMiss
+  }, [onMiss])
+  if (request && request.id !== handledId) {
+    setHandledId(request.id)
+    pending.current = request
+    setQuery(request.query)
+  }
 
   useEffect(() => {
     if (!isOpen) return
     const header = document.querySelector('header')
     setTop(header ? header.getBoundingClientRect().height : 0)
-    inputRef.current?.focus()
+    // Coming from a search result, do not pop up the phone keyboard over the answer.
+    if (!pending.current) inputRef.current?.focus()
   }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
-    const timer = setTimeout(() => {
+    const timers: Array<ReturnType<typeof setTimeout>> = []
+    const run = (triesLeft: number) => {
       const root = rootRef.current
-      const found = root ? findRanges(root, query) : []
+      const opening = pending.current
+      if (!opening) {
+        const found = root ? findRanges(root, query) : []
+        setRanges(found)
+        setCurrent(0)
+        if (found.length) scrollToRange(found[0])
+        return
+      }
+      // From a search result: the lesson may still be rendering, so try a few times.
+      const { ranges: found, used } = root ? findBestRanges(root, opening.query) : { ranges: [], used: opening.query }
+      if (found.length === 0) {
+        if (triesLeft > 0) timers.push(setTimeout(() => run(triesLeft - 1), 250))
+        else {
+          pending.current = null
+          onMissRef.current?.(opening)
+        }
+        return
+      }
+      if (used !== query) setQuery(used)
+      const anchor = opening.anchor ? document.getElementById(opening.anchor) : null
+      const index = Math.max(0, anchor ? found.findIndex((r) => isAtOrAfter(r, anchor)) : 0)
+      pending.current = null
       setRanges(found)
-      setCurrent(0)
-      if (found.length) scrollToRange(found[0])
-    }, 180)
-    return () => clearTimeout(timer)
-  }, [query, isOpen, rootRef])
+      setCurrent(index)
+      scrollToRange(found[index])
+      // The lesson animates in; land again once the layout has settled.
+      timers.push(setTimeout(() => scrollToRange(found[index]), 650))
+    }
+    timers.push(setTimeout(() => run(8), 180))
+    return () => timers.forEach(clearTimeout)
+    // handledId: the same words searched again from another result still jump.
+  }, [query, isOpen, rootRef, handledId])
 
   useEffect(() => {
     const api = getHighlightApi()
@@ -64,12 +113,6 @@ export function LessonFind({ rootRef, isOpen, onClose }: LessonFindProps) {
     },
     []
   )
-
-  function scrollToRange(range: Range) {
-    const rect = range.getBoundingClientRect()
-    if (rect.width === 0 && rect.height === 0) return
-    window.scrollTo({ top: window.scrollY + rect.top - window.innerHeight / 3, behavior: 'smooth' })
-  }
 
   function step(delta: number) {
     if (ranges.length === 0) return
@@ -111,7 +154,7 @@ export function LessonFind({ rootRef, isOpen, onClose }: LessonFindProps) {
   const status = query.trim().length < 2 ? '' : ranges.length === 0 ? 'No results' : `${current + 1} of ${ranges.length}`
 
   return (
-    <div data-find-skip style={{ top: top + 8 }} className="sticky z-[45] h-0">
+    <div data-find-skip style={{ top: top + 8 }} className="sticky z-[45]">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -120,9 +163,10 @@ export function LessonFind({ rootRef, isOpen, onClose }: LessonFindProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.18, ease: EASE_OUT }}
-            className="absolute inset-x-0 top-0"
+            // In the page flow (not on top of it), so the bar never covers the Back button.
+            className="mb-4"
           >
-            <div role="search" className="flex items-center gap-0.5 rounded-2xl border border-border bg-background/95 py-1 pl-3 pr-1 shadow-lg shadow-black/20 backdrop-blur-md">
+            <div role="search" className="flex items-center gap-0.5 rounded-2xl border border-border bg-background py-1 pl-3 pr-1 shadow-lg shadow-black/20">
               <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
               <input
                 ref={inputRef}

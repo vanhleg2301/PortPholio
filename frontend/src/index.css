@@ -125,6 +125,7 @@
 /* Matches of "Find in lesson" (CSS Custom Highlight API) */
 ::highlight(lesson-find) { background-color: rgb(250 204 21 / 0.35); }
 ::highlight(library-find) { background-color: rgb(250 204 21 / 0.35); }
+::highlight(search-current) { background-color: rgb(249 115 22 / 0.75); color: #fff; }
 ::highlight(lesson-find-current) { background-color: rgb(249 115 22 / 0.75); color: #fff; }
 
 /* Rendered markdown in roadmap notes */

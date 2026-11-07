@@ -2,7 +2,7 @@ import { LESSONS, toPlainText } from '@/data/lessons'
 import { GLOSSARY, type GlossaryArea } from '@/data/lessons/glossary'
 import { CATEGORY_REFERENCES, CS_REFERENCES, PYTHON_REFERENCES, SD_REFERENCES } from '@/data/roadmap/references'
 import { AI_REFERENCES, CAREER_REFERENCES } from '@/data/roadmap/practicalReferences'
-import { normalize } from '@/lib/searchIndex'
+import { normalize } from '@/lib/normalize'
 import type { Lesson } from '@/data/lessons/types'
 import type { TaskReference } from '@/data/roadmap/types'
 
