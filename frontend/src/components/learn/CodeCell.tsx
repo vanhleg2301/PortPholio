@@ -89,16 +89,16 @@ export function CodeCell({ initialCode, savedCode, tests, label = 'Python', isPa
   return (
     <>
       <div className={cn('overflow-hidden rounded-2xl border bg-[#21252b]', isPassed ? 'border-emerald-500/50' : 'border-white/10')}>
-        <div className="flex items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
-          <span className="flex min-w-0 items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-white/50">
-            <span className="truncate">{label}</span>
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-b border-white/10 px-3 py-2">
+          <span className="flex items-center gap-2 whitespace-nowrap text-[11px] font-semibold uppercase tracking-widest text-white/50">
+            <span>{label}</span>
             {isPassed && (
               <span className="flex shrink-0 items-center gap-1 text-emerald-400">
                 <CircleCheck className="h-3.5 w-3.5" /> Solved
               </span>
             )}
           </span>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="ml-auto flex shrink-0 items-center gap-1">
             <button
               type="button"
               onClick={state.reset}

@@ -1,6 +1,6 @@
-import { useRef, useState, type KeyboardEvent } from 'react'
+import { useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { z } from 'zod'
-import { AnimatePresence, motion, type PanInfo } from 'framer-motion'
+import { AnimatePresence, motion, useDragControls, type PanInfo } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Clock, Layers, RotateCcw, Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { QuestionCard } from '@/components/learn/QuestionCard'
@@ -155,6 +155,12 @@ export function ChoiceTest({ questions, sampleSize, isPassed, onPass, savedState
   const [direction, setDirection] = useState(1)
   const deck = useReviewDeck()
   const isTouch = useMediaQuery('(pointer: coarse)')
+  const dragControls = useDragControls()
+  // A swipe that starts on code would steal its sideways scroll, so long lines could not be read.
+  const startSwipe = (event: ReactPointerEvent) => {
+    if (!isTouch || (event.target as Element).closest('pre, table, .overflow-x-auto')) return
+    dragControls.start(event)
+  }
   // Answered options become disabled and drop focus; keep it on the test so keys keep working.
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -338,10 +344,13 @@ export function ChoiceTest({ questions, sampleSize, isPassed, onPass, savedState
             animate="center"
             exit="exit"
             drag={isTouch ? 'x' : false}
+            dragListener={false}
+            dragControls={dragControls}
+            onPointerDown={startSwipe}
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.25}
             onDragEnd={handleDragEnd}
-            className="rounded-xl border border-border/70 bg-background/40 p-4"
+            className={cn('rounded-xl border border-border/70 bg-background/40 p-4', isTouch && 'touch-pan-y')}
           >
             <QuestionCard question={question} order={attempt.orders[current]} chosen={chosen} onChoose={choose} />
           </motion.div>

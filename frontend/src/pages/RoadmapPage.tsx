@@ -313,7 +313,7 @@ export default function RoadmapPage() {
             <span className="h-8 w-8 shrink-0 rounded-full bg-foreground text-background text-[10px] font-bold flex items-center justify-center">
               HV
             </span>
-            <span className="font-display font-bold uppercase tracking-tight truncate">Road to Big Tech</span>
+            <span className="font-display text-sm font-bold uppercase tracking-tight truncate sm:text-base">Road to Big Tech</span>
           </Link>
           <div className="flex shrink-0 items-center gap-2">
           <button
