@@ -88,9 +88,11 @@ export function QuizItem({ question, answer }: { question: string; answer: strin
 interface TheoryCardProps {
   reference: TaskReference
   isOpenByDefault?: boolean
+  // Extra line under the summary, e.g. a topic badge and the matching text of a search.
+  headerExtra?: ReactNode
 }
 
-export function TheoryCard({ reference, isOpenByDefault = true }: TheoryCardProps) {
+export function TheoryCard({ reference, isOpenByDefault = true, headerExtra }: TheoryCardProps) {
   const [isOpen, setIsOpen] = useState(isOpenByDefault)
   const sources = [reference.source, ...(reference.extraSource ? [reference.extraSource] : [])]
 
@@ -110,6 +112,7 @@ export function TheoryCard({ reference, isOpenByDefault = true }: TheoryCardProp
               <InlineCode text={reference.summary} />
             </span>
           )}
+          {headerExtra}
         </span>
         <ChevronDown className={cn('mt-0.5 h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-transform', isOpen && 'rotate-180')} />
       </button>

@@ -72,9 +72,9 @@ export function LibraryView({ onOpenLesson }: LibraryViewProps) {
       </span>
     )
     const snippetLine = isSearching && snippet && (
-      <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+      <span className="mt-1.5 block text-[13px] leading-relaxed text-muted-foreground">
         <Highlight text={snippet} tokens={tokens} />
-      </p>
+      </span>
     )
     if (entry.kind === 'lesson') {
       return (
@@ -103,15 +103,18 @@ export function LibraryView({ onOpenLesson }: LibraryViewProps) {
     }
     if (entry.kind === 'theory') {
       return (
-        <div>
-          {(topicChip || snippetLine) && (
-            <div className="mb-1.5 px-1">
-              {topicChip}
-              {snippetLine}
-            </div>
-          )}
-          <TheoryCard reference={entry.reference} isOpenByDefault={false} />
-        </div>
+        <TheoryCard
+          reference={entry.reference}
+          isOpenByDefault={false}
+          headerExtra={
+            (topicChip || snippetLine) && (
+              <span className="mt-1.5 block">
+                {topicChip}
+                {snippetLine}
+              </span>
+            )
+          }
+        />
       )
     }
     return (
@@ -145,11 +148,11 @@ export function LibraryView({ onOpenLesson }: LibraryViewProps) {
           {groups.map((group) => (
             <div key={group} className="mt-4">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{group}</p>
-              <div className={cn('grid gap-2', t.id === 'words' && 'sm:grid-cols-2')}>
+              <div className={cn('grid grid-cols-1 gap-2', t.id === 'words' && 'sm:grid-cols-2')}>
                 {entries
                   .filter((h) => h.entry.group === group)
                   .map((h) => (
-                    <div key={h.entry.id}>{renderEntry(h, false)}</div>
+                    <div key={h.entry.id} className="min-w-0">{renderEntry(h, false)}</div>
                   ))}
               </div>
             </div>
@@ -232,9 +235,9 @@ export function LibraryView({ onOpenLesson }: LibraryViewProps) {
               <p className="mb-3 text-xs text-muted-foreground">
                 {hits.length} result{hits.length === 1 ? '' : 's'}
               </p>
-              <div className="grid gap-2">
+              <div className="grid grid-cols-1 gap-2">
                 {hits.map((h) => (
-                  <div key={h.entry.id}>{renderEntry(h, true)}</div>
+                  <div key={h.entry.id} className="min-w-0">{renderEntry(h, topic === 'all')}</div>
                 ))}
               </div>
             </>

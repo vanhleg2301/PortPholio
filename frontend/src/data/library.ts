@@ -124,8 +124,9 @@ export function searchLibrary(query: string, topic: LibraryTopic | 'all'): Libra
     if (!text || !tokens.every((t) => text.title.includes(t) || text.body.includes(t))) continue
     const titleHits = tokens.filter((t) => text.title.includes(t)).length
     const score = titleHits * 10 + (text.title.startsWith(tokens[0]) ? 5 : 0) + (entry.kind === 'lesson' ? 2 : entry.kind === 'theory' ? 1 : 0)
-    // The search text starts with the title, which is already shown.
-    hits.push({ entry, snippet: getSnippet(entry.search.slice(entry.title.length), tokens), score })
+    // The search text starts with the title (and, for theory cards, the summary) — both already shown.
+    const shown = entry.title.length + (entry.kind === 'theory' ? entry.summary.length + 1 : 0)
+    hits.push({ entry, snippet: getSnippet(entry.search.slice(shown), tokens), score })
   }
   return hits.sort((a, b) => b.score - a.score)
 }
