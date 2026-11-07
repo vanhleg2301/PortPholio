@@ -64,7 +64,14 @@ export function LibraryView({ onOpenLesson }: LibraryViewProps) {
   const isSearching = deferredQuery.trim().length > 0
   const tokens = useMemo(() => deferredQuery.toLowerCase().split(/\s+/).filter(Boolean), [deferredQuery])
 
-  const allHits = useMemo(() => searchLibrary(deferredQuery, 'all'), [deferredQuery])
+  // When some results contain the exact word, show only those; results that only match the
+  // start of a longer word ("star" in "start") wait behind a "partial matches" button.
+  const searchHits = useMemo(() => searchLibrary(deferredQuery, 'all'), [deferredQuery])
+  const hasExact = searchHits.some((h) => h.isExact)
+  const allHits = useMemo(() => (hasExact ? searchHits.filter((h) => h.isExact) : searchHits), [searchHits, hasExact])
+  const partialHits = hasExact ? searchHits.filter((h) => !h.isExact && (topic === 'all' || h.entry.topic === topic)) : []
+  const [partialFor, setPartialFor] = useState<string | null>(null)
+  const isPartialOpen = partialFor === deferredQuery
   const hits = topic === 'all' ? allHits : allHits.filter((h) => h.entry.topic === topic)
   const countByTopic = useMemo(() => {
     const counts = new Map<string, number>()
@@ -339,6 +346,27 @@ export function LibraryView({ onOpenLesson }: LibraryViewProps) {
                   <div key={h.entry.id} className="min-w-0">{renderEntry(h, topic === 'all')}</div>
                 ))}
               </div>
+              {partialHits.length > 0 && (
+                <div className="mt-5">
+                  <button
+                    type="button"
+                    data-find-skip
+                    onClick={() => setPartialFor(isPartialOpen ? null : deferredQuery)}
+                    aria-expanded={isPartialOpen}
+                    className="w-full rounded-2xl border border-dashed border-border px-4 py-3 text-left text-sm text-muted-foreground hover:border-foreground/40 hover:text-foreground transition-colors"
+                  >
+                    {isPartialOpen ? 'Hide' : 'Show'} {partialHits.length} partial match{partialHits.length === 1 ? '' : 'es'}
+                    <span className="block text-xs opacity-80">Words that only start with “{deferredQuery.trim()}”, like longer words.</span>
+                  </button>
+                  {isPartialOpen && (
+                    <div className="mt-2 grid grid-cols-1 gap-2">
+                      {partialHits.map((h) => (
+                        <div key={h.entry.id} className="min-w-0">{renderEntry(h, topic === 'all')}</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )
         ) : topic === 'all' ? (

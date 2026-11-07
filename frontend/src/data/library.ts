@@ -125,6 +125,8 @@ export interface LibraryHit {
   entry: LibraryEntry
   // A short piece of the text around the first match, for the result list.
   snippet: string | null
+  // Every query word is a whole word somewhere (plural allowed) or starts a word of the title.
+  isExact: boolean
 }
 
 // Every word of the query must appear; title matches come first.
@@ -133,10 +135,10 @@ export interface LibraryHit {
 export function searchLibrary(query: string, topic: LibraryTopic | 'all'): LibraryHit[] {
   const pool = topic === 'all' ? LIBRARY : LIBRARY.filter((e) => e.topic === topic)
   const tokens = normalize(query).split(' ').filter(Boolean)
-  if (tokens.length === 0) return pool.map((entry) => ({ entry, snippet: null }))
+  if (tokens.length === 0) return pool.map((entry) => ({ entry, snippet: null, isExact: true }))
   const escape = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const starts = tokens.map((t) => new RegExp(`(^|[^a-z0-9])${escape(t)}`))
-  const whole = tokens.map((t) => new RegExp(`(^|[^a-z0-9])${escape(t)}($|[^a-z0-9])`))
+  const whole = tokens.map((t) => new RegExp(`(^|[^a-z0-9])${escape(t)}(s|es)?($|[^a-z0-9])`))
   const hits: Array<LibraryHit & { score: number }> = []
   for (const entry of pool) {
     const text = NORMALIZED.get(entry.id)
@@ -148,7 +150,9 @@ export function searchLibrary(query: string, topic: LibraryTopic | 'all'): Libra
       (entry.kind === 'lesson' ? 2 : entry.kind === 'theory' ? 1 : 0)
     // The search text starts with the title (and, for theory cards, the summary) — both already shown.
     const shown = entry.title.length + (entry.kind === 'theory' ? entry.summary.length + 1 : 0)
-    hits.push({ entry, snippet: getSnippet(entry.search.slice(shown), tokens), score })
+    // A title that starts a word with the query counts too: "dead" keeps "Deadlock" in the main list.
+    const isExact = tokens.every((_, i) => whole[i].test(text.title) || whole[i].test(text.body) || starts[i].test(text.title))
+    hits.push({ entry, snippet: getSnippet(entry.search.slice(shown), tokens), isExact, score })
   }
   return hits.sort((a, b) => b.score - a.score)
 }
