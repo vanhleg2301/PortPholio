@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { InlineText } from '@/components/learn/InlineText'
 import { findRanges, flashFirstMatch, getHighlightApi } from '@/lib/textHighlight'
 import { TheoryCard } from '@/components/roadmap/TheoryCard'
+import { ReferenceCard } from '@/components/roadmap/ReferenceCard'
 import { listContainer, listItem } from '@/lib/motion'
 import { LIBRARY, LIBRARY_TOPICS, searchLibrary, type LibraryHit, type LibraryTopic } from '@/data/library'
 
@@ -12,6 +13,7 @@ const COUNTS = {
   lessons: LIBRARY.filter((e) => e.kind === 'lesson').length,
   theory: LIBRARY.filter((e) => e.kind === 'theory').length,
   words: LIBRARY.filter((e) => e.kind === 'word').length,
+  refs: LIBRARY.filter((e) => e.kind === 'ref').length,
 }
 
 // Kept while the app is open, so going into a lesson and back keeps the search.
@@ -19,7 +21,7 @@ const lastView: { query: string; topic: LibraryTopic | 'all' } = { query: '', to
 
 const LIBRARY_HIGHLIGHT = 'library-find'
 
-const SUGGESTIONS = ['hash map', 'two pointers', 'TCP handshake', 'deadlock', 'database index', 'rate limiter', 'RAG', 'STAR']
+const SUGGESTIONS = ['sorted', 'Counter', 'deque', 'heapq', 'split', 'two pointers', 'TCP handshake', 'deadlock', 'RAG']
 
 const slug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-')
 
@@ -172,6 +174,26 @@ export function LibraryView({ onOpenLesson, request }: LibraryViewProps) {
         </button>
       )
     }
+    if (entry.kind === 'ref') {
+      return (
+        <ReferenceCard
+          key={entry.id === openRequest?.entryId ? `${entry.id}-${openRequest.id}` : entry.id}
+          item={entry.item}
+          isOpenByDefault={entry.id === openRequest?.entryId}
+          onOpenChange={(isOpen) => {
+            if (isOpen && isSearching) jumpInsideCard(entry.id, deferredQuery)
+          }}
+          headerExtra={
+            (topicChip || snippetLine) && (
+              <span className="mt-1.5 block">
+                {topicChip}
+                {snippetLine}
+              </span>
+            )
+          }
+        />
+      )
+    }
     if (entry.kind === 'theory') {
       return (
         <TheoryCard
@@ -278,6 +300,7 @@ export function LibraryView({ onOpenLesson, request }: LibraryViewProps) {
               count('lesson') > 0 && `${count('lesson')} lessons`,
               count('theory') > 0 && `${count('theory')} cards`,
               count('word') > 0 && `${count('word')} words`,
+              count('ref') > 0 && `${count('ref')} functions and tools`,
             ].filter(Boolean)
             return (
               <button
@@ -309,10 +332,10 @@ export function LibraryView({ onOpenLesson, request }: LibraryViewProps) {
         <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
           <Library className="h-3.5 w-3.5" /> Library
         </p>
-        <h1 className="mt-1 font-display text-2xl font-bold leading-tight sm:text-3xl">Everything you learn, in one place</h1>
+        <h1 className="mt-1 font-display text-2xl font-bold leading-tight sm:text-3xl">Learn and look up</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          {COUNTS.lessons} lessons, {COUNTS.theory} theory cards and {COUNTS.words} key words, from Python to AI engineering. Pick a
-          topic, or search: it looks inside every card, example and quiz.
+          {COUNTS.lessons} lessons, {COUNTS.theory} theory cards, {COUNTS.refs} Python functions and tools, and {COUNTS.words} key words.
+          Learn here, and look things up here while you solve problems: search looks inside every card, example and quiz.
         </p>
       </motion.div>
 

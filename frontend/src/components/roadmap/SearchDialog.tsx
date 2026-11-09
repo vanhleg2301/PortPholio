@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { BookMarked, BookOpen, CalendarDays, Clock, CornerDownLeft, Languages, NotebookPen, Search, SquareCode, X, type LucideIcon } from 'lucide-react'
+import { BookMarked, BookOpen, CalendarDays, SquareFunction, Clock, CornerDownLeft, Languages, NotebookPen, Search, SquareCode, X, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EASE_OUT } from '@/lib/motion'
 import { getSearchEntries, search, type SearchEntry, type SearchGroup, type SearchNote } from '@/lib/searchIndex'
@@ -9,13 +9,14 @@ import { getSearchEntries, search, type SearchEntry, type SearchGroup, type Sear
 const GROUP_ICON: Record<SearchGroup, LucideIcon> = {
   Lessons: BookOpen,
   Theory: BookMarked,
+  Reference: SquareFunction,
   Words: Languages,
   Problems: SquareCode,
   Plan: CalendarDays,
   Notes: NotebookPen,
 }
 const RECENT_KEY = 'roadmap:recent-searches'
-const SUGGESTIONS = ['latency', 'two sum', 'heap', 'deadlock', 'RAG', 'Week 2']
+const SUGGESTIONS = ['sorted', 'Counter', 'latency', 'two sum', 'deadlock', 'Week 2']
 
 function readRecent(): string[] {
   try {
@@ -125,7 +126,7 @@ export function SearchDialog({ isOpen, notes, onClose, onSelect }: SearchDialogP
                   setQuery(e.target.value)
                   setCursor(0)
                 }}
-                placeholder="Search lessons, theory, words, problems, notes…"
+                placeholder="Search lessons, Python functions, theory, problems…"
                 aria-label="Search"
                 autoCapitalize="off"
                 autoCorrect="off"

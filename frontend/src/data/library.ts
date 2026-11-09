@@ -2,16 +2,22 @@ import { LESSONS, toPlainText } from '@/data/lessons'
 import { GLOSSARY, type GlossaryArea } from '@/data/lessons/glossary'
 import { CATEGORY_REFERENCES, CS_REFERENCES, PYTHON_REFERENCES, SD_REFERENCES } from '@/data/roadmap/references'
 import { AI_REFERENCES, CAREER_REFERENCES } from '@/data/roadmap/practicalReferences'
+import { PYTHON_REFERENCE, type ReferenceItem } from '@/data/reference/python'
 import { normalize } from '@/lib/normalize'
 import type { Lesson } from '@/data/lessons/types'
 import type { TaskReference } from '@/data/roadmap/types'
 
 // Everything the app teaches, in one place: lessons, theory cards and technical words, by topic.
 
-export type LibraryTopic = 'python' | 'dsa' | 'cs' | 'sd' | 'ai' | 'career'
+export type LibraryTopic = 'python' | 'reference' | 'dsa' | 'cs' | 'sd' | 'ai' | 'career'
 
 export const LIBRARY_TOPICS: Array<{ id: LibraryTopic; label: string; about: string }> = [
   { id: 'python', label: 'Python', about: 'The language of your interviews: how names, lists and dicts really work.' },
+  {
+    id: 'reference',
+    label: 'Python reference',
+    about: 'Stuck on a problem? Look up a built-in or library tool: how to call it, an example with its output, the cost and the usual trap.',
+  },
   { id: 'dsa', label: 'DSA & Algorithms', about: 'One card per NeetCode 150 pattern: how to spot it, the template, the traps.' },
   { id: 'cs', label: 'CS fundamentals', about: 'Networking, operating systems and databases — the "how does it work underneath" questions.' },
   { id: 'sd', label: 'System Design', about: 'From one server to millions of users, then one card per classic design question.' },
@@ -33,6 +39,7 @@ export type LibraryEntry =
   | { kind: 'lesson'; id: string; topic: LibraryTopic; group: string; title: string; summary: string; lesson: Lesson; search: string }
   | { kind: 'theory'; id: string; topic: LibraryTopic; group: string; title: string; summary: string; reference: TaskReference; search: string }
   | { kind: 'word'; id: string; topic: LibraryTopic; group: string; title: string; summary: string; example: string; search: string }
+  | { kind: 'ref'; id: string; topic: LibraryTopic; group: string; title: string; summary: string; item: ReferenceItem; search: string }
 
 const CS_GROUPS: Record<string, string> = {
   latencyTcp: 'Networking',
@@ -105,6 +112,16 @@ export const LIBRARY: LibraryEntry[] = [
   ...Object.entries(SD_REFERENCES).map(([key, ref]) => theory(`sd:${key}`, 'sd', 'System design', ref)),
   ...Object.entries(AI_REFERENCES).map(([key, ref]) => theory(`ai:${key}`, 'ai', 'Build with LLMs', ref)),
   ...Object.entries(CAREER_REFERENCES).map(([key, ref]) => theory(`career:${key}`, 'career', 'Get the job', ref)),
+  ...PYTHON_REFERENCE.map((ref): LibraryEntry => ({
+    kind: 'ref',
+    id: ref.id,
+    topic: 'reference',
+    group: ref.module,
+    title: ref.name,
+    summary: strip(ref.what),
+    item: ref,
+    search: strip([ref.name, ref.what, ref.signature, ref.aliases ?? '', ref.gotcha ?? '', ref.other ?? '', ref.example].join('\n')),
+  })),
   ...Object.entries(GLOSSARY)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]): LibraryEntry => ({
@@ -119,7 +136,10 @@ export const LIBRARY: LibraryEntry[] = [
     })),
 ]
 
-const NORMALIZED = new Map(LIBRARY.map((e) => [e.id, { title: normalize(e.title), body: normalize(e.search) }]))
+// For reference entries, the search words ("sort" for sorted()) count like the title.
+const NORMALIZED = new Map(
+  LIBRARY.map((e) => [e.id, { title: normalize(e.kind === 'ref' ? `${e.title} ${e.item.aliases ?? ''}` : e.title), body: normalize(e.search) }])
+)
 
 export interface LibraryHit {
   entry: LibraryEntry
@@ -147,9 +167,9 @@ export function searchLibrary(query: string, topic: LibraryTopic | 'all'): Libra
       whole.filter((re) => re.test(text.title)).length * 20 +
       starts.filter((re) => re.test(text.title)).length * 10 +
       whole.filter((re) => re.test(text.body)).length * 3 +
-      (entry.kind === 'lesson' ? 2 : entry.kind === 'theory' ? 1 : 0)
+      (entry.kind === 'lesson' ? 2 : entry.kind === 'theory' || entry.kind === 'ref' ? 1 : 0)
     // The search text starts with the title (and, for theory cards, the summary) — both already shown.
-    const shown = entry.title.length + (entry.kind === 'theory' ? entry.summary.length + 1 : 0)
+    const shown = entry.title.length + (entry.kind === 'theory' || entry.kind === 'ref' ? entry.summary.length + 1 : 0)
     // A title that starts a word with the query counts too: "dead" keeps "Deadlock" in the main list.
     const isExact = tokens.every((_, i) => whole[i].test(text.title) || whole[i].test(text.body) || starts[i].test(text.title))
     hits.push({ entry, snippet: getSnippet(entry.search.slice(shown), tokens), isExact, score })

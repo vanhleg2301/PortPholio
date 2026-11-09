@@ -12,6 +12,7 @@ import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { LESSONS, LESSON_TESTS } from '../src/data/lessons/index'
 import { GLOSSARY } from '../src/data/lessons/glossary'
+import { PYTHON_REFERENCE } from '../src/data/reference/python'
 
 const dir = mkdtempSync(join(tmpdir(), 'lesson-check-'))
 const file = join(dir, 'snippet.py')
@@ -78,6 +79,35 @@ for (const lesson of LESSONS) {
   for (const q of test.explain) checkTerms(`${lesson.id}/${q.id}`, `${q.question}\n${q.answer}`)
   console.log(`checked ${lesson.id}: ${concepts.size} concepts / ${test.choice.length} quiz, ${test.code.length} coding, ${test.explain.length} interview`)
 }
+
+// Python reference: every example runs, and the `# comment` on each print line (or the comment
+// lines under a print inside a loop) is exactly what it prints.
+function expectedOutput(code: string): string {
+  const out: string[] = []
+  let isCollecting = false
+  for (const line of code.split('\n')) {
+    const trailing = /print\(.*\)\s+#\s?(.*)$/.exec(line)
+    if (trailing) {
+      out.push(trailing[1].trimEnd())
+      isCollecting = false
+    } else if (/^\s+.*print\(/.test(line)) isCollecting = true
+    else if (isCollecting && /^# /.test(line)) out.push(line.slice(2).trimEnd())
+    else isCollecting = false
+  }
+  return out.join('\n')
+}
+const refIds = new Set<string>()
+for (const ref of PYTHON_REFERENCE) {
+  if (refIds.has(ref.id)) fail(`reference: duplicate id ${ref.id}`)
+  refIds.add(ref.id)
+  const r = run(ref.example)
+  if (!r.ok) fail(`reference ${ref.name} raises: ${r.err.split('\n').pop()}`)
+  else {
+    const got = r.out.split('\n').map((l) => l.trimEnd()).join('\n')
+    if (got !== expectedOutput(ref.example)) fail(`reference ${ref.name}: prints\n${got}\n--- comments say ---\n${expectedOutput(ref.example)}`)
+  }
+}
+console.log(`checked python reference: ${PYTHON_REFERENCE.length} entries`)
 
 rmSync(dir, { recursive: true, force: true })
 if (problems.length) {

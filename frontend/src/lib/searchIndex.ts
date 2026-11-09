@@ -5,7 +5,7 @@ import { WEEKS } from '@/data/roadmap/plan'
 import { LIBRARY } from '@/data/library'
 import { normalize } from '@/lib/normalize'
 
-export type SearchGroup = 'Lessons' | 'Theory' | 'Words' | 'Problems' | 'Plan' | 'Notes'
+export type SearchGroup = 'Lessons' | 'Reference' | 'Theory' | 'Words' | 'Problems' | 'Plan' | 'Notes'
 
 export type SearchAction =
   | { type: 'lesson'; lessonId: string; anchor?: string }
@@ -60,6 +60,12 @@ function buildStaticEntries(): SearchEntry[] {
   }
 
   for (const item of LIBRARY) {
+    if (item.kind === 'ref') {
+      const ref = entry(`reference:${item.id}`, 'Reference', item.title, `${item.item.module} · ${item.summary}`, { type: 'library', entryId: item.id }, item.search)
+      // Its search words ("popleft" for deque) rank like its name.
+      entries.push({ ...ref, titleKey: normalize(`${item.title} ${item.item.aliases ?? ''}`) })
+      continue
+    }
     if (item.kind !== 'theory') continue
     const topic = item.topic === 'sd' ? 'System design' : item.topic === 'ai' ? 'AI engineering' : item.topic === 'cs' ? 'CS' : item.topic === 'dsa' ? 'DSA' : item.topic === 'career' ? 'Career' : 'Python'
     entries.push(entry(`theory:${item.id}`, 'Theory', item.title, `Theory card · ${topic}`, { type: 'library', entryId: item.id }, item.search))
