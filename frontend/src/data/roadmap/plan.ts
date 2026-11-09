@@ -4,6 +4,7 @@ import { getPracticalReference } from './practicalReferences'
 import { CS_LESSONS } from '../lessons/cs'
 import { DSA_LESSONS } from '../lessons/dsa'
 import { PYTHON_LESSONS } from '../lessons/python'
+import { PYTHON_SYNTAX_LESSONS } from '../lessons/pythonSyntax'
 import type { Lesson } from '../lessons/types'
 import type { PhaseId, RoadmapDay, RoadmapPhase, RoadmapTask, RoadmapWeek, TaskKind, TaskLink, TaskReference, TaskSeed } from './types'
 
@@ -105,7 +106,7 @@ const phaseSeeds: Array<Omit<RoadmapPhase, 'selfCheck'> & { selfCheck: string[] 
     id: 'p0',
     number: '00',
     title: 'Warm-up',
-    start: '2026-11-05',
+    start: '2026-11-02',
     end: '2026-11-15',
     goal: 'Write Python fluently enough to start DSA.',
     selfCheck: [
@@ -184,15 +185,24 @@ interface WeekSpec {
   csReference?: TaskReference
   // In-app lesson for the week's CS tasks.
   csLessonId?: string
+  // Weekdays with their own tasks (date → tasks). They are left out when `dsa` and `study` are
+  // spread over the week, so adding a day here never moves the tasks of the other days.
+  fixedDays?: Record<string, TaskSeed[]>
 }
 
 const weekSpecs: WeekSpec[] = [
   {
     label: 'Week 0',
     phaseId: 'p0',
-    start: '2026-11-05',
+    start: '2026-11-02',
     end: '2026-11-15',
     goal: 'Python syntax and the built-ins used in interviews. First 3 problems solved.',
+    // Mon–Wed: how the syntax itself works (blocks and if / else, for, while) before the rest.
+    fixedDays: {
+      '2026-11-02': [lessonTask(lessonById(PYTHON_SYNTAX_LESSONS, 'py-syntax-if'))],
+      '2026-11-03': [lessonTask(lessonById(PYTHON_SYNTAX_LESSONS, 'py-for-loops'))],
+      '2026-11-04': [lessonTask(lessonById(PYTHON_SYNTAX_LESSONS, 'py-while-loops'))],
+    },
     study: [
       ...PYTHON_LESSONS.map((l) => lessonTask(l)),
       task('python', 'Create NeetCode and LeetCode accounts', link('NeetCode', LINKS.neetcode), link('LeetCode', LINKS.leetcode)),
@@ -781,15 +791,17 @@ function assignIds(prefix: string, seeds: TaskSeed[]): RoadmapTask[] {
 
 function buildWeek(spec: WeekSpec): RoadmapWeek {
   const dates = listDates(spec.start, spec.end)
-  const weekdayCount = dates.filter((d) => getWeekday(d) % 6 !== 0).length
+  const weekdayCount = dates.filter((d) => getWeekday(d) % 6 !== 0 && !spec.fixedDays?.[d]).length
   const dsaChunks = distribute(spec.dsa ?? [], weekdayCount)
   const studyChunks = distribute(spec.study ?? [], weekdayCount)
   let weekdayIndex = 0
 
   const days: RoadmapDay[] = dates.map((date) => {
     const weekday = getWeekday(date)
+    const fixedSeeds = spec.fixedDays?.[date]
     let seeds: TaskSeed[]
-    if (weekday === 6) seeds = spec.saturday ?? [redoMissed]
+    if (fixedSeeds) seeds = fixedSeeds
+    else if (weekday === 6) seeds = spec.saturday ?? [redoMissed]
     else if (weekday === 0) seeds = spec.sunday ?? [weeklyQuiz]
     else {
       const daySeeds = [...(spec.dailyDsa ? [spec.dailyDsa] : []), ...dsaChunks[weekdayIndex], ...studyChunks[weekdayIndex]]

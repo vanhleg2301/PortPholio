@@ -145,6 +145,51 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     en: 'you get one benefit but pay for it with something else',
     example: 'Taking a taxi instead of the bus: faster, but more money. A cache: faster reads, but more memory.',
   },
+  statement: {
+    area: 'Python',
+    en: 'one instruction that does something, like `x = 5`, `if`, `for` or `return`. It does not give a value',
+    example: '`total = 0` is a statement: it moves the name `total` to 0. You cannot write `print(total = 0)`.',
+  },
+  expression: {
+    area: 'Python',
+    en: 'a piece of code that gives a value',
+    example: '`2 + 3`, `len(nums) > 0` and `"hi".upper()` are expressions. You can put any expression inside `print(…)`.',
+  },
+  indentation: {
+    area: 'Python',
+    en: 'the spaces at the start of a line. In Python they decide which lines belong to a block',
+    example: 'The 4 spaces before `print("hi")` under `if x > 0:` put that line inside the if block.',
+  },
+  truthy: {
+    area: 'Python',
+    en: 'a value that counts as true in `if` or `while`. Everything that is not falsy',
+    example: '`if [0]:` runs: the list is not empty, so it is truthy, even though it holds a 0.',
+  },
+  falsy: {
+    area: 'Python',
+    en: 'a value that counts as false in `if` or `while`: `False`, `None`, zero and empty collections',
+    example: '`if not nums:` is true when `nums == []`, because an empty list is falsy.',
+  },
+  'short-circuit evaluation': {
+    area: 'Python',
+    en: '`and` / `or` stop as soon as the answer is known, so the right side may never run',
+    example: 'In `i < len(nums) and nums[i] > 0`, when `i` is too big the second part is skipped, so there is no IndexError.',
+  },
+  iterator: {
+    area: 'Python',
+    en: 'an object that gives the next item each time you call `next()` on it, and remembers its position. It can be used only once',
+    example: '`it = iter([1, 2])`: `next(it)` gives 1, then 2, then raises StopIteration. `zip(...)` and `enumerate(...)` are iterators.',
+  },
+  'infinite loop': {
+    area: 'Python',
+    en: 'a loop whose condition never becomes false, so it never stops',
+    example: '`while i < 10: print(i)` with no `i += 1` prints 0 forever.',
+  },
+  'walrus operator': {
+    area: 'Python',
+    en: '`:=`, which assigns a value to a name and also gives that value, so it can sit inside a condition',
+    example: '`while (line := f.readline()):` reads a line, stores it in `line` and stops when the line is empty.',
+  },
   iterable: {
     area: 'Python',
     en: 'anything you can loop over with `for`',
