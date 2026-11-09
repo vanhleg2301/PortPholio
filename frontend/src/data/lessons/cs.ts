@@ -85,6 +85,11 @@ for route, km in [("Hanoi - Singapore", 2_200), ("Hanoi - Frankfurt", 8_900), ("
         ),
       },
       {
+        type: 'callout',
+        tone: 'compare',
+        md: 'Every language talks to the network through the operating system, so the TCP costs are the same in Python, Java or Go. What differs is the default **connection reuse**: Python’s `requests.get(url)` opens a fresh connection each call (use a `requests.Session` to keep it alive), while Java’s `HttpClient`, Go’s `http.Client` and Node’s `fetch` pool and reuse connections by default. Reusing a warm connection skips the handshake and slow start.',
+      },
+      {
         type: 'visual',
         visual: 'hol-blocking',
         caption: 'Why one lost packet can stall a whole response.',
@@ -234,6 +239,11 @@ for t in ["udp", "tcp", "https"]:
           '',
           'Encryption without authentication is not enough: an attacker in the middle could happily encrypt your traffic **to themselves**.',
         ),
+      },
+      {
+        type: 'callout',
+        tone: 'compare',
+        md: 'Python’s `ssl` module and Node use OpenSSL underneath, Java has its own TLS (JSSE), and Go’s `crypto/tls` is written in Go. Each has a switch that turns certificate checks **off** — `verify=False` in Python `requests`, `InsecureSkipVerify` in Go, `rejectUnauthorized: false` in Node. Never ship it: it removes the “you are talking to the real server” promise.',
       },
       {
         type: 'text',

@@ -37,6 +37,11 @@ export const DSA_LESSONS: Lesson[] = [
         ),
       },
       {
+        type: 'callout',
+        tone: 'compare',
+        md: 'The idea does not depend on the language: Java uses `HashSet<Integer>` / `HashMap<Integer, Integer>`, C++ `unordered_set` / `unordered_map`, JavaScript `Set` / `Map`. The Big O is the same everywhere; what changes is the amount of code — Java needs the types and boxing (`int` → `Integer`), Python and JavaScript do not.',
+      },
+      {
         type: 'visual',
         visual: 'two-sum',
         caption: 'The complement key in action: one pass, one dict.',
@@ -334,6 +339,11 @@ assert longest_consecutive([]) == 0`,
         ),
       },
       {
+        type: 'callout',
+        tone: 'compare',
+        md: 'In **C and C++**, “pointers” can be real memory addresses (`int *left = arr;`) — the name of the pattern comes from there. In Python, Java and JavaScript they are just two integer indexes. The algorithm and its O(n) cost are identical.',
+      },
+      {
         type: 'visual',
         visual: 'two-pointers',
         caption: 'Change the target: each step removes one number that can never be in the answer.',
@@ -584,6 +594,11 @@ assert trap([3, 3, 3]) == 0`,
           '| Variable size, shortest | grow until valid; then shrink while still valid | Minimum Window Substring |',
           '| Fixed size k | add one on the right, remove one on the left | Permutation in String, Sliding Window Maximum |',
         ),
+      },
+      {
+        type: 'callout',
+        tone: 'compare',
+        md: 'For the monotonic-queue version, Java uses `ArrayDeque` (`pollFirst` / `pollLast`) and C++ `std::deque`. JavaScript has no deque: people use an array plus a moving `head` index, because `shift()` costs O(n).',
       },
       {
         type: 'visual',

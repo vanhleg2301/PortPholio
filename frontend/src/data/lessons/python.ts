@@ -32,6 +32,11 @@ export const PYTHON_LESSONS: Lesson[] = [
         ),
       },
       {
+        type: 'callout',
+        tone: 'compare',
+        md: 'In **Java and C**, an `int` variable holds the number itself in a fixed-size box, and only objects are held by reference. In Python **every** name is a reference to an object, even for `5`. That is why `b = a` never copies a list, in Python *and* in Java or JavaScript (arrays and objects are references there too). **C++** is different: `vector<int> b = a;` makes a real copy unless you use a reference `&`.',
+      },
+      {
         type: 'code',
         id: 'types',
         caption: 'Run it. Then change the values and run it again.',
@@ -55,6 +60,11 @@ print(int("42") + 1, str(42) + "!", float("3.5"))      # 43 42! 3.5`,
           '- `divmod(a, b)` gives `(a // b, a % b)` in one step.',
           '- Never compare floats with `==`. Check that the difference is very small instead (`abs(a - b) < 1e-9`). This small number is called a [[tolerance]].',
         ),
+      },
+      {
+        type: 'callout',
+        tone: 'compare',
+        md: '**Overflow:** Java / C / Go ints have a fixed size and wrap around silently (`Integer.MAX_VALUE + 1` is negative); Python ints never [[overflow]]. **Division:** Python’s `//` rounds down (`-7 // 2 == -4`), Java and C round towards zero (`-7 / 2 == -3`), and `%` differs too (`-7 % 2` is `1` in Python, `-1` in Java). **JavaScript** has one number type (64-bit floats): `7 / 2` is `3.5`, use `Math.floor` or `Math.trunc` for integer division, and integers are exact only up to 2⁵³.',
       },
       {
         type: 'visual',
@@ -165,6 +175,11 @@ assert digit_sum(10 ** 20) == 1`,
         ),
       },
       {
+        type: 'callout',
+        tone: 'compare',
+        md: 'Strings are [[immutable]] in **Java, JavaScript and C#** too; **C++** `std::string` can be changed in place. Negative indexes and slices are a Python luxury: Java writes `s.substring(1, 4)` and `s.charAt(s.length() - 1)`; JavaScript has `s.slice(1, 4)` and, since 2022, `s.at(-1)`. To build a long string, Java uses `StringBuilder` and Python uses `"".join(parts)` — never `+=` in a big loop in either language.',
+      },
+      {
         type: 'code',
         id: 'slicing',
         code: `s = "python"
@@ -191,6 +206,11 @@ print(len(s), "th" in s, s.find("th"), s.find("x"))  # 6 True 2 -1`,
           '',
           'Every method **returns a new string**. The old string never changes, because strings are [[immutable]].',
         ),
+      },
+      {
+        type: 'callout',
+        tone: 'compare',
+        md: 'Same tools, other names: Java `s.split(",")` takes a **regular expression** (so `split(".")` does not do what you think), JavaScript `s.split(",")` takes plain text; `strip` is `trim()` in Java and JavaScript; `str.join(list)` is `String.join(",", list)` in Java and `arr.join(",")` in JavaScript (the method is on the array, not on the separator).',
       },
       {
         type: 'code',
@@ -299,6 +319,11 @@ assert sum(letter_counts("")) == 0`,
         ),
       },
       {
+        type: 'callout',
+        tone: 'compare',
+        md: 'Python `list` = Java `ArrayList` = C++ `vector` = JavaScript `Array`: all are [[dynamic array|dynamic arrays]] with O(1) amortized append. Plain arrays in **C and Java** (`int[] a = new int[10]`) have a fixed size but store the numbers themselves, packed tightly — faster and smaller. A Python list stores [[reference|references]] to objects, so it can mix types but uses more memory; for big numeric data people use NumPy arrays, which store raw numbers like C.',
+      },
+      {
         type: 'visual',
         visual: 'dynamic-array',
         caption: 'Copying happens rarely, so the average work per append stays small.',
@@ -332,6 +357,11 @@ for i, w in enumerate(words):
           '',
           'Python’s sort is [[stable sort|stable]]: items with the same key keep their old order. `zip` stops at the **shortest** sequence.',
         ),
+      },
+      {
+        type: 'callout',
+        tone: 'compare',
+        md: 'Java has no tuples (use a small `record`, e.g. `record Point(int x, int y)`); C++ has `std::pair` / `std::tuple`; Go returns several values directly (`q, r := divmod(a, b)`); JavaScript uses arrays and destructuring: `[a, b] = [b, a]` swaps like Python’s `a, b = b, a`.',
       },
       {
         type: 'code',
@@ -454,6 +484,11 @@ assert second_largest([-1, -5, -3]) == -3`,
           '',
           'A key appears only once: `d["a"] = 2` replaces the old value. And do not add or delete keys while you loop over the same dict — Python raises `RuntimeError`. Loop over a copy instead: `for k in list(d):`.',
         ),
+      },
+      {
+        type: 'callout',
+        tone: 'compare',
+        md: 'Same [[hash table]], other names: Java `HashMap` / `HashSet`, C++ `unordered_map` / `unordered_set`, JavaScript `Map` / `Set`, Go `map`. Differences that bite: Java `HashMap` and Go `map` give **no order** when you loop (Go even randomises it on purpose), while a Python `dict` keeps insertion order (3.7+). C++ `std::map` is a sorted tree — O(log n), not O(1). A plain JavaScript object turns every key into a **string** (`obj[1]` and `obj["1"]` are the same key); use `Map` for real keys. Java finds keys with `hashCode()` + `equals()`, Python with `__hash__` + `__eq__`.',
       },
       {
         type: 'visual',
@@ -619,6 +654,11 @@ print([v for row in matrix for v in row])       # [1, 2, 3, 4]`,
         ),
       },
       {
+        type: 'callout',
+        tone: 'compare',
+        md: 'Arguments are passed as [[reference|references]] to objects in Python, Java (for objects) and JavaScript: a function can change a list you pass, but cannot rebind your variable. C++ chooses per parameter (copy, `&` reference, or pointer). The mutable-default trap is Python-only: JavaScript evaluates a default value **on every call**, and Java has no default arguments at all (it uses overloading).',
+      },
+      {
         type: 'code',
         id: 'mutable-default',
         caption: 'Run this and see the trap. Then compare it with the fixed version.',
@@ -647,6 +687,11 @@ print(add_good(1), add_good(2))        # [1] [2]`,
           '## Recursion in one minute',
           'A [[recursion|recursive]] function calls itself on a smaller problem. It needs a [[base case]] — a small case it answers directly — or it never stops. Every waiting call uses memory on the [[call stack]]. Python stops at about 1,000 levels with `RecursionError`, so a loop is often safer for long inputs.',
         ),
+      },
+      {
+        type: 'callout',
+        tone: 'compare',
+        md: 'Python stops deep recursion at about 1,000 calls (`RecursionError`). Java’s limit depends on the thread’s stack size, usually thousands of calls; C and C++ just crash with a stack overflow. Python, Java and (in practice) JavaScript do **not** turn tail calls into loops, unlike Scheme or Scala’s `@tailrec`. In interviews, if the input can be 10⁵ deep, write the loop with your own stack.',
       },
       {
         type: 'exercise',
@@ -765,6 +810,11 @@ assert fib(50) == 12586269025`,
         ),
       },
       {
+        type: 'callout',
+        tone: 'compare',
+        md: 'Java: `HashMap` for counting (`merge(k, 1, Integer::sum)`), `ArrayDeque` for a [[deque]], `PriorityQueue` — a **min**-[[heap]] by default, like `heapq`. C++: `std::priority_queue` is a **max**-heap by default (opposite of Python!). JavaScript has **no** built-in heap or deque: in a JS interview you write a heap yourself, and `arr.shift()` is O(n). This is one reason Python is popular for interviews.',
+      },
+      {
         type: 'code',
         id: 'counter-defaultdict',
         code: `from collections import Counter, defaultdict
@@ -809,6 +859,11 @@ print(-max_heap[0])                    # 8`,
           '## Sorting with a key',
           '`sorted(items, key=…)` sorts by whatever the key function returns. Python’s sort is [[stable sort|stable]]: equal items keep their old order. To sort by several fields, return a tuple: `key=lambda p: (-p[1], p[0])` means “score from high to low, then name from A to Z”.',
         ),
+      },
+      {
+        type: 'callout',
+        tone: 'compare',
+        md: 'Java sorts with a `Comparator` (`list.sort(Comparator.comparing(s -> s.length()))`), C++ with a compare function, JavaScript with `(a, b) => a - b`. JavaScript’s trap: `[10, 9, 1].sort()` gives `[1, 10, 9]`, because without a function it compares as **strings**. Python’s `sorted` and Java’s object sort are both [[stable sort|stable]].',
       },
       {
         type: 'callout',

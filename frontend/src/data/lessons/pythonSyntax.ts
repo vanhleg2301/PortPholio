@@ -30,6 +30,11 @@ export const PYTHON_SYNTAX_LESSONS: Lesson[] = [
         ),
       },
       {
+        type: 'callout',
+        tone: 'compare',
+        md: '**C, Java, JavaScript, Go and Rust** mark blocks with `{ }`; the spaces are only for humans, so code can *look* inside a block while the braces say otherwise. In Python the [[indentation]] **is** the block, so what you see is what runs. The cost: mixing tabs and spaces or a bad copy-paste can break a file. Go and Rust also force `{ }` even around one line, for the same “no hidden mistakes” reason.',
+      },
+      {
         type: 'code',
         id: 'blocks',
         caption: 'The last print is outside the if block, so it always runs. Change x to -1 and run again.',
@@ -123,6 +128,11 @@ if n % 5 == 0:
         ),
       },
       {
+        type: 'callout',
+        tone: 'compare',
+        md: '**JavaScript** also has [[truthy]] / [[falsy]] values, but different ones: an empty array `[]` and an empty object `{}` are **truthy** in JS, while `""`, `0`, `null`, `undefined` and `NaN` are falsy. **Java, Go, Rust and C#** have no truthiness at all: `if (list)` does not compile, you must write `if (!list.isEmpty())`. **C** treats `0` as false and every other number as true. Python’s rule — “empty or zero is false” — is short, but remember it when an index `0` is a real answer.',
+      },
+      {
         type: 'code',
         id: 'truthiness',
         code: `for value in [0, 1, -3, "", "0", [], [0], None, {}, " "]:
@@ -189,6 +199,11 @@ print(0 <= i < len(nums))                       # chained: False`,
           '',
           'Python 3.10+ also has `match`. It compares one value against **patterns** from top to bottom; the first one that fits wins, and `case _:` catches everything else. It is useful for commands and shapes of data, but in interviews `if / elif` is enough.',
         ),
+      },
+      {
+        type: 'callout',
+        tone: 'compare',
+        md: 'C, Java and JavaScript write the conditional expression as `cond ? a : b`; Python reads like English: `a if cond else b`. Their `switch` **falls through** to the next `case` unless you write `break` — a classic bug. Python’s `match` (3.10+) never falls through, and it can match shapes like `[x, y]` or `{"type": "click"}`, closer to `match` in Rust.',
       },
       {
         type: 'code',
@@ -294,6 +309,11 @@ assert safe_get(g, -1, 0, "x") == "x"`,
         ),
       },
       {
+        type: 'callout',
+        tone: 'compare',
+        md: 'The C-style loop `for (int i = 0; i < n; i++)` (C, Java, JavaScript, Go) counts **indexes**. Python’s `for` walks over the **items** of an [[iterable]], like Java’s `for (int x : list)` or JavaScript’s `for (const x of arr)`. Watch out in JavaScript: `for (const k in arr)` gives the **keys** (as strings), not the items. When you do need the index in Python, use `enumerate`, not `range(len(...))`.',
+      },
+      {
         type: 'code',
         id: 'iter-next',
         caption: 'The while loop at the bottom is what `for` does for you.',
@@ -364,6 +384,11 @@ for i, (a, b) in enumerate([(1, 2), (3, 4)]):
           '',
           'The `range(len(nums))` expression is evaluated **once**, at the start. If the body appends to `nums`, the loop still runs only the original number of times.',
         ),
+      },
+      {
+        type: 'callout',
+        tone: 'compare',
+        md: 'In Python 2, `range(10**9)` really built a list of a billion numbers; Python 3’s `range` is a tiny object that computes each number when asked. Java, C and Go have no `range` object: the loop counter `i++` plays that role. JavaScript has no built-in `range` at all (people write `Array.from({ length: n }, (_, i) => i)`).',
       },
       {
         type: 'code',
@@ -569,6 +594,11 @@ assert count_pairs([5], 10) == 0`,
           '',
           'Unlike `for`, `while` does not walk over anything. **You** must change the variables the condition depends on.',
         ),
+      },
+      {
+        type: 'callout',
+        tone: 'compare',
+        md: 'C, Java, JavaScript and C# also have `do { … } while (cond);`, which always runs the body **at least once**. Python has no `do … while`: write `while True:` and `break` at the end. Python also has no `i++`: write `i += 1`. Go has only one loop keyword, `for`, which also does the job of `while` (`for x > 0 { … }`).',
       },
       {
         type: 'code',
