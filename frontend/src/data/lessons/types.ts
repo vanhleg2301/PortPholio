@@ -1,6 +1,7 @@
 import type { TaskLink } from '../roadmap/types'
 
-export type CalloutTone = 'tip' | 'warning' | 'interview'
+// compare: how other languages (C, Java, JavaScript, Go…) do the same thing, and the trade-off.
+export type CalloutTone = 'tip' | 'warning' | 'interview' | 'compare'
 
 // Markdown in lessons and tests may mark technical words as [[word]] or [[glossary key|shown text]];
 // they render as tap-to-explain terms (see data/lessons/glossary.ts).

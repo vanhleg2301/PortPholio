@@ -2,22 +2,37 @@ import { CS_LESSONS } from './cs'
 import { DSA_LESSONS } from './dsa'
 import { PYTHON_LESSONS } from './python'
 import { PYTHON_SYNTAX_LESSONS } from './pythonSyntax'
+import { PYTHON_FOUNDATION_LESSONS } from './pythonFoundations'
 import { CS_TESTS } from './tests/cs'
 import { DSA_TESTS } from './tests/dsa'
 import { PYTHON_TESTS } from './tests/python'
 import { PYTHON_SYNTAX_TESTS, PYTHON_SYNTAX_VARIANTS } from './tests/pythonSyntax'
+import { PYTHON_FOUNDATION_TESTS, PYTHON_FOUNDATION_VARIANTS } from './tests/pythonFoundations'
 import { TEST_SOURCES } from './tests/sources'
 import { CHOICE_VARIANTS } from './tests/variants'
 import type { ChoiceQuestion, Lesson, LessonTest, VisualId } from './types'
 
-export const LESSONS: Lesson[] = [...PYTHON_SYNTAX_LESSONS, ...PYTHON_LESSONS, ...DSA_LESSONS, ...CS_LESSONS]
+// Week 0 order: if / else, how Python runs, for, while, Python vs other languages, then the rest.
+const [SYNTAX_IF, SYNTAX_FOR, SYNTAX_WHILE, ...SYNTAX_REST] = PYTHON_SYNTAX_LESSONS
+const [HOW_PYTHON_RUNS, PYTHON_REAL_WORLD] = PYTHON_FOUNDATION_LESSONS
+export const LESSONS: Lesson[] = [
+  SYNTAX_IF,
+  HOW_PYTHON_RUNS,
+  SYNTAX_FOR,
+  SYNTAX_WHILE,
+  PYTHON_REAL_WORLD,
+  ...SYNTAX_REST,
+  ...PYTHON_LESSONS,
+  ...DSA_LESSONS,
+  ...CS_LESSONS,
+]
 export const LESSON_BY_ID = new Map(LESSONS.map((l) => [l.id, l]))
-const VARIANTS: Record<string, ChoiceQuestion[]> = { ...CHOICE_VARIANTS, ...PYTHON_SYNTAX_VARIANTS }
+const VARIANTS: Record<string, ChoiceQuestion[]> = { ...CHOICE_VARIANTS, ...PYTHON_SYNTAX_VARIANTS, ...PYTHON_FOUNDATION_VARIANTS }
 
 // Lesson id → its end-of-day test: original questions plus the alternative question for each
 // concept, with the source of every concept and problem attached.
 export const LESSON_TESTS: Record<string, LessonTest> = Object.fromEntries(
-  Object.entries({ ...PYTHON_SYNTAX_TESTS, ...PYTHON_TESTS, ...DSA_TESTS, ...CS_TESTS }).map(([id, test]) => {
+  Object.entries({ ...PYTHON_SYNTAX_TESTS, ...PYTHON_FOUNDATION_TESTS, ...PYTHON_TESTS, ...DSA_TESTS, ...CS_TESTS }).map(([id, test]) => {
     const { sources, refs } = TEST_SOURCES[id] ?? { sources: [], refs: {} }
     return [
       id,

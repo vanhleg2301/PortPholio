@@ -1,6 +1,6 @@
 import { lazy, Suspense, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ArrowUpRight, Check, ChevronLeft, ChevronRight, ClipboardCheck, Clock, Info, Languages, Lightbulb, PlayCircle, Search, Target, TriangleAlert, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, Check, ChevronLeft, ChevronRight, ClipboardCheck, Clock, Info, Languages, Lightbulb, PlayCircle, Search, Shuffle, Target, TriangleAlert, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CodeCell } from '@/components/learn/CodeCell'
 import { InlineText } from '@/components/learn/InlineText'
@@ -21,6 +21,7 @@ const CALLOUT: Record<CalloutTone, { icon: LucideIcon; label: string; className:
   tip: { icon: Lightbulb, label: 'Tip', className: 'border-sky-500/30 bg-sky-500/[0.06] text-sky-700 dark:text-sky-300' },
   warning: { icon: TriangleAlert, label: 'Watch out', className: 'border-amber-500/30 bg-amber-500/[0.06] text-amber-700 dark:text-amber-300' },
   interview: { icon: Target, label: 'In the interview', className: 'border-violet-500/30 bg-violet-500/[0.06] text-violet-700 dark:text-violet-300' },
+  compare: { icon: Shuffle, label: 'In other languages', className: 'border-teal-500/30 bg-teal-500/[0.06] text-teal-700 dark:text-teal-300' },
 }
 
 interface LessonViewProps {

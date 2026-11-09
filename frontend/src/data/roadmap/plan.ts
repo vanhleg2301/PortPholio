@@ -5,6 +5,7 @@ import { CS_LESSONS } from '../lessons/cs'
 import { DSA_LESSONS } from '../lessons/dsa'
 import { PYTHON_LESSONS } from '../lessons/python'
 import { PYTHON_SYNTAX_LESSONS } from '../lessons/pythonSyntax'
+import { PYTHON_FOUNDATION_LESSONS } from '../lessons/pythonFoundations'
 import type { Lesson } from '../lessons/types'
 import type { PhaseId, RoadmapDay, RoadmapPhase, RoadmapTask, RoadmapWeek, TaskKind, TaskLink, TaskReference, TaskSeed } from './types'
 
@@ -197,11 +198,18 @@ const weekSpecs: WeekSpec[] = [
     start: '2026-11-02',
     end: '2026-11-15',
     goal: 'Python syntax and the built-ins used in interviews. First 3 problems solved.',
-    // Mon–Wed: how the syntax itself works (blocks and if / else, for, while) before the rest.
+    // Mon–Wed: how the syntax itself works (blocks and if / else, for, while) before the rest,
+    // plus what Python really is (Mon) and how it compares with other languages (Wed).
     fixedDays: {
-      '2026-11-02': [lessonTask(lessonById(PYTHON_SYNTAX_LESSONS, 'py-syntax-if'))],
+      '2026-11-02': [
+        lessonTask(lessonById(PYTHON_SYNTAX_LESSONS, 'py-syntax-if')),
+        lessonTask(lessonById(PYTHON_FOUNDATION_LESSONS, 'py-how-python-runs')),
+      ],
       '2026-11-03': [lessonTask(lessonById(PYTHON_SYNTAX_LESSONS, 'py-for-loops'))],
-      '2026-11-04': [lessonTask(lessonById(PYTHON_SYNTAX_LESSONS, 'py-while-loops'))],
+      '2026-11-04': [
+        lessonTask(lessonById(PYTHON_SYNTAX_LESSONS, 'py-while-loops')),
+        lessonTask(lessonById(PYTHON_FOUNDATION_LESSONS, 'py-real-world')),
+      ],
     },
     study: [
       ...PYTHON_LESSONS.map((l) => lessonTask(l)),

@@ -36,6 +36,10 @@ App học tập cá nhân (PWA), người dùng học hằng ngày trên iPhone 
   duy. Mỗi thẻ trả lời: nhận ra khi nào dùng, mô hình tư duy, mẫu dùng lại, đánh đổi, lỗi hay gặp, dùng ở đâu
   khi đi làm.
 - Mọi link nguồn (kể cả `#anchor`) và mọi output in ra trong ví dụ phải được kiểm tra thật trước khi push.
+- Mỗi bài nên có khung `{ type: 'callout', tone: 'compare' }` ("In other languages") ở những chỗ đáng so sánh:
+  ngôn ngữ khác (C, Java, JavaScript, Go, Rust…) làm việc đó thế nào, điểm mạnh / yếu so với Python.
+- Hàm/công cụ Python mới hay dùng: thêm vào `frontend/src/data/reference/python.ts` (ví dụ có comment output,
+  `check:lessons` chạy và so khớp từng dòng print).
 
 ### Bài học (`frontend/src/data/lessons/`)
 Mỗi bài mới phải có đủ:

@@ -677,4 +677,71 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     en: 'a model that runs in a loop, choosing which tool to call next until the task is done',
     example: 'A coding agent reads the error, edits a file, runs the tests, and repeats until they pass.',
   },
+
+  // Python internals and other languages
+  'machine code': {
+    area: 'Python',
+    en: 'the numbered instructions a CPU can run directly; every program must end up as machine code somehow',
+    example: 'A C program is compiled into machine code once, so the `.exe` runs straight on the CPU with no translator in between.',
+  },
+  compiler: {
+    area: 'Python',
+    en: 'a program that translates a whole program into a lower-level form (machine code or bytecode) before it runs',
+    example: 'The Go compiler turns your `.go` files into one program file you can copy to a server and run.',
+  },
+  interpreter: {
+    area: 'Python',
+    en: 'a program that runs code step by step while the program is running, instead of translating it all first',
+    example: 'The Python virtual machine is an interpreter: it reads one bytecode instruction, does it, then reads the next.',
+  },
+  cpython: {
+    area: 'Python',
+    en: 'the standard Python, written in C — the one you get from python.org. Other Pythons exist, like PyPy',
+    example: 'When people say “Python has a GIL”, they mean CPython; that is the Python that runs this app’s code cells too.',
+  },
+  bytecode: {
+    area: 'Python',
+    en: 'simple, low-level instructions that a virtual machine runs; Python compiles your code to bytecode first',
+    example: '`price * 1.1` becomes bytecode like “load price, load 1.1, multiply”. Java also compiles to bytecode (`.class` files).',
+  },
+  'virtual machine': {
+    area: 'Python',
+    en: 'a program that runs bytecode, acting like a CPU made of software',
+    example: 'The JVM runs Java bytecode on Windows, Mac and Linux alike — so the same `.jar` works everywhere.',
+  },
+  jit: {
+    area: 'Python',
+    en: 'just-in-time compiler: while the program runs, it turns frequently used code into machine code to make it faster',
+    example: 'Chrome’s V8 engine JIT-compiles a hot JavaScript loop after it has run many times, so later rounds are much faster.',
+  },
+  runtime: {
+    area: 'Python',
+    en: 'the time while the program is running (as opposed to before, when it is written or compiled)',
+    example: '`"a" + 1` in Python fails at runtime — only when that line is reached. In Java the compiler rejects it before running.',
+  },
+  'type hint': {
+    area: 'Python',
+    en: 'a note in the code saying which type a value should have, like `x: int`; Python does not check it while running',
+    example: '`def total(prices: list[float]) -> float:` helps your editor and mypy, but `total("abc")` still runs.',
+  },
+  'static typing': {
+    area: 'Python',
+    en: 'every variable has a fixed type that is checked before the program runs',
+    example: 'In Java, `int x = "hi";` does not compile, so the mistake never reaches users.',
+  },
+  'reference counting': {
+    area: 'Python',
+    en: 'each object counts how many references point to it and is freed the moment the count reaches 0',
+    example: 'When the last name for a big list goes away (`data = None`), CPython frees that list immediately.',
+  },
+  'garbage collector': {
+    area: 'Python',
+    en: 'part of a language runtime that finds memory nobody can reach any more and frees it automatically',
+    example: 'Java’s garbage collector runs from time to time; a long pause in an old game was often the collector at work.',
+  },
+  gil: {
+    area: 'Python',
+    en: 'Global Interpreter Lock: in CPython, only one thread of a process runs Python bytecode at a time',
+    example: 'Four threads doing heavy math in Python run about as fast as one; four processes can use four cores.',
+  },
 }
