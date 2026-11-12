@@ -66,6 +66,10 @@ Mỗi bài mới phải có đủ:
   phải trùng y hệt để id task không đổi (plan.ts báo lỗi nếu lệch).
 - Phỏng vấn thử: `data/lessons/mockTests.ts`, theo ngày. Cuối tuần (CN) = quiz bài trong tuần + 1 bài code + 2 câu
   nói, dễ hơn; cuối tháng = quiz cả tháng + 2 bài code + 4 câu nói, có đồng hồ. Chỉ dùng kiến thức đã dạy.
+- URL giữ màn hình đang mở (`hooks/useSavedView.ts` → `useRoadmapRoute`): `/roadmap/today/<ngày>` (`#test` = cuộn tới
+  bài test của ngày), `/roadmap/plan/course|schedule`, `/roadmap/library[/<topic>]`, `/roadmap/notes`,
+  `/roadmap/learn/<id>[#<mục>]`. `/roadmap` (start_url của PWA) mở lại màn hình lần trước. Đổi ngày/chế độ/topic
+  dùng `replace`, đổi tab thì thêm vào lịch sử. Màn hình mới phải có path, không giữ trạng thái chỉ trong state.
 - Bài có id `sd-` hiện ở chủ đề System design của Library (`lessonTopic` trong `data/library.ts`).
 
 ### Dữ liệu và đồng bộ giữa các máy

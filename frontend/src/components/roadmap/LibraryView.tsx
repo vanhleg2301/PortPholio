@@ -17,7 +17,7 @@ const COUNTS = {
 }
 
 // Kept while the app is open, so going into a lesson and back keeps the search.
-const lastView: { query: string; topic: LibraryTopic | 'all' } = { query: '', topic: 'all' }
+const lastView = { query: '' }
 
 const LIBRARY_HIGHLIGHT = 'library-find'
 
@@ -57,28 +57,24 @@ interface LibraryViewProps {
   // `query` is passed when the lesson is opened from a search result.
   onOpenLesson: (lessonId: string, query?: string) => void
   request?: LibraryRequest | null
+  // The topic is part of the URL (/roadmap/library/<topic>).
+  topic: LibraryTopic | 'all'
+  onChangeTopic: (topic: LibraryTopic | 'all') => void
 }
 
 // One tab with everything the app teaches — lessons, theory cards and words — and a search over all of it.
-export function LibraryView({ onOpenLesson, request }: LibraryViewProps) {
+export function LibraryView({ onOpenLesson, request, topic, onChangeTopic: setTopic }: LibraryViewProps) {
   const [query, setQueryState] = useState(lastView.query)
-  const [topic, setTopicState] = useState<LibraryTopic | 'all'>(lastView.topic)
   const setQuery = (value: string) => {
     lastView.query = value
     setQueryState(value)
-  }
-  const setTopic = (value: LibraryTopic | 'all') => {
-    lastView.topic = value
-    setTopicState(value)
   }
   // A card opened by a search request, keyed by the request so it mounts already open.
   const [openRequest, setOpenRequest] = useState<LibraryRequest | null>(null)
   if (request && request.id !== openRequest?.id) {
     setOpenRequest(request)
     lastView.query = request.query
-    lastView.topic = 'all'
     setQueryState(request.query)
-    setTopicState('all')
   }
   const deferredQuery = useDeferredValue(query)
   const isSearching = deferredQuery.trim().length > 0

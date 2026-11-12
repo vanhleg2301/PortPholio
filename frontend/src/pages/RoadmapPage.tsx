@@ -32,7 +32,7 @@ import { TodayView } from '@/components/roadmap/TodayView'
 import { NEETCODE_150_TOTAL } from '@/data/roadmap/neetcode'
 import { useOwnerSession } from '@/hooks/useOwnerSession'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { useSavedView } from '@/hooks/useSavedView'
+import { useRoadmapRoute } from '@/hooks/useSavedView'
 import { useRoadmapNotes } from '@/hooks/useRoadmapNotes'
 import { useRoadmapProgress, useToggleTask } from '@/hooks/useRoadmapProgress'
 import { useRoadmapResources } from '@/hooks/useRoadmapResources'
@@ -74,7 +74,7 @@ const PAGE_LOADED_AT = Date.now()
 export default function RoadmapPage() {
   useDocumentTitle('Road to Big Tech · Study plan')
   const today = getTodayIso()
-  const { tab, setTab, selectedDate, setSelectedDate } = useSavedView(today)
+  const { tab, date: selectedDate, planMode, libraryTopic, viewPath, goTo } = useRoadmapRoute(today)
   const [isAccountOpen, setIsAccountOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -170,12 +170,9 @@ export default function RoadmapPage() {
     toggle.mutate({ taskId, isDone }, { onError: (err) => setToast(`Save failed: ${err.message}`) })
   }
 
-  // Opens the Today page of `date` and scrolls to its test section.
+  // Opens the Today page of `date` at its test section (/roadmap/today/<date>#test).
   function goToTest(date: string) {
-    if (lesson) navigate('/roadmap')
-    setTab('today')
-    setSelectedDate(date)
-    setTimeout(() => document.getElementById('day-test')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 450)
+    goTo({ tab: 'today', date }, { hash: 'test' })
   }
 
   function handleTestPassed(lessonId: string, itemId: string) {
@@ -249,9 +246,8 @@ export default function RoadmapPage() {
     )
   }
 
-  function changeTab(next: RoadmapTab) {
-    setTab(next)
-    if (lesson) navigate('/roadmap')
+  function changeTab(next: RoadmapTab, extra: { libraryTopic?: 'all' } = {}) {
+    goTo({ tab: next, ...extra })
     window.scrollTo({ top: 0 })
   }
 
@@ -266,6 +262,20 @@ export default function RoadmapPage() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
+
+  // A section in the URL: /roadmap/learn/<id>#<section> or /roadmap/today/<date>#test.
+  const hash = decodeURIComponent(location.hash.slice(1))
+  const isTodayView = tab === 'today' && !lesson
+  useEffect(() => {
+    if (!hash) return
+    if (lesson) {
+      setPendingAnchor(hash)
+      return
+    }
+    if (!isTodayView || hash !== 'test') return
+    const timer = setTimeout(() => document.getElementById('day-test')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 450)
+    return () => clearTimeout(timer)
+  }, [location.key, hash, lesson, isTodayView])
 
   useEffect(() => {
     if (!pendingAnchor || !lesson) return
@@ -283,19 +293,22 @@ export default function RoadmapPage() {
 
   // With `query`, the lesson opens its find bar on the first match (inside or after `anchor`).
   function openLessonById(id: string, anchor?: string, query?: string) {
-    navigate(`/roadmap/learn/${id}`)
     if (query && query.trim().length >= 2) {
+      navigate(`/roadmap/learn/${id}`)
       window.scrollTo({ top: 0 })
       setLessonFind({ id: Date.now(), lessonId: id, query: query.trim(), anchor })
-    } else if (anchor) setPendingAnchor(anchor)
-    else window.scrollTo({ top: 0 })
+    } else if (anchor) navigate(`/roadmap/learn/${id}#${encodeURIComponent(anchor)}`)
+    else {
+      navigate(`/roadmap/learn/${id}`)
+      window.scrollTo({ top: 0 })
+    }
   }
 
   function handleSearchSelect(entry: SearchEntry, query: string) {
     const { action } = entry
     if (action.type === 'lesson') openLessonById(action.lessonId, action.anchor, query)
     else if (action.type === 'library') {
-      changeTab('library')
+      changeTab('library', { libraryTopic: 'all' })
       setLibraryRequest({ id: Date.now(), query, entryId: action.entryId })
     } else {
       openDay(action.date)
@@ -316,7 +329,7 @@ export default function RoadmapPage() {
   }
 
   function closeLesson() {
-    navigate('/roadmap')
+    navigate(viewPath)
     window.scrollTo({ top: 0 })
   }
 
@@ -325,8 +338,8 @@ export default function RoadmapPage() {
   }
 
   function openDay(date: string) {
-    setSelectedDate(date)
-    changeTab('today')
+    goTo({ tab: 'today', date })
+    window.scrollTo({ top: 0 })
   }
 
   const avatarUrl = session?.user.user_metadata.avatar_url as string | undefined
@@ -441,10 +454,8 @@ export default function RoadmapPage() {
               today={today}
               doneIds={doneIds}
               onChangeTab={changeTab}
-              onSelectDate={(date) => {
-                setSelectedDate(date)
-                if (lesson) navigate('/roadmap')
-              }}
+              onSelectDate={(date) => goTo({ date })}
+              onOpenDay={openDay}
             />
           </aside>
         )}
@@ -487,7 +498,7 @@ export default function RoadmapPage() {
             notes={notesQuery.data ?? []}
             isNotesReady={notesQuery.isSuccess}
             resources={resourcesQuery.data ?? []}
-            onSelectDate={setSelectedDate}
+            onSelectDate={(date) => goTo({ date })}
             onToggle={handleToggle}
             onRequestSignIn={() => setIsAccountOpen(true)}
             reviews={reviewsQuery.data ?? []}
@@ -517,10 +528,15 @@ export default function RoadmapPage() {
             passed={passedItems}
             savedCode={savedCode}
             onOpenLesson={(id) => openLessonById(id)}
+            mode={planMode}
+            onChangeMode={(mode) => goTo({ planMode: mode })}
           />
         )}
         {tab === 'library' && (
-          <LibraryView request={libraryRequest} onOpenLesson={(id, query) => openLessonById(id, undefined, query)} />
+          <LibraryView
+            request={libraryRequest}
+            topic={libraryTopic}
+            onChangeTopic={(topic) => goTo({ libraryTopic: topic })} onOpenLesson={(id, query) => openLessonById(id, undefined, query)} />
         )}
         {tab === 'notes' && (
           <NotesView

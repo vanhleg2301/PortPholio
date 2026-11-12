@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import type { PlanMode } from '@/hooks/useSavedView'
 import { motion } from 'framer-motion'
 import { CourseView } from '@/components/roadmap/CourseView'
 import { cn } from '@/lib/utils'
@@ -28,17 +28,8 @@ interface PlanViewProps {
   passed: Set<string>
   savedCode: Map<string, string>
   onOpenLesson: (lessonId: string) => void
-}
-
-type PlanMode = 'course' | 'schedule'
-const MODE_KEY = 'roadmap:plan-mode'
-
-function readMode(): PlanMode {
-  try {
-    return localStorage.getItem(MODE_KEY) === 'schedule' ? 'schedule' : 'course'
-  } catch {
-    return 'course'
-  }
+  mode: PlanMode
+  onChangeMode: (mode: PlanMode) => void
 }
 
 function SectionLabel({ eyebrow, title }: { eyebrow: string; title: string }) {
@@ -50,15 +41,7 @@ function SectionLabel({ eyebrow, title }: { eyebrow: string; title: string }) {
   )
 }
 
-export function PlanView({ doneIds, today, onToggle, onOpenDay, sessions, passed, savedCode, onOpenLesson }: PlanViewProps) {
-  const [mode, setMode] = useState<PlanMode>(readMode)
-  useEffect(() => {
-    try {
-      localStorage.setItem(MODE_KEY, mode)
-    } catch {
-      // Storage can be blocked (private mode); the choice just won't be remembered.
-    }
-  }, [mode])
+export function PlanView({ doneIds, today, onToggle, onOpenDay, sessions, passed, savedCode, onOpenLesson, mode, onChangeMode }: PlanViewProps) {
   const weekStart = format(startOfWeek(parseISO(today), { weekStartsOn: 1 }), 'yyyy-MM-dd')
   const totalMinutes = sessions.reduce((sum, s) => sum + s.minutes, 0)
   const weekMinutes = sessions.filter((s) => s.day >= weekStart && s.day <= today).reduce((sum, s) => sum + s.minutes, 0)
@@ -82,7 +65,7 @@ export function PlanView({ doneIds, today, onToggle, onOpenDay, sessions, passed
             type="button"
             role="tab"
             aria-selected={mode === m.id}
-            onClick={() => setMode(m.id)}
+            onClick={() => onChangeMode(m.id)}
             className={cn(
               'rounded-xl px-3 py-2 text-left transition-colors',
               mode === m.id ? 'bg-background shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:bg-foreground/[0.05]'

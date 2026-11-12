@@ -20,9 +20,10 @@ interface DesktopSidebarProps {
   doneIds: Set<string>
   onChangeTab: (tab: RoadmapTab) => void
   onSelectDate: (date: string) => void
+  onOpenDay: (date: string) => void
 }
 
-export function DesktopSidebar({ tab, selectedDate, today, doneIds, onChangeTab, onSelectDate }: DesktopSidebarProps) {
+export function DesktopSidebar({ tab, selectedDate, today, doneIds, onChangeTab, onSelectDate, onOpenDay }: DesktopSidebarProps) {
   const monday = startOfWeek(parseISO(selectedDate), { weekStartsOn: 1 })
   const dates = Array.from({ length: 7 }, (_, i) => format(addDays(monday, i), 'yyyy-MM-dd'))
   const week = getWeekForDate(selectedDate)
@@ -83,10 +84,7 @@ export function DesktopSidebar({ tab, selectedDate, today, doneIds, onChangeTab,
                 <button
                   type="button"
                   disabled={!day}
-                  onClick={() => {
-                    onSelectDate(date)
-                    onChangeTab('today')
-                  }}
+                  onClick={() => onOpenDay(date)}
                   className={cn(
                     'relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors disabled:opacity-30',
                     isSelected ? 'bg-foreground/[0.08]' : 'hover:bg-foreground/[0.05]'

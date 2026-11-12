@@ -49,7 +49,7 @@ export async function GET(request: Request): Promise<Response> {
   const payload = JSON.stringify({
     title: tickedToday === 0 ? 'No study yet today' : 'Reviews are waiting',
     body: tickedToday === 0 ? `Open today's plan and keep the streak going.${dueReviews > 0 ? ` ${reviewText}.` : ''}` : `${reviewText}. A few minutes is enough.`,
-    url: '/roadmap',
+    url: '/roadmap/today',
   })
 
   let sent = 0
