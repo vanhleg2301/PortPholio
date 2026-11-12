@@ -354,4 +354,554 @@ assert longest_two_distinct("abaccc") == 4`,
       },
     ],
   },
+  'dsa-stack': {
+    choice: [
+      choice('lifo-print', PRINT, ['4 [1, 2]', '1 [2, 4]', '3 [1, 2, 4]', '4 [1, 2, 3]'],
+        'After the loop the stack is `[1, 2, 3]`. `pop()` removes 3, `append(4)` puts 4 on top, and the last `pop()` takes the top again: 4. Last in, first out.',
+        's = []\nfor x in [1, 2, 3]:\n    s.append(x)\ns.pop()\ns.append(4)\nprint(s.pop(), s)'),
+      choice('pop-front', 'Why should a stack never use `list.pop(0)`?',
+        ['It removes the first item and shifts every other item one place left: O(n)', 'It raises an error on an empty list, but `pop()` does not', 'It returns a copy, not the item', 'It works only on lists of numbers'],
+        'A list keeps its items side by side in memory. Taking the first one means moving all the others: O(n). `append` and `pop()` work at the end: O(1).'),
+      choice('paren-end', 'In Valid Parentheses, why do we finish with `return not stack` instead of `return True`?',
+        ['An opening bracket left on the stack was never closed, like `"(("`', 'To free the memory of the stack', 'Because `pop()` may have failed', 'To handle strings with spaces'],
+        'Every closer is checked during the loop, but nobody checks the openers that are still waiting. If any remain, the string is not valid.'),
+      choice('paren-trace', PRINT, ["['(']", '[]', "['{']", "['{', '(']"],
+        '`{[()]}` opens and closes completely, so the stack is empty again. The last `(` is pushed and never closed.',
+        'stack = []\nfor ch in "{[()]}(":\n    if ch in "([{":\n        stack.append(ch)\n    else:\n        stack.pop()\nprint(stack)'),
+      choice('minstack-idea', 'How does Min Stack return the minimum in O(1)?',
+        ['Each item is stored with the smallest value of itself and everything below it', 'It sorts the stack after every push', 'It keeps one variable `min` and updates it on push and pop', 'It scans the stack but stops early'],
+        'One variable is not enough: after you pop the minimum, you would not know the next one. Storing “minimum so far” with each item means the top always knows the answer, even after pops.'),
+      choice('rpn-div', PRINT, ['-4 -3', '-3 -3', '-4 -4', '-3 -4'],
+        '7 ÷ −2 = −3.5. `//` rounds **down** to −4. `int()` cuts off the decimals, which rounds **towards zero**: −3. Evaluate RPN wants −3.',
+        'print(7 // -2, int(7 / -2))'),
+      choice('rpn-order', 'In RPN, the tokens are `["10", "4", "-"]`. When you see `-`, what do the two pops give you?',
+        ['First pop: 4 (the right operand), second pop: 10 — compute 10 - 4 = 6', 'First pop: 10, second pop: 4 — compute 10 - 4', 'First pop: 4, second pop: 10 — compute 4 - 10', 'Both numbers at once, in any order'],
+        'The last number pushed is on top, so it comes out first, and it is the **right** side of the operator. For `+` and `*` the order does not matter; for `-` and `/` it does.'),
+      choice('mono-cost', 'Daily Temperatures with a monotonic stack has a `while` inside a `for`. What is the time?',
+        ['O(n): each index is pushed once and popped at most once', 'O(n²): the while loop can run n times for each day', 'O(n log n)', 'O(1)'],
+        'Count the work per index instead of per loop: one push and at most one pop. That is at most 2n stack operations for the whole input.'),
+      choice('mono-order', 'In Daily Temperatures, what is true about the temperatures of the days on the stack, from bottom to top?',
+        ['They never go up: each one is not warmer than the one below it', 'They always go up', 'They are in random order', 'They are all equal'],
+        'A warmer day pops every colder day before it is pushed. So the stack only holds days that are still waiting, from warmest (bottom) to coldest (top) — a [[monotonic stack]].'),
+      choice('mono-trace', PRINT, ['[3]', '[0, 3]', '[0, 2, 3]', '[]'],
+        '60 waits under 70. 65 pops 60 but not 70. 80 pops 65 and 70. Only day 3 is left waiting.',
+        'temps = [70, 60, 65, 80]\nstack = []\nfor i, t in enumerate(temps):\n    while stack and temps[stack[-1]] < t:\n        stack.pop()\n    stack.append(i)\nprint(stack)'),
+      choice('fleet', 'In Car Fleet, why do we look at the cars **closest to the target first**?',
+        ['A car can only be slowed down by cars ahead of it, so the cars in front must be decided first', 'Because they are the fastest', 'To make the sort stable', 'Because the input is already sorted that way'],
+        'Whether a car joins a fleet depends only on the fleet directly ahead. Going from the front backwards, you always know the arrival time of the fleet in front.'),
+      choice('stack-signal', 'Which task is a stack the natural tool for?',
+        ['Check that every HTML tag like `<div>` is closed in the right order', 'Find the shortest path out of a maze', 'Count how often each word appears', 'Find two numbers in a sorted array that add up to a target'],
+        'Nested “open now, close later” structure is the stack signal. The maze is BFS with a queue, counting is a hash map, the sorted pair is two pointers.'),
+    ],
+    code: [
+      {
+        id: 'remove-adjacent',
+        title: 'Remove All Adjacent Duplicates',
+        prompt: 'Repeatedly remove two **equal letters next to each other** until none are left, and return the result. `"abbaca"` → remove `bb` → `"aaca"` → remove `aa` → `"ca"`. O(n) with a stack.',
+        starter: `def remove_duplicates(s):
+    # your code here
+    pass`,
+        tests: `assert remove_duplicates("abbaca") == "ca"
+assert remove_duplicates("azxxzy") == "ay"
+assert remove_duplicates("aaaa") == ""
+assert remove_duplicates("abc") == "abc"
+assert remove_duplicates("") == ""`,
+        hint: 'For each letter: if it equals the top of the stack, pop; otherwise push. Join the stack at the end.',
+        solution: `def remove_duplicates(s):
+    stack = []
+    for ch in s:
+        if stack and stack[-1] == ch:
+            stack.pop()
+        else:
+            stack.append(ch)
+    return "".join(stack)`,
+      },
+      {
+        id: 'next-greater',
+        title: 'Next Greater Element I',
+        prompt: 'Every value of `nums1` also appears in `nums2` (all values are different). For each value of `nums1`, return the first **greater** value to its right **in `nums2`**, or -1. Walk `nums2` once with a monotonic stack and save the answers in a dict.',
+        starter: `def next_greater(nums1, nums2):
+    # your code here
+    pass`,
+        tests: `assert next_greater([4, 1, 2], [1, 3, 4, 2]) == [-1, 3, -1]
+assert next_greater([2, 4], [1, 2, 3, 4]) == [3, -1]
+assert next_greater([5], [5]) == [-1]
+assert next_greater([3, 1], [3, 1, 2, 5]) == [5, 2]`,
+        hint: 'Stack of values waiting for a greater one. When `x` is greater than the top, pop it and set `answer[top] = x`. At the end, look up each `nums1` value with `answer.get(v, -1)`.',
+        solution: `def next_greater(nums1, nums2):
+    answer = {}
+    stack = []
+    for x in nums2:
+        while stack and stack[-1] < x:
+            answer[stack.pop()] = x
+        stack.append(x)
+    return [answer.get(v, -1) for v in nums1]`,
+      },
+    ],
+    explain: [
+      {
+        id: 'mono-explain',
+        question: 'Explain how you solve Daily Temperatures in O(n): what the stack holds, when you pop, and why it is O(n) even with a loop inside a loop.',
+        points: [
+          'Brute force checks every later day: O(n²)',
+          'The stack holds indexes of days still waiting for a warmer day; their temperatures never go up from bottom to top',
+          'For a new day i: while it is warmer than the top day j, pop j and set answer[j] = i - j; then push i',
+          'Each index is pushed once and popped at most once → O(n) time, O(n) memory in the worst case',
+          'Days left on the stack at the end keep the answer 0',
+        ],
+        answer: 'The simple solution looks at every later day for each day, which is O(n²). Instead I walk the days once and keep a stack of indexes of days that have not found a warmer day yet. Because a warmer day removes every colder day before it is pushed, the temperatures on the stack never go up from bottom to top. For each new day `i`, while its temperature is higher than the day on top, that top day `j` has found its answer: I pop it and write `i - j`. Then I push `i`, because it is waiting too. Days still on the stack at the end never get a warmer day, so their answer stays 0. Every index is pushed once and popped at most once, so all the work together is O(n), and the stack is O(n) memory when the temperatures only go down.',
+      },
+      {
+        id: 'min-stack-design',
+        question: 'Design a stack that supports push, pop, top and get_min in O(1). Then: how would you also support get_max, and what does it cost in memory?',
+        points: [
+          'Store each value with the minimum of itself and everything below it',
+          'get_min reads the top pair; pop restores the old minimum automatically',
+          'A single min variable fails: after popping the minimum you do not know the next one',
+          'get_max: store a third value, the maximum so far (or keep a second stack)',
+          'Memory: O(n) extra; all operations stay O(1)',
+        ],
+        answer: 'I store pairs on a normal list: the value and the smallest value at that moment, which is `min(value, minimum of the pair below)`. `push`, `pop` and `top` work on the end of the list, and `get_min` just reads the second part of the top pair — all O(1). A single variable for the minimum is not enough, because after popping the minimum I would have to scan the stack to find the next one. Popping a pair brings back the previous minimum for free. To support `get_max` too, I store a third value, the largest so far, in the same way. The cost is O(n) extra memory — one or two extra numbers per item — and a version with a separate min stack that only grows when a new minimum arrives can save some of it.',
+      },
+    ],
+  },
+  'dsa-binary-search': {
+    choice: [
+      choice('bs-steps', 'At most how many steps does binary search need on 1,000,000 sorted items?',
+        ['About 20', 'About 1,000', 'About 500,000', 'About 6'],
+        'Each step halves the range: 2²⁰ ≈ 1,000,000, so about 20 steps. That is the power of [[logarithm|O(log n)]].'),
+      choice('bs-trace', PRINT, ['[8, 4]', '[2, 4]', '[8, 6, 4]', '[6, 4]'],
+        'The first middle is index 3 (8). 4 is smaller, so `hi = 2`; the next middle is index 1, which is 4.',
+        'nums = [2, 4, 6, 8, 10, 12, 14]\nlo, hi = 0, len(nums) - 1\nseen = []\nwhile lo <= hi:\n    mid = (lo + hi) // 2\n    seen.append(nums[mid])\n    if nums[mid] == 4:\n        break\n    if nums[mid] < 4:\n        lo = mid + 1\n    else:\n        hi = mid - 1\nprint(seen)'),
+      choice('bs-sorted', 'What must be true for binary search to work?',
+        ['The data is sorted — or, more generally, the “yes/no” answers change only once (monotonic)', 'The data has no duplicates', 'The list length is a power of 2', 'The values are integers'],
+        'Throwing away half is only safe if you can prove the answer is not in it. Sorted order (or a monotonic yes/no) gives you that proof.'),
+      choice('bs-plusone', 'In the basic template, why `lo = mid + 1` and not `lo = mid`?',
+        ['`mid` was already checked; without `+ 1` the range may stop shrinking and the loop never ends', 'To skip duplicates', 'Because Python indexes start at 0', 'It is only a style choice'],
+        'When `lo` and `hi` are next to each other, `mid == lo`. `lo = mid` would change nothing, forever.'),
+      choice('lower-bound', PRINT, ['1 4', '1 3', '3 4', '0 4'],
+        '`bisect_left(a, x)` is the first index where `a[i] >= x`. The first 2 is at index 1. There is no 3, so it would be inserted before 5, at index 4.',
+        'from bisect import bisect_left\na = [1, 2, 2, 2, 5]\nprint(bisect_left(a, 2), bisect_left(a, 3))'),
+      choice('lower-hi', 'In the lower-bound template, why does `hi` start at `len(nums)` and not `len(nums) - 1`?',
+        ['The target can be bigger than every item; then the answer is `len(nums)`, so it must be inside the range', 'To avoid an IndexError', 'Because the loop uses `<=`', 'To make the loop faster'],
+        'A lower bound answers “where would it go?”, and “after the last item” is a real answer. The loop never reads `nums[len(nums)]` because `mid < hi` always.'),
+      choice('answer-monotonic', 'When can you binary search **on the answer** (like Koko’s speed)?',
+        ['When “x works” means every bigger x works too (or every smaller one)', 'Only when the input array is sorted', 'When the answer is a float', 'When n is small'],
+        'The answers look like `no, no, yes, yes, yes`. Binary search finds the first “yes” in O(log(range)) checks.'),
+      choice('koko-cost', 'Koko Eating Bananas: n piles, the biggest pile is m. What is the time of the binary-search solution?',
+        ['O(n log m)', 'O(n · m)', 'O(log n)', 'O(m log n)'],
+        'There are log m guesses of the speed, and each guess sums over all n piles.'),
+      choice('rotated-min', 'Find Minimum in Rotated Sorted Array: what does `nums[mid] > nums[hi]` tell you?',
+        ['The drop — and so the minimum — is to the right of `mid`', 'The minimum is at `mid`', 'The array is not rotated', 'The minimum is to the left of `mid`'],
+        'In a sorted (not rotated) part, the left value is never bigger than the right. If `nums[mid] > nums[hi]`, the rotation point is between them.'),
+      choice('matrix-index', 'You search a 3 × 4 matrix (3 rows, 4 columns) as one sorted list. Which cell is index 7?',
+        ['Row 1, column 3', 'Row 2, column 1', 'Row 1, column 4', 'Row 2, column 3'],
+        '`divmod(7, 4)` = `(1, 3)`: 7 // 4 = 1 full rows before it, 7 % 4 = column 3. Divide by the number of **columns**.'),
+      choice('bs-overflow', 'Why do Java and C programmers write `lo + (hi - lo) / 2` instead of `(lo + hi) / 2`?',
+        ['`lo + hi` can be bigger than the largest 32-bit int and wrap to a negative number', 'It rounds better', 'It is faster', 'It works for negative indexes'],
+        'With huge arrays `lo + hi` can [[overflow]]. The Java library had this bug for years. Python ints never overflow.'),
+      choice('bs-signal', 'Which problem is a binary search problem?',
+        ['Find the smallest ship capacity that ships all packages within D days', 'Count the words in a text', 'Check if brackets are balanced', 'Find two numbers in an unsorted array with a given sum'],
+        'If capacity c works, every bigger capacity works too — binary search on the answer. The others are a hash map, a stack and a hash map.'),
+    ],
+    code: [
+      {
+        id: 'first-bad-version',
+        title: 'First Bad Version',
+        prompt: 'Versions `1 … n`; once a version is bad, every later version is bad too. `is_bad(v)` tells you if version `v` is bad. Return the first bad version, calling `is_bad` as few times as possible (O(log n)).',
+        starter: `def first_bad(n, is_bad):
+    # your code here
+    pass`,
+        tests: `calls = []
+def make(bad):
+    def is_bad(v):
+        calls.append(v)
+        return v >= bad
+    return is_bad
+
+assert first_bad(5, make(4)) == 4
+assert first_bad(1, make(1)) == 1
+assert first_bad(10, make(1)) == 1
+calls.clear()
+assert first_bad(2 ** 31 - 1, make(1702766719)) == 1702766719
+assert len(calls) <= 32`,
+        hint: 'Lower bound on `[1, n]`: if `is_bad(mid)`, then `hi = mid`, else `lo = mid + 1`.',
+        solution: `def first_bad(n, is_bad):
+    lo, hi = 1, n
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if is_bad(mid):
+            hi = mid
+        else:
+            lo = mid + 1
+    return lo`,
+      },
+      {
+        id: 'int-sqrt',
+        title: 'Sqrt(x)',
+        prompt: 'Return the square root of `x` (x ≥ 0) **rounded down**, without `**`, `math` or any built-in power function. O(log x).',
+        starter: `def my_sqrt(x):
+    # your code here
+    pass`,
+        tests: `assert my_sqrt(4) == 2
+assert my_sqrt(8) == 2
+assert my_sqrt(0) == 0
+assert my_sqrt(1) == 1
+assert my_sqrt(2147395599) == 46339`,
+        hint: 'Find the **last** `m` with `m * m <= x`. Search `[0, x]`; when `mid * mid <= x`, remember it and go right.',
+        solution: `def my_sqrt(x):
+    lo, hi, best = 0, x, 0
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if mid * mid <= x:
+            best = mid
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return best`,
+      },
+    ],
+    explain: [
+      {
+        id: 'bs-answer-explain',
+        question: 'Explain “binary search on the answer” using Koko Eating Bananas: why it works, the search range, the check, and the complexity.',
+        points: [
+          'If speed k lets Koko finish in h hours, every faster speed does too: the answers are monotonic',
+          'Range: 1 to max(piles) — at max(piles) each pile takes one hour, and h ≥ number of piles',
+          'Check: hours = sum of ceil(pile / k); it works if hours ≤ h',
+          'Lower bound: if it works, hi = mid (maybe slower works), else lo = mid + 1',
+          'O(n log m) time, O(1) memory (n piles, m = biggest pile)',
+        ],
+        answer: 'There is no sorted array here, but the answers are sorted: if Koko can finish at speed k, she can also finish at any faster speed. So the speeds look like “too slow, too slow, … fast enough, fast enough”, and I want the first “fast enough”. The smallest possible speed is 1 and the largest I ever need is the biggest pile, because then each pile takes exactly one hour and h is at least the number of piles. For a guess `mid`, I add up `ceil(pile / mid)` for every pile; if the total is at most h, `mid` works and a slower speed might work too, so `hi = mid`; otherwise `lo = mid + 1`. When `lo == hi`, that is the answer. Each check is O(n) and there are about log m checks, so the total is O(n log m) with O(1) extra memory.',
+      },
+      {
+        id: 'bs-bugs-explain',
+        question: '“Binary search is easy to get wrong.” Which bugs do people make, and how do you avoid them?',
+        points: [
+          'Infinite loop: lo = mid (or hi = mid with <=) so the range stops shrinking',
+          'Off by one: wrong start for hi (len - 1 vs len) or < vs <= — pick one template and keep it',
+          'Overflow of lo + hi in Java/C (not in Python)',
+          'Using it on data that is not sorted / not monotonic',
+          'Test edge cases: empty, one item, target smaller and bigger than all, duplicates',
+        ],
+        answer: 'The most common bug is an infinite loop: one side is set to `mid` instead of `mid + 1` or `mid - 1`, so when the range has two items it never shrinks. The second is off-by-one: mixing `while lo <= hi` with `hi = mid`, or starting `hi` at `len(nums) - 1` when the answer can be `len(nums)`. I avoid both by using two fixed templates — the closed range `[lo, hi]` with `<=` and `±1` to find an exact value, and the half-open `[lo, hi)` with `<` and `hi = mid` for “the first position that fits” — and by saying the invariant: the answer is always inside the range. In Java or C, `lo + hi` can overflow, so they write `lo + (hi - lo) / 2`; Python does not have that problem. Finally, I check that the data really is sorted or monotonic, and I test an empty list, one item, a target smaller and bigger than everything, and duplicates.',
+      },
+    ],
+  },
+  'dsa-linked-list': {
+    choice: [
+      choice('ll-cost', 'What does it cost to read the item at index `i` of a linked list?',
+        ['O(i) — you walk from the head, one node at a time', 'O(1), like a Python list', 'O(log n)', 'O(n²)'],
+        'Nodes are not next to each other in memory, so there is no way to jump to node i. This is the price for O(1) inserts at a node you already hold.'),
+      choice('ll-reverse-order', 'Reversing a list: inside the loop, which line must come **first**?',
+        ['`nxt = cur.next`', '`cur.next = prev`', '`prev = cur`', '`cur = nxt`'],
+        'Once `cur.next` points back to `prev`, the only way to reach the rest of the list is gone. Save it first.'),
+      choice('dummy', 'Why do many linked-list solutions start with `dummy = ListNode(0)`?',
+        ['The head may change or the result may be empty; a fake first node removes the special case', 'To make the list one longer', 'Python needs it to allocate memory', 'To store the length'],
+        'With a [[dummy node]] you always attach to `tail.next` and return `dummy.next`, even if the real head was removed.'),
+      choice('merge-trace', PRINT, ['3 4 None', '4 4 None', '3 None 4', '2 4 3'],
+        'The loop takes 1 (from `a`), then 2 and 3 (from `b`). Now `b` is empty, so the loop stops: `tail` is 3 and `a` still holds 4.',
+        'class Node:\n    def __init__(self, val, next=None):\n        self.val, self.next = val, next\na = Node(1, Node(4))\nb = Node(2, Node(3))\ndummy = tail = Node(0)\nwhile a and b:\n    if a.val <= b.val:\n        tail.next, a = a, a.next\n    else:\n        tail.next, b = b, b.next\n    tail = tail.next\nprint(tail.val, a.val if a else None, b)'),
+      choice('middle', PRINT, ['4', '3', '5', '6'],
+        'The same fast/slow idea with indexes: `fast` moves 2, `slow` moves 1. With an even length, `slow` stops at the **second** middle.',
+        'vals = [1, 2, 3, 4, 5, 6]\nslow = fast = 0\nwhile fast < len(vals) and fast + 1 < len(vals):\n    slow += 1\n    fast += 2\nprint(vals[slow])'),
+      choice('cycle-meet', 'In Floyd’s cycle detection, why must `fast` meet `slow` if there is a cycle?',
+        ['Inside the cycle, fast gains one node per step, so the gap shrinks by one each step until it is 0', 'Because fast is twice as fast, it meets slow after exactly n steps', 'Because the list is sorted', 'It does not always meet; you also need a set'],
+        'Once both are in the loop, think of fast chasing slow: each step closes the gap by exactly one, so it cannot jump over slow.'),
+      choice('is-vs-eq', PRINT, ['True False', 'True True', 'False False', 'False True'],
+        '`==` compares the **values**; `is` asks “the same object?”. Two nodes can hold equal values and still be different nodes — that is why cycle detection uses `is`.',
+        'x = [1]\ny = [1]\nprint(x == y, x is y)'),
+      choice('nth-end', 'Remove the n-th node from the end in one pass. What is the trick?',
+        ['Move a pointer n steps ahead, then move both until the first one reaches the end', 'Reverse the list twice', 'Store all nodes in a dict', 'Walk the list n times'],
+        'The gap between the two pointers stays n, so when the front one is at the end, the back one is just before the node to remove.'),
+      choice('lru-structures', 'An LRU cache needs `get` and `put` in O(1). Which pair of structures does it use?',
+        ['A dict (key → node) and a doubly linked list (order of use)', 'A sorted list and binary search', 'A heap and a set', 'Two stacks'],
+        'The dict finds the node; the list moves it to the front and drops the oldest from the back, all in O(1).'),
+      choice('doubly', 'Why does an LRU cache use a **doubly** linked list?',
+        ['To remove a node from the middle in O(1) you need its previous node, and each node keeps `prev`', 'It uses less memory', 'So it can be sorted', 'Singly linked lists cannot hold strings'],
+        'With only `next`, finding the node before a given node means walking from the head: O(n).'),
+      choice('ll-vs-array', 'Java has `LinkedList`, but `ArrayList` is usually faster even for many inserts. Why?',
+        ['Its values sit together in memory, which the CPU cache loves; linked nodes are spread around', 'ArrayList is written in C', 'LinkedList is not thread-safe', 'ArrayList never resizes'],
+        'Big O hides the constant. Jumping between scattered nodes causes cache misses; scanning a packed array is very fast.'),
+      choice('reorder', 'Reorder List (`1→2→3→4→5` becomes `1→5→2→4→3`) in O(1) extra memory. Which steps?',
+        ['Find the middle with fast/slow, reverse the second half, then merge the two halves one by one', 'Sort the list', 'Copy into a Python list and rebuild it', 'Use recursion only'],
+        'The three basic moves of this lesson combined. (Copying into a list also works, but it costs O(n) memory.)'),
+    ],
+    code: [
+      {
+        id: 'remove-elements',
+        title: 'Remove Linked List Elements',
+        prompt: 'Remove **every** node whose value equals `val` and return the new head. The head itself may need to be removed.',
+        starter: `class ListNode:
+    def __init__(self, val, next=None):
+        self.val, self.next = val, next
+
+def remove_elements(head, val):
+    # your code here
+    pass`,
+        tests: `def build(values):
+    head = None
+    for v in reversed(values):
+        head = ListNode(v, head)
+    return head
+
+def to_list(head):
+    out = []
+    while head:
+        out.append(head.val)
+        head = head.next
+    return out
+
+assert to_list(remove_elements(build([1, 2, 6, 3, 4, 5, 6]), 6)) == [1, 2, 3, 4, 5]
+assert to_list(remove_elements(build([7, 7, 7, 7]), 7)) == []
+assert to_list(remove_elements(build([1, 7, 7, 2]), 7)) == [1, 2]
+assert remove_elements(None, 1) is None`,
+        hint: 'Dummy node in front. `cur = dummy`; while `cur.next`: if `cur.next.val == val`, skip it (`cur.next = cur.next.next`), else move `cur`.',
+        solution: `class ListNode:
+    def __init__(self, val, next=None):
+        self.val, self.next = val, next
+
+def remove_elements(head, val):
+    dummy = ListNode(0, head)
+    cur = dummy
+    while cur.next:
+        if cur.next.val == val:
+            cur.next = cur.next.next
+        else:
+            cur = cur.next
+    return dummy.next`,
+      },
+      {
+        id: 'palindrome-list',
+        title: 'Palindrome Linked List',
+        prompt: 'Return `True` if the values read the same forwards and backwards. Aim for O(n) time and O(1) extra memory: find the middle, reverse the second half, compare.',
+        starter: `class ListNode:
+    def __init__(self, val, next=None):
+        self.val, self.next = val, next
+
+def is_palindrome(head):
+    # your code here
+    pass`,
+        tests: `def build(values):
+    head = None
+    for v in reversed(values):
+        head = ListNode(v, head)
+    return head
+
+assert is_palindrome(build([1, 2, 2, 1])) is True
+assert is_palindrome(build([1, 2, 3, 2, 1])) is True
+assert is_palindrome(build([1, 2])) is False
+assert is_palindrome(build([1])) is True
+assert is_palindrome(None) is True`,
+        hint: 'Fast/slow to the middle. Reverse from `slow`. Walk the first half and the reversed half together and compare values.',
+        solution: `class ListNode:
+    def __init__(self, val, next=None):
+        self.val, self.next = val, next
+
+def is_palindrome(head):
+    slow = fast = head
+    while fast and fast.next:
+        slow, fast = slow.next, fast.next.next
+    prev = None
+    while slow:
+        slow.next, prev, slow = prev, slow, slow.next
+    left, right = head, prev
+    while right:
+        if left.val != right.val:
+            return False
+        left, right = left.next, right.next
+    return True`,
+      },
+    ],
+    explain: [
+      {
+        id: 'll-reverse-explain',
+        question: 'Explain how you reverse a singly linked list in place. Then: how would you do it with recursion, and what does that cost?',
+        points: [
+          'Two pointers: prev = None, cur = head',
+          'Each step: save next, point cur.next to prev, move prev and cur forward',
+          'At the end prev is the new head; O(n) time, O(1) memory',
+          'Recursive: reverse the rest, then head.next.next = head and head.next = None',
+          'Recursion uses O(n) stack memory and can hit Python’s recursion limit on long lists',
+        ],
+        answer: 'I keep two pointers, `prev` starting at `None` and `cur` at the head. In each step I first save `cur.next`, because I am about to overwrite it; then I point `cur.next` back to `prev`, and move both pointers one step: `prev` becomes `cur`, `cur` becomes the saved next node. When `cur` is `None`, every arrow has been turned around and `prev` is the new head. That is O(n) time and O(1) extra memory. Recursively, I reverse everything after the head first, which returns the new head; then the old second node points back to the old head with `head.next.next = head`, and I cut `head.next = None`. It is elegant, but every node adds a stack frame, so it uses O(n) memory and in Python a list with a few thousand nodes hits the recursion limit — I prefer the loop.',
+      },
+      {
+        id: 'lru-explain',
+        question: 'Design an LRU cache with `get(key)` and `put(key, value)`, both O(1), and a fixed capacity.',
+        points: [
+          'A dict from key to node gives O(1) lookup',
+          'A doubly linked list keeps the order of use: most recent at one end, least recent at the other',
+          'get: find the node, move it to the recent end, return the value (or -1)',
+          'put: update or insert at the recent end; if over capacity, remove the least recent node and its key',
+          'Dummy head and tail nodes avoid special cases; Python’s OrderedDict does the same thing',
+        ],
+        answer: 'I combine two structures. A dict maps each key to a node, so I can find any entry in O(1). The nodes form a doubly linked list ordered by use: the most recently used node sits next to the tail, the least recently used next to the head. I put dummy head and tail nodes at both ends, so inserting and removing never need special cases. For `get`, I look up the node; if it is missing I return -1, otherwise I unlink it — O(1) because it knows its `prev` and `next` — and insert it before the tail, then return its value. For `put`, if the key exists I update the value and move the node; if not, I create a node, add it before the tail and to the dict, and if the size is now over capacity I remove the node after the dummy head and delete its key from the dict. In Python, `OrderedDict` with `move_to_end` and `popitem(last=False)` is exactly this design.',
+      },
+    ],
+  },
+  'dsa-trees': {
+    choice: [
+      choice('tree-depth', PRINT, ['3', '2', '4', '5'],
+        'The longest root-to-leaf path is 1 → 2 → 4: three nodes. The recursion returns 1 + the bigger depth of the two children.',
+        'class T:\n    def __init__(self, v, l=None, r=None):\n        self.v, self.l, self.r = v, l, r\ndef depth(n):\n    return 0 if n is None else 1 + max(depth(n.l), depth(n.r))\nroot = T(1, T(2, T(4), T(5)), T(3))\nprint(depth(root))'),
+      choice('orders', PRINT, ['[1, 2, 4, 5, 3]', '[4, 2, 5, 1, 3]', '[4, 5, 2, 3, 1]', '[1, 2, 3, 4, 5]'],
+        'Pre-order: the node first, then the whole left subtree, then the right subtree.',
+        'class T:\n    def __init__(self, v, l=None, r=None):\n        self.v, self.l, self.r = v, l, r\ndef pre(n):\n    return [n.v] + pre(n.l) + pre(n.r) if n else []\nroot = T(1, T(2, T(4), T(5)), T(3))\nprint(pre(root))'),
+      choice('inorder-bst', 'Which traversal gives the values of a binary search tree in sorted order?',
+        ['In-order (left, node, right)', 'Pre-order (node, left, right)', 'Post-order (left, right, node)', 'Level order (BFS)'],
+        'Everything left of a node is smaller and everything right is bigger, so “left, node, right” visits values from small to big.'),
+      choice('bfs-queue', 'BFS on a tree uses `collections.deque` with `popleft()`. Why not a list with `pop(0)`?',
+        ['`pop(0)` shifts every item, O(n) each time; `popleft()` is O(1)', '`pop(0)` returns the last item', 'Lists cannot hold nodes', 'There is no difference'],
+        'A queue takes from the front. On a list that costs O(n) per pop, making BFS O(n²) on a big tree.'),
+      choice('bfs-print', PRINT, ['[[1], [2, 3], [4, 5]]', '[[1], [2, 3, 4, 5]]', '[[1, 2, 3], [4, 5]]', '[1, 2, 3, 4, 5]'],
+        'Each round handles exactly `len(queue)` nodes — the current level — and adds the next level to the back.',
+        'from collections import deque\nclass T:\n    def __init__(self, v, l=None, r=None):\n        self.v, self.l, self.r = v, l, r\nroot = T(1, T(2, T(4), T(5)), T(3))\nlevels, q = [], deque([root])\nwhile q:\n    level = []\n    for _ in range(len(q)):\n        n = q.popleft()\n        level.append(n.v)\n        q.extend(c for c in (n.l, n.r) if c)\n    levels.append(level)\nprint(levels)'),
+      choice('dfs-vs-bfs', 'Minimum Depth of Binary Tree (the shortest path to a leaf): why is BFS a good fit?',
+        ['BFS reaches nodes level by level, so the first leaf it meets is the shallowest — it can stop early', 'BFS uses less memory than DFS in every tree', 'DFS cannot find leaves', 'BFS sorts the nodes'],
+        'DFS must explore the whole tree to be sure; BFS can return as soon as it finds a leaf.'),
+      choice('bst-rule', 'Which tree is **not** a valid BST?',
+        ['Root 5, left child 3, right child 7, and 7 has a left child 4', 'Root 5, left 3, right 7', 'Root 5, left 3, and 3 has a right child 4', 'A single node 5'],
+        '4 is smaller than 7 (fine for its parent) but it is in the **right** subtree of 5, where every value must be bigger than 5. Checking only parent and child misses this.'),
+      choice('bst-cost', 'You insert 1, 2, 3, …, 1000 into a plain BST, in that order. How long is a search now?',
+        ['O(n): every node has only a right child, so the tree is a line of height 1000', 'O(log n)', 'O(1)', 'O(n log n)'],
+        'BST speed depends on the height. Sorted inserts make the worst shape. Balanced trees (red-black, AVL) fix the height at about log n.'),
+      choice('recursion-cost', 'A recursive DFS on a tree with n nodes and height h. Time and extra memory?',
+        ['O(n) time, O(h) memory for the call stack', 'O(h) time, O(n) memory', 'O(n log n) time, O(1) memory', 'O(n) time, O(1) memory'],
+        'Every node is visited once. At any moment the call stack holds one frame per level of the current path: h frames (log n balanced, n for a line).'),
+      choice('diameter', 'In Diameter of Binary Tree, what does the recursive function **return**, and what does it **record**?',
+        ['It returns the height of the subtree; it records the best `left height + right height` seen so far', 'It returns the diameter and records the height', 'It returns the number of nodes', 'It returns a list of paths'],
+        'The parent needs the height to continue; the longest path may bend at any node, so you record it on the side.'),
+      choice('invert', PRINT, ['[1, 3, 2, 5, 4]', '[1, 2, 4, 5, 3]', '[3, 1, 2, 5, 4]', '[1, 3, 2, 4, 5]'],
+        'Inverting swaps the children of every node: 3 is now on the left, and 2’s children are swapped (5, then 4).',
+        'class T:\n    def __init__(self, v, l=None, r=None):\n        self.v, self.l, self.r = v, l, r\ndef invert(n):\n    if n:\n        n.l, n.r = invert(n.r), invert(n.l)\n    return n\ndef pre(n):\n    return [n.v] + pre(n.l) + pre(n.r) if n else []\nprint(pre(invert(T(1, T(2, T(4), T(5)), T(3)))))'),
+      choice('lca-bst', 'Lowest Common Ancestor in a **BST** of `p` and `q`: when do you stop at the current node?',
+        ['When p and q are on different sides of it (or one of them is the node itself)', 'When the node is a leaf', 'When both are smaller than the node', 'Only at the root'],
+        'If both are smaller, the answer is in the left subtree; both bigger, the right subtree. The first node where they split is the answer: O(h).'),
+    ],
+    code: [
+      {
+        id: 'average-levels',
+        title: 'Average of Levels',
+        prompt: 'Return the average value of the nodes on each level, top to bottom, as floats. Use BFS.',
+        starter: `from collections import deque
+
+class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+def average_of_levels(root):
+    # your code here
+    pass`,
+        tests: `def build(values):
+    if not values:
+        return None
+    nodes = [None if v is None else TreeNode(v) for v in values]
+    kids = nodes[::-1]
+    root = kids.pop()
+    for node in nodes:
+        if node:
+            if kids:
+                node.left = kids.pop()
+            if kids:
+                node.right = kids.pop()
+    return root
+
+assert average_of_levels(build([3, 9, 20, None, None, 15, 7])) == [3.0, 14.5, 11.0]
+assert average_of_levels(build([3, 9, 20, 15, 7])) == [3.0, 14.5, 11.0]
+assert average_of_levels(build([5])) == [5.0]
+assert average_of_levels(None) == []`,
+        hint: 'Level-order template; for each level sum the values and divide by the number of nodes in that level.',
+        solution: `from collections import deque
+
+class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+def average_of_levels(root):
+    out, queue = [], deque([root] if root else [])
+    while queue:
+        size, total = len(queue), 0
+        for _ in range(size):
+            node = queue.popleft()
+            total += node.val
+            if node.left:
+                queue.append(node.left)
+            if node.right:
+                queue.append(node.right)
+        out.append(total / size)
+    return out`,
+      },
+      {
+        id: 'symmetric-tree',
+        title: 'Symmetric Tree',
+        prompt: 'Return `True` if the tree is a mirror of itself around its centre.',
+        starter: `class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+def is_symmetric(root):
+    # your code here
+    pass`,
+        tests: `def build(values):
+    if not values:
+        return None
+    nodes = [None if v is None else TreeNode(v) for v in values]
+    kids = nodes[::-1]
+    root = kids.pop()
+    for node in nodes:
+        if node:
+            if kids:
+                node.left = kids.pop()
+            if kids:
+                node.right = kids.pop()
+    return root
+
+assert is_symmetric(build([1, 2, 2, 3, 4, 4, 3])) is True
+assert is_symmetric(build([1, 2, 2, None, 3, None, 3])) is False
+assert is_symmetric(build([1])) is True
+assert is_symmetric(build([1, 2, 3])) is False
+assert is_symmetric(None) is True`,
+        hint: 'Write `mirror(a, b)`: both None → True; one None → False; else equal values and `mirror(a.left, b.right)` and `mirror(a.right, b.left)`.',
+        solution: `class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+def is_symmetric(root):
+    def mirror(a, b):
+        if a is None and b is None:
+            return True
+        if a is None or b is None:
+            return False
+        return a.val == b.val and mirror(a.left, b.right) and mirror(a.right, b.left)
+    return root is None or mirror(root.left, root.right)`,
+      },
+    ],
+    explain: [
+      {
+        id: 'dfs-bfs-explain',
+        question: '“DFS or BFS?” Explain how each one walks a tree, what it uses, its memory, and one problem where each is the better choice.',
+        points: [
+          'DFS goes deep first: recursion (the call stack) or an explicit stack; pre/in/post order',
+          'BFS goes level by level with a queue (deque)',
+          'Both O(n) time; DFS memory O(height), BFS memory O(widest level)',
+          'BFS: levels, right side view, minimum depth — it can stop at the first leaf',
+          'DFS: path sums, subtree answers (height, diameter), BST in-order; deep trees → iterative DFS',
+        ],
+        answer: 'Depth-first search follows one branch all the way down before it comes back, either with recursion — the call stack remembers where to return — or with my own stack. Depending on when I handle the node, it is pre-order, in-order or post-order. Breadth-first search visits the tree level by level using a queue, a `deque`, and reading `len(queue)` at the start of each round gives me exactly one level. Both visit every node once, so both are O(n) time. DFS keeps one path in memory, O(height); BFS keeps a whole level, which can be about n / 2 nodes in a full tree. I choose BFS for level questions — level order, right side view — and for “the nearest” or minimum depth, because it reaches shallow nodes first and can stop early. I choose DFS when the answer is built from subtrees, like height, diameter or path sums, and for in-order walks of a BST. For a very deep tree in Python I write DFS with an explicit stack to avoid the recursion limit.',
+      },
+      {
+        id: 'bst-explain',
+        question: 'What is a binary search tree, how do you check that a tree is a valid BST, and why can a BST become slow?',
+        points: [
+          'Rule: every value in the left subtree < node < every value in the right subtree',
+          'Search goes left or right at each node: O(height)',
+          'Validate by passing an allowed range (low, high) down the recursion — comparing only with children is wrong',
+          'Or: an in-order walk must be strictly increasing',
+          'Sorted inserts make it a line (height n, O(n)); balanced trees (red-black, AVL, B-trees) keep the height ~log n',
+        ],
+        answer: 'A binary search tree is a binary tree with one rule: everything in a node’s left subtree is smaller than the node, and everything in its right subtree is bigger. Because of that, a search compares with the node and goes left or right, like binary search, so it costs O(height). To check that a tree is valid it is not enough to compare each node with its two children — a value deep in the right subtree can still be smaller than the root. I pass an allowed range down: the root may be anything, going left the upper limit becomes the node’s value, going right the lower limit becomes it, and every node must be strictly inside its range. Another way is an in-order walk, which must give strictly increasing values. The weakness is the shape: if I insert values in sorted order, every node gets only a right child, the height becomes n and search becomes O(n). That is why real systems use self-balancing trees — red-black trees in Java’s `TreeMap`, B-trees in database indexes — which keep the height near log n.',
+      },
+    ],
+  },
 }

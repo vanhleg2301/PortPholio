@@ -14,6 +14,13 @@ const link = (label: string, url: string): TaskLink => ({ label, url })
 const task = (kind: TaskKind, title: string, ...links: TaskLink[]): TaskSeed => ({ kind, title, links })
 const withReference = (seed: TaskSeed, reference: TaskReference): TaskSeed => ({ ...seed, reference })
 const lessonTask = (lesson: Lesson, kind: TaskKind = 'python'): TaskSeed => ({ kind, title: `Lesson: ${lesson.title}`, links: [], lessonId: lesson.id })
+// A lesson that is not written yet: a plain task now, a lesson task once the lesson exists. The
+// title must match the lesson's title, so the task id stays the same.
+const plannedLesson = (id: string, title: string, kind: TaskKind): TaskSeed => {
+  const lesson = [...DSA_LESSONS, ...CS_LESSONS].find((l) => l.id === id)
+  if (lesson && lesson.title !== title) throw new Error(`Planned lesson ${id} is called "${lesson.title}", not "${title}"`)
+  return lesson ? lessonTask(lesson, kind) : { kind, title: `Lesson: ${title}`, links: [] }
+}
 const lessonById = (lessons: Lesson[], id: string): Lesson => {
   const found = lessons.find((l) => l.id === id)
   if (!found) throw new Error(`Unknown lesson ${id}`)
@@ -21,6 +28,10 @@ const lessonById = (lessons: Lesson[], id: string): Lesson => {
 }
 // Sunday task for weeks with in-app lessons: replaces the Claude quiz.
 const weekTest: TaskSeed = { kind: 'review', title: "Week test: 15 mixed questions from this week's lessons", links: [], isWeekTest: true }
+// From Week 1: the quiz plus a short mock interview (one coding task, two spoken answers).
+const weekMock: TaskSeed = { kind: 'review', title: 'Week test: quiz + mock interview', links: [], isWeekTest: true }
+// Last test day of a month: a longer, timed mock interview over the whole month.
+const monthMock: TaskSeed = { kind: 'review', title: 'Month test: 75-minute mock interview', links: [], isWeekTest: true }
 
 const LINKS = {
   coddy: 'https://coddy.tech/',
@@ -116,12 +127,43 @@ const phaseSeeds: Array<Omit<RoadmapPhase, 'selfCheck'> & { selfCheck: string[] 
     ],
   },
   {
+    id: 'm1',
+    number: 'M1',
+    label: 'MONTH 1',
+    title: 'Core patterns + networking',
+    start: '2026-11-16',
+    end: '2026-12-13',
+    goal: 'Arrays & Hashing, Two Pointers, Sliding Window, Stack and Binary Search (about 40 NeetCode problems). Explain a web request end to end: DNS, TCP, TLS, HTTP.',
+    selfCheck: [
+      'Pick the right pattern (hash map, two pointers, sliding window, stack) for a new Easy or Medium problem',
+      'Explain what happens when you type a URL, and count the round trips',
+      'Explain 401 vs 403 and 502 vs 504, and which requests are safe to retry',
+      'Pass the Month 1 mock interview',
+    ],
+  },
+  {
+    id: 'm2',
+    number: 'M2',
+    label: 'MONTH 2',
+    title: 'Linked lists, trees, OS + system design basics',
+    start: '2026-12-14',
+    end: '2026-12-31',
+    goal: 'Linked List and Trees part 1 (DFS and BFS). Processes and threads. The first system design words: load balancer, cache, replica. A lighter month for the holidays.',
+    selfCheck: [
+      'Reverse a linked list and find a cycle without notes',
+      'Write DFS and BFS on a binary tree from memory',
+      'Explain process vs thread, and what a race condition is',
+      'Draw a web app for a million users: load balancer, cache, database replica',
+      'Pass the Month 2 mock interview',
+    ],
+  },
+  {
     id: 'p1',
     number: '01',
     title: 'DSA Foundations + CS Fundamentals',
-    start: '2026-11-16',
+    start: '2027-01-01',
     end: '2027-02-28',
-    goal: 'About 110 NeetCode problems. Networking, operating systems and databases at interview depth.',
+    goal: 'Trees, Tries, Heap, Backtracking and Graphs (about 110 NeetCode problems in total). Operating systems and databases at interview depth.',
     selfCheck: [
       'Explain what happens when you type a URL: DNS, TCP, TLS, HTTP, render',
       'Explain process vs thread, and when a deadlock happens',
@@ -220,10 +262,10 @@ const weekSpecs: WeekSpec[] = [
     sunday: [withReference(weekTest, PYTHON_REFERENCES.interviewToolkit)],
   },
 
-  // Phase 1
+  // Month 1
   {
     label: 'Week 1',
-    phaseId: 'p1',
+    phaseId: 'm1',
     csReference: CS_REFERENCES.latencyTcp,
     csLessonId: 'net-latency-tcp',
     start: '2026-11-16',
@@ -235,11 +277,11 @@ const weekSpecs: WeekSpec[] = [
       lessonTask(lessonById(CS_LESSONS, 'net-latency-tcp'), 'cs'),
       hpbn('Optional: Building blocks of TCP (deeper reading)', 'building-blocks-of-tcp'),
     ],
-    sunday: [weekTest],
+    sunday: [weekMock],
   },
   {
     label: 'Week 2',
-    phaseId: 'p1',
+    phaseId: 'm1',
     csReference: CS_REFERENCES.udpTls,
     csLessonId: 'net-udp-tls',
     start: '2026-11-23',
@@ -252,85 +294,108 @@ const weekSpecs: WeekSpec[] = [
       lessonTask(lessonById(CS_LESSONS, 'net-udp-tls'), 'cs'),
       task('cs', 'Optional: What happens in a TLS handshake (Cloudflare)', link('Cloudflare', LINKS.cloudflareTls)),
     ],
-    sunday: [weekTest],
+    sunday: [weekMock],
   },
   {
     label: 'Week 3',
-    phaseId: 'p1',
+    phaseId: 'm1',
     csReference: CS_REFERENCES.httpDns,
+    csLessonId: 'net-http-dns',
     start: '2026-11-30',
     end: '2026-12-06',
-    goal: 'Stack done. Understand HTTP/1.1, HTTP/2 and DNS.',
+    goal: 'Stack done. Understand DNS, HTTP status codes, methods, caching and HTTP/2.',
     dsa: problems('Stack'),
     study: [
-      hpbn('Brief history of HTTP', 'brief-history-of-http'),
-      hpbn('HTTP/1.x', 'http1x'),
-      hpbn('HTTP/2', 'http2'),
-      task('cs', 'What is DNS + what is a CDN', link('DNS', LINKS.cloudflareDns), link('CDN', LINKS.cloudflareCdn)),
-      askClaude('cs', 'Explain "what happens when you type a URL" end to end'),
+      lessonTask(lessonById(DSA_LESSONS, 'dsa-stack'), 'dsa'),
+      lessonTask(lessonById(CS_LESSONS, 'net-http-dns'), 'cs'),
+      hpbn('Optional: HTTP/2 (deeper reading)', 'http2'),
     ],
+    sunday: [weekMock],
   },
   {
     label: 'Week 4',
-    phaseId: 'p1',
-    csReference: CS_REFERENCES.processes,
+    phaseId: 'm1',
     start: '2026-12-07',
     end: '2026-12-13',
-    goal: 'Binary Search done. Understand processes and how the OS runs them.',
+    goal: 'Binary Search done. Review the month, then the Month 1 mock interview on Sunday.',
     dsa: problems('Binary Search'),
     study: [
-      ostep(4, 'The abstraction: the process', 'cpu-intro'),
-      ostep(5, 'Process API: fork, exec, wait', 'cpu-api'),
-      ostep(6, 'Limited direct execution', 'cpu-mechanisms'),
-      askClaude('cs', 'Summarise process states and context switching to Claude'),
+      plannedLesson('dsa-binary-search', 'Binary Search', 'dsa'),
+      task('review', 'Say “what happens when you type a URL” out loud, end to end, in under 5 minutes'),
+      task('review', 'Redo the 3 problems you found hardest this month, without notes', link('NeetCode', LINKS.neetcode)),
     ],
+    sunday: [monthMock],
   },
+
+  // Month 2
   {
     label: 'Week 5',
-    phaseId: 'p1',
-    csReference: CS_REFERENCES.scheduling,
+    phaseId: 'm2',
+    csReference: CS_REFERENCES.processes,
     start: '2026-12-14',
     end: '2026-12-20',
-    goal: 'Linked List done. Understand CPU scheduling.',
+    goal: 'Linked List done. Understand processes and threads.',
     dsa: problems('Linked List'),
-    study: [
-      ostep(7, 'Scheduling: introduction', 'cpu-sched'),
-      ostep(8, 'Multi-level feedback queue', 'cpu-sched-mlfq'),
-      ostep(9, 'Proportional share scheduling', 'cpu-sched-lottery'),
-    ],
+    study: [plannedLesson('dsa-linked-list', 'Linked List', 'dsa'), plannedLesson('os-processes-threads', 'Processes and threads', 'cs')],
+    sunday: [weekMock],
   },
   {
     label: 'Week 6',
-    phaseId: 'p1',
-    csReference: CS_REFERENCES.virtualMemory,
+    phaseId: 'm2',
     start: '2026-12-21',
     end: '2026-12-27',
-    goal: 'Trees part 1. Understand virtual memory.',
+    goal: 'Trees part 1 (DFS and BFS). First system design words: load balancer, cache, replica. Lighter week for Christmas.',
     dsa: problems('Trees', 0, 8),
-    study: [
-      ostep(13, 'Address spaces', 'vm-intro'),
-      ostep(14, 'Memory API', 'vm-api'),
-      ostep(15, 'Address translation', 'vm-mechanism'),
-      ostep(16, 'Segmentation', 'vm-segmentation'),
-      ostep(18, 'Paging', 'vm-paging'),
-    ],
+    study: [plannedLesson('dsa-trees', 'Trees: DFS and BFS', 'dsa'), ...withSdTheory('scale-from-zero-to-millions-of-users', [plannedLesson('sd-basics', 'System design basics', 'sd')])],
+    sunday: [weekMock],
   },
   {
     label: 'Week 7',
-    phaseId: 'p1',
+    phaseId: 'm2',
     start: '2026-12-28',
+    end: '2026-12-31',
+    goal: 'Review the year, then the Month 2 mock interview on 31 Dec.',
+    study: [
+      task('review', 'Catch up: finish any lesson or test you skipped (Plan → Course)'),
+      task('review', 'Redo 3 Linked List and Trees problems without notes', link('NeetCode', LINKS.neetcode)),
+      task('review', 'Explain process vs thread and a load balancer + cache + replica design out loud'),
+    ],
+    fixedDays: { '2026-12-31': [monthMock] },
+  },
+
+  // 2027
+  {
+    label: 'New Year',
+    phaseId: 'p1',
+    start: '2027-01-01',
     end: '2027-01-03',
-    goal: 'Trees + Tries done. Checkpoint: redo 10 random problems.',
-    dsa: [...problems('Trees', 8), ...problems('Tries')],
-    saturday: [task('review', 'Checkpoint: redo 10 random problems solved so far', link('NeetCode', LINKS.neetcode))],
-    sunday: [askClaude('review', 'Checkpoint: re-explain TCP, TLS, processes and virtual memory to Claude')],
+    goal: 'Rest. Optional: catch up on anything from Month 1 and 2.',
+    study: [task('review', 'Optional: catch up on a lesson you skipped (Plan → Course)')],
+    saturday: [],
+    sunday: [],
   },
   {
     label: 'Week 8',
     phaseId: 'p1',
-    csReference: CS_REFERENCES.threadsLocks,
+    csReference: CS_REFERENCES.scheduling,
     start: '2027-01-04',
     end: '2027-01-10',
+    goal: 'Trees + Tries done. Understand CPU scheduling and virtual memory.',
+    dsa: [...problems('Trees', 8), ...problems('Tries')],
+    study: [
+      ostep(7, 'Scheduling: introduction', 'cpu-sched'),
+      ostep(8, 'Multi-level feedback queue', 'cpu-sched-mlfq'),
+      withReference(ostep(13, 'Address spaces', 'vm-intro'), CS_REFERENCES.virtualMemory),
+      withReference(ostep(15, 'Address translation', 'vm-mechanism'), CS_REFERENCES.virtualMemory),
+      withReference(ostep(18, 'Paging', 'vm-paging'), CS_REFERENCES.virtualMemory),
+    ],
+  },
+  {
+    label: 'Week 9',
+    phaseId: 'p1',
+    csReference: CS_REFERENCES.threadsLocks,
+    start: '2027-01-11',
+    end: '2027-01-17',
     goal: 'Heap done. Understand threads and locks.',
     dsa: problems('Heap'),
     study: [
@@ -341,11 +406,11 @@ const weekSpecs: WeekSpec[] = [
     ],
   },
   {
-    label: 'Week 9',
+    label: 'Week 10',
     phaseId: 'p1',
     csReference: CS_REFERENCES.conditionDeadlock,
-    start: '2027-01-11',
-    end: '2027-01-17',
+    start: '2027-01-18',
+    end: '2027-01-24',
     goal: 'Backtracking done. Understand condition variables, semaphores and deadlock.',
     dsa: problems('Backtracking'),
     study: [
@@ -356,11 +421,11 @@ const weekSpecs: WeekSpec[] = [
     ],
   },
   {
-    label: 'Week 10',
+    label: 'Week 11',
     phaseId: 'p1',
     csReference: CS_REFERENCES.indexes,
-    start: '2027-01-18',
-    end: '2027-01-24',
+    start: '2027-01-25',
+    end: '2027-01-31',
     goal: 'Graphs part 1. Understand B-tree indexes.',
     dsa: problems('Graphs', 0, 7),
     study: [
@@ -371,26 +436,18 @@ const weekSpecs: WeekSpec[] = [
     ],
   },
   {
-    label: 'Week 11',
+    label: 'Week 12',
     phaseId: 'p1',
     csReference: CS_REFERENCES.transactions,
-    start: '2027-01-25',
-    end: '2027-01-31',
-    goal: 'Graphs done. Understand transactions, ACID and isolation levels.',
+    start: '2027-02-01',
+    end: '2027-02-07',
+    goal: 'Graphs done. Understand transactions, ACID and isolation levels. Light week before Tet.',
     dsa: problems('Graphs', 7),
     study: [
       task('cs', 'Postgres: transaction isolation', link('Postgres docs', LINKS.pgIsolation)),
       task('cs', 'CMU 15-445: concurrency control lecture', link('Course', LINKS.cmu445), link('Videos', LINKS.cmu445Videos)),
       task('cs', 'Reproduce a lost update with two SQL sessions', link('Postgres docs', LINKS.pgIsolation)),
     ],
-  },
-  {
-    label: 'Week 12',
-    phaseId: 'p1',
-    start: '2027-02-01',
-    end: '2027-02-07',
-    goal: 'Light review before Tet. Redo every missed problem so far.',
-    study: Array.from({ length: 5 }, () => task('review', 'Redo 3 missed problems', link('NeetCode', LINKS.neetcode))),
   },
   {
     label: 'Week 13',

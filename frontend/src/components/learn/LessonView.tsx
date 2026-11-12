@@ -9,7 +9,8 @@ import { MermaidDiagram } from '@/components/learn/MermaidDiagram'
 import { MarkdownPreview } from '@/components/roadmap/MarkdownPreview'
 import { QuizItem } from '@/components/roadmap/TheoryCard'
 import { listContainer, listItem } from '@/lib/motion'
-import { LESSONS, LESSON_ANCHORS, blockAnchor, getExerciseIds, getLessonTerms } from '@/data/lessons'
+import { LESSONS, LESSON_ANCHORS, LESSON_TESTS, blockAnchor, getExerciseIds, getLessonTerms } from '@/data/lessons'
+import { LessonTestCard } from '@/components/learn/LessonTestCard'
 import { LessonOutlineSheet } from '@/components/learn/LessonOutline'
 import { LessonFind, type LessonFindRequest } from '@/components/learn/LessonFind'
 import { GLOSSARY } from '@/data/lessons/glossary'
@@ -36,7 +37,8 @@ interface LessonViewProps {
   isTaskDone: boolean | null
   // The lesson's test is not passed yet, so the task cannot be ticked from here.
   isTestPending: boolean
-  onOpenTest: () => void
+  // The lesson's test is shown at the end of the lesson too, so it can be taken on any day.
+  onTestPassed: (itemId: string) => void
   onBack: () => void
   onToggleDone: (isDone: boolean) => void
   onSaveCode: (key: string, code: string) => void
@@ -56,7 +58,7 @@ export function LessonView({
   savedCode,
   isTaskDone,
   isTestPending,
-  onOpenTest,
+  onTestPassed,
   onBack,
   onToggleDone,
   onSaveCode,
@@ -287,22 +289,32 @@ export function LessonView({
         </p>
 
         <div id={LESSON_ANCHORS.finish} className="scroll-mt-32" />
+        {LESSON_TESTS[lesson.id] && (
+          <div className="mt-8">
+            <LessonTestCard
+              id={lesson.id}
+              title={`Test: ${lesson.title}`}
+              test={LESSON_TESTS[lesson.id]}
+              canSave={canSave}
+              passed={passed}
+              savedCode={savedCode}
+              isOpenByDefault={false}
+              onSaveCode={onSaveCode}
+              onPassed={onTestPassed}
+            />
+          </div>
+        )}
         {isTaskDone === false && isTestPending ? (
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.98 }}
-            onClick={onOpenTest}
-            className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 py-3.5 text-sm font-semibold text-white hover:bg-violet-600/85 transition-colors"
-          >
-            <ClipboardCheck className="h-4 w-4" /> Take the day test to finish this lesson
-          </motion.button>
+          <p className="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-3.5 text-sm text-muted-foreground">
+            <ClipboardCheck className="h-4 w-4" /> Pass the test above to finish this lesson
+          </p>
         ) : isTaskDone !== null && (
           <motion.button
             type="button"
             whileTap={{ scale: 0.98 }}
             onClick={() => onToggleDone(!isTaskDone)}
             className={cn(
-              'mt-8 flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-semibold transition-colors',
+              'mt-4 flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-semibold transition-colors',
               isTaskDone
                 ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/15'
                 : 'bg-foreground text-background hover:bg-foreground/85'

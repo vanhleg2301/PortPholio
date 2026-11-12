@@ -272,6 +272,91 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   },
 
   // DSA
+  'binary search': {
+    area: 'DSA',
+    en: 'a way to find something in sorted data by checking the middle and throwing away the half that cannot contain it, again and again',
+    example: 'Finding a word in a paper dictionary: open it in the middle, then keep only the half where the word must be.',
+  },
+  logarithm: {
+    area: 'DSA',
+    en: 'log₂ n is how many times you can halve n before you reach 1; O(log n) grows very slowly',
+    example: 'Halving 1,000,000 takes about 20 steps, so binary search on a million items needs about 20 checks.',
+  },
+  'linked list': {
+    area: 'DSA',
+    en: 'a chain of nodes where each node holds a value and a reference to the next node',
+    example: 'A treasure hunt: each clue tells you where the next clue is; to reach clue 10 you must follow clues 1 to 9.',
+  },
+  node: {
+    area: 'DSA',
+    en: 'one box in a linked structure (a list or a tree) that holds a value and links to other boxes',
+    example: 'In a family tree, each person is a node with links to their children.',
+  },
+  'doubly linked list': {
+    area: 'DSA',
+    en: 'a linked list where each node also points back to the previous node, so you can walk both ways and remove a node in O(1)',
+    example: 'A train: each carriage is connected to the one in front and the one behind, so you can take one out from the middle.',
+  },
+  'dummy node': {
+    area: 'DSA',
+    en: 'a fake first node put in front of a linked list so the real head can change without special cases',
+    example: 'A “start here” sign before the first item in a queue: you can always attach after it, even when the queue is empty.',
+  },
+  'floyd cycle detection': {
+    area: 'DSA',
+    en: 'finding a loop in a linked list with a slow pointer (1 step) and a fast pointer (2 steps): if they ever meet, there is a loop',
+    example: 'Two runners on a track: the faster one will lap the slower one only if the track is a circle.',
+  },
+  'lru cache': {
+    area: 'DSA',
+    en: 'a cache with a size limit that removes the item used longest ago (least recently used) when it is full',
+    example: 'Your phone’s recent apps list: open a new app when the list is full, and the one you have not touched for longest disappears.',
+  },
+  'binary tree': {
+    area: 'DSA',
+    en: 'a tree where every node has at most two children, a left one and a right one',
+    example: 'A tournament bracket: every match has two players coming from below.',
+  },
+  leaf: {
+    area: 'DSA',
+    en: 'a node in a tree with no children',
+    example: 'In a folder tree, a folder with no sub-folders inside it is a leaf.',
+  },
+  'tree height': {
+    area: 'DSA',
+    en: 'the number of nodes on the longest path from the root down to a leaf',
+    example: 'A company with a CEO, managers and staff has an org chart of height 3.',
+  },
+  dfs: {
+    area: 'DSA',
+    en: 'depth-first search: walk down one branch as far as possible before coming back to try the next branch',
+    example: 'Exploring a maze by always taking the first turn until you hit a dead end, then going back to the last junction.',
+  },
+  bfs: {
+    area: 'DSA',
+    en: 'breadth-first search: visit everything one step away, then everything two steps away, and so on, using a queue',
+    example: 'Ripples in water: the circle reaches every point at distance 1 before any point at distance 2.',
+  },
+  'binary search tree': {
+    area: 'DSA',
+    en: 'a binary tree where every value in the left subtree is smaller than the node and every value in the right subtree is bigger, so search can go left or right',
+    example: 'Guess-the-number on a tree: at each node you go left for smaller, right for bigger.',
+  },
+  stack: {
+    area: 'DSA',
+    en: 'a list where you only add and remove at the top, so the last item in is the first item out',
+    example: 'A pile of plates: you put a clean plate on top and take the top one. The browser Back button works the same way.',
+  },
+  lifo: {
+    area: 'DSA',
+    en: '“last in, first out”: the newest item is the one that comes out first',
+    example: 'Ctrl+Z undoes your most recent change first, then the one before it.',
+  },
+  'monotonic stack': {
+    area: 'DSA',
+    en: 'a stack whose values always go up (or always go down) from bottom to top; items wait on it until a bigger or smaller one arrives',
+    example: 'People in a queue who each wait for someone taller: when a tall person arrives, every shorter person waiting gets an answer and leaves.',
+  },
   'brute force': {
     area: 'DSA',
     en: 'the simple way that tries every possibility; correct but often slow',
@@ -334,6 +419,76 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   },
 
   // Networking
+  http: {
+    area: 'Networking',
+    en: 'the language browsers and servers use to ask for and send web pages and API data: a request goes out, a response comes back',
+    example: 'Opening a product page sends `GET /products/42`; the server answers `200 OK` with the page.',
+  },
+  'http method': {
+    area: 'Networking',
+    en: 'the verb at the start of an HTTP request that says what you want to do: GET reads, POST creates, PUT replaces, DELETE removes',
+    example: 'Loading your inbox is a GET; sending an email is a POST.',
+  },
+  'http header': {
+    area: 'Networking',
+    en: 'a `Name: value` line in a request or response that carries extra information about the message',
+    example: '`Content-Type: application/json` tells the client the body is JSON; `Authorization: Bearer …` says who is asking.',
+  },
+  'status code': {
+    area: 'Networking',
+    en: 'a three-digit number at the start of an HTTP response: 2xx worked, 3xx go elsewhere, 4xx the client did something wrong, 5xx the server failed',
+    example: 'A broken link gives 404 Not Found; a crashed server gives 500 Internal Server Error.',
+  },
+  'safe method': {
+    area: 'Networking',
+    en: 'an HTTP method that only reads and never changes anything on the server, like GET or HEAD',
+    example: 'A search engine can follow every GET link on your site without buying or deleting anything.',
+  },
+  stateless: {
+    area: 'Networking',
+    en: 'the server does not remember earlier requests; each request must carry everything needed to answer it',
+    example: 'A hotel guest shows their key card at every door, so any staff member can let them in without remembering their face.',
+  },
+  cookie: {
+    area: 'Networking',
+    en: 'a small piece of data a website asks the browser to keep and send back with every request to that site',
+    example: 'After you log in, the site sets `session_id=abc`; the browser sends it on each page, so you stay logged in.',
+  },
+  'auth token': {
+    area: 'Networking',
+    en: 'a string that proves who you are, sent with each API request, usually in the `Authorization` header',
+    example: 'A mobile app stores the token it got at login and adds `Authorization: Bearer eyJ…` to every call.',
+  },
+  etag: {
+    area: 'Networking',
+    en: 'a version tag the server puts on a response, so a client can later ask “has it changed since this version?”',
+    example: 'The browser sends `If-None-Match: "v42"`; if the file is unchanged the server replies 304 with no body.',
+  },
+  multiplexing: {
+    area: 'Networking',
+    en: 'sending many separate streams of data over one connection at the same time, mixed in small pieces',
+    example: 'HTTP/2 downloads the CSS, the JS and ten images at once over a single TCP connection.',
+  },
+  ttl: {
+    area: 'Networking',
+    en: '“time to live”: how many seconds a cached answer may be used before it must be asked for again',
+    example: 'A DNS answer with TTL 300 is reused for 5 minutes; after that the resolver asks again.',
+  },
+  'dns resolver': {
+    area: 'Networking',
+    en: 'the server that does the DNS lookup for you: it asks the other DNS servers and caches their answers',
+    example: 'Your home router usually points to your ISP’s resolver; many people switch to 1.1.1.1 or 8.8.8.8.',
+  },
+  'authoritative name server': {
+    area: 'Networking',
+    en: 'the DNS server that holds the real, official records for a domain',
+    example: 'If your domain uses Cloudflare DNS, Cloudflare’s name servers give the final answer for it.',
+  },
+  'dns record': {
+    area: 'Networking',
+    en: 'one entry in a domain’s DNS settings, such as A (name → IPv4), CNAME (alias) or MX (email server)',
+    example: 'To connect a domain to Vercel you add an A or CNAME record that points to Vercel.',
+  },
   latency: {
     area: 'Networking',
     en: 'the waiting time for data to travel from one place to another',
@@ -506,6 +661,31 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   },
 
   // Operating systems
+  'address space': {
+    area: 'Operating systems',
+    en: 'the private range of memory a process sees; other processes cannot read or write it',
+    example: 'Each flat in a building has its own address and key: number 5 in your flat is not number 5 in your neighbour’s.',
+  },
+  scheduler: {
+    area: 'Operating systems',
+    en: 'the part of the operating system that decides which process or thread runs on a CPU core next, and for how long',
+    example: 'A teacher who gives each student a few minutes on the one class computer, then calls the next student.',
+  },
+  concurrency: {
+    area: 'Operating systems',
+    en: 'several tasks in progress at the same time, taking turns, even on one CPU core',
+    example: 'One cook preparing three dishes, chopping vegetables while the water boils.',
+  },
+  parallelism: {
+    area: 'Operating systems',
+    en: 'several tasks running at the same instant on different CPU cores',
+    example: 'Three cooks each preparing one dish at the same moment.',
+  },
+  atomic: {
+    area: 'Operating systems',
+    en: 'done as one single step that other threads can never see half-finished',
+    example: 'A bank transfer that either moves the money completely or not at all — nobody ever sees it taken from one account but not yet added to the other.',
+  },
   process: {
     area: 'Operating systems',
     en: 'a running program with its own memory; one process cannot read another’s memory directly',
@@ -575,6 +755,31 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   },
 
   // System design
+  'read replica': {
+    area: 'System design',
+    en: 'a copy of a database that receives every change from the primary and answers read queries, so the primary has less work',
+    example: 'A library keeps several copies of a popular book so more people can read it at once; only the original gets corrected.',
+  },
+  failover: {
+    area: 'System design',
+    en: 'switching to a backup automatically when the main machine fails',
+    example: 'When the main power goes out, a hospital’s generator starts by itself.',
+  },
+  'cache-aside': {
+    area: 'System design',
+    en: 'a caching pattern where the app checks the cache first, and on a miss reads the database and puts the result into the cache',
+    example: 'Before walking to the storeroom, a shop assistant checks the shelf behind the counter; after fetching an item from the storeroom, they leave one on that shelf.',
+  },
+  'hit rate': {
+    area: 'System design',
+    en: 'the share of requests answered from the cache instead of the slower source',
+    example: 'If 90 of 100 page loads come from the cache, the hit rate is 90% and the database sees only 10 requests.',
+  },
+  'worker process': {
+    area: 'System design',
+    en: 'a background program that takes jobs from a queue and does the slow work outside the user’s request',
+    example: 'After you upload a video, a worker makes the 360p, 720p and 1080p versions while you continue using the site.',
+  },
   'load balancer': {
     area: 'System design',
     en: 'a server that spreads incoming requests across several backend servers',

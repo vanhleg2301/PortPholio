@@ -13,6 +13,7 @@ import { spawnSync } from 'node:child_process'
 import { LESSONS, LESSON_TESTS } from '../src/data/lessons/index'
 import { GLOSSARY } from '../src/data/lessons/glossary'
 import { PYTHON_REFERENCE } from '../src/data/reference/python'
+import { MOCK_TESTS } from '../src/data/lessons/mockTests'
 
 const dir = mkdtempSync(join(tmpdir(), 'lesson-check-'))
 const file = join(dir, 'snippet.py')
@@ -78,6 +79,18 @@ for (const lesson of LESSONS) {
   }
   for (const q of test.explain) checkTerms(`${lesson.id}/${q.id}`, `${q.question}\n${q.answer}`)
   console.log(`checked ${lesson.id}: ${concepts.size} concepts / ${test.choice.length} quiz, ${test.code.length} coding, ${test.explain.length} interview`)
+}
+
+// Week and month mock interviews: every coding task is solvable and not solved by its starter.
+for (const [day, mock] of Object.entries(MOCK_TESTS)) {
+  for (const q of mock.code) {
+    checkTerms(`mock ${day}/${q.id}`, q.prompt)
+    if (!q.ref) fail(`mock ${day}/${q.id}: no source link`)
+    if (!run(`${q.solution}\n${q.tests}`).ok) fail(`mock ${day} task ${q.id}: solution fails its tests`)
+    if (run(`${q.starter}\n${q.tests}`).ok) fail(`mock ${day} task ${q.id}: starter passes its tests`)
+  }
+  for (const q of mock.explain) checkTerms(`mock ${day}/${q.id}`, `${q.question}\n${q.answer}`)
+  console.log(`checked mock ${day}: ${mock.code.length} coding, ${mock.explain.length} interview`)
 }
 
 // Python reference: every example runs, and the `# comment` on each print line (or the comment

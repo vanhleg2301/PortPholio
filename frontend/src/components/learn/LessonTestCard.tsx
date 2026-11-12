@@ -9,7 +9,8 @@ import { Reveal } from '@/components/learn/Reveal'
 import { MarkdownPreview } from '@/components/roadmap/MarkdownPreview'
 import { EASE_OUT } from '@/lib/motion'
 import { getConceptCount, getPassMark, getTestItemIds } from '@/data/lessons'
-import type { Lesson, LessonTest } from '@/data/lessons/types'
+import type { LessonTest } from '@/data/lessons/types'
+import { TestTimer } from '@/components/learn/TestTimer'
 
 type PartId = 'choice' | 'code' | 'explain'
 
@@ -23,8 +24,14 @@ interface PartInfo {
 }
 
 interface LessonTestCardProps {
-  lesson: Lesson
+  // Progress rows are saved under this id: a lesson id, or `mock-<date>` for a mock interview.
+  id: string
+  title: string
   test: LessonTest
+  // Quiz questions asked per attempt (default: one per concept).
+  quizSize?: number
+  // Suggested minutes; shows a timer the learner can start.
+  minutes?: number
   // Signed in: answers and progress are saved to this account.
   canSave: boolean
   passed: Set<string>
@@ -39,9 +46,9 @@ const partVariants = {
   center: { opacity: 1, x: 0, transition: { duration: 0.26, ease: EASE_OUT } },
 }
 
-export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpenByDefault, onSaveCode, onPassed }: LessonTestCardProps) {
-  const has = (itemId: string) => passed.has(`${lesson.id}:${itemId}`)
-  const questionCount = getConceptCount(test.choice)
+export function LessonTestCard({ id, title, test, quizSize, minutes, canSave, passed, savedCode, isOpenByDefault, onSaveCode, onPassed }: LessonTestCardProps) {
+  const has = (itemId: string) => passed.has(`${id}:${itemId}`)
+  const questionCount = Math.min(quizSize ?? Infinity, getConceptCount(test.choice))
   const itemIds = getTestItemIds(test)
   const doneCount = itemIds.filter(has).length
   const isAllDone = doneCount === itemIds.length
@@ -49,7 +56,7 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
     if (canSave && !has(itemId)) onPassed(itemId)
   }
 
-  const parts: PartInfo[] = [
+  const allParts: PartInfo[] = [
     {
       id: 'choice',
       label: 'Quiz',
@@ -75,11 +82,12 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
       note: 'Answer in your own words, as if the interviewer asked you. Then compare with the key points. Saying it out loud in English is great practice.',
     },
   ]
+  const parts = allParts.filter((p) => (p.id === 'choice' ? test.choice.length > 0 : p.total > 0))
   const isPartDone = (part: PartInfo) => part.done === part.total
 
   const [isOpen, setIsOpen] = useState(isOpenByDefault)
   // Open on the first part that is not finished yet.
-  const [activeId, setActiveId] = useState<PartId>(() => parts.find((p) => !isPartDone(p))?.id ?? 'choice')
+  const [activeId, setActiveId] = useState<PartId>(() => (parts.find((p) => !isPartDone(p)) ?? parts[0]).id)
   const [direction, setDirection] = useState(1)
   const activeIndex = parts.findIndex((p) => p.id === activeId)
 
@@ -95,17 +103,18 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
         return (
           <ChoiceTest
             questions={test.choice}
+            sampleSize={quizSize}
             isPassed={has('test:choice')}
             onPass={() => pass('test:choice')}
-            savedState={savedCode.get(`${lesson.id}:test:choice-state`)}
-            onSaveState={canSave ? (state) => onSaveCode(`${lesson.id}:test:choice-state`, state) : undefined}
+            savedState={savedCode.get(`${id}:test:choice-state`)}
+            onSaveState={canSave ? (state) => onSaveCode(`${id}:test:choice-state`, state) : undefined}
           />
         )
       case 'code':
         return (
           <div className="space-y-4">
             {test.code.map((q, i) => {
-              const key = `${lesson.id}:test:${q.id}`
+              const key = `${id}:test:${q.id}`
               const itemId = `test:code:${q.id}`
               const help = (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -167,7 +176,7 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
         return (
           <div className="space-y-4">
             {test.explain.map((q) => {
-              const key = `${lesson.id}:test:explain:${q.id}`
+              const key = `${id}:test:explain:${q.id}`
               const itemId = `test:explain:${q.id}`
               return (
                 <ExplainItem
@@ -209,10 +218,17 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
           <ClipboardCheck className="h-5 w-5 shrink-0 text-violet-500" />
         )}
         <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-semibold leading-snug">Test: {lesson.title}</span>
+          <span className="block text-[15px] font-semibold leading-snug">{title}</span>
           <span className="block text-xs text-muted-foreground">
-            {questionCount} questions · {test.code.length} coding · {test.explain.length} interview
-            {canSave && ` · ${isAllDone ? 'passed' : `${parts.filter(isPartDone).length}/3 parts done`}`}
+            {[
+              test.choice.length > 0 && `${questionCount} questions`,
+              test.code.length > 0 && `${test.code.length} coding`,
+              test.explain.length > 0 && `${test.explain.length} interview`,
+              minutes && `${minutes} min`,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+            {canSave && ` · ${isAllDone ? 'passed' : `${parts.filter(isPartDone).length}/${parts.length} parts done`}`}
           </span>
         </span>
         <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
@@ -230,7 +246,20 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
             className="overflow-hidden"
           >
             <div className="px-4 pb-5">
-              <div role="tablist" aria-label="Test parts" className="grid grid-cols-3 gap-1 rounded-2xl bg-foreground/[0.05] p-1">
+              {minutes && (
+                <TestTimer
+                  minutes={minutes}
+                  savedStart={savedCode.get(`${id}:timer`)}
+                  onStart={(startedAt) => {
+                    if (canSave) onSaveCode(`${id}:timer`, startedAt)
+                  }}
+                />
+              )}
+              <div
+                role="tablist"
+                aria-label="Test parts"
+                className={cn('grid gap-1 rounded-2xl bg-foreground/[0.05] p-1', parts.length === 3 ? 'grid-cols-3' : parts.length === 2 ? 'grid-cols-2' : 'grid-cols-1')}
+              >
                 {parts.map((part, i) => {
                   const isActive = part.id === activeId
                   const isDone = isPartDone(part)
@@ -248,7 +277,7 @@ export function LessonTestCard({ lesson, test, canSave, passed, savedCode, isOpe
                     >
                       {isActive && (
                         <motion.span
-                          layoutId={`test-tab-${lesson.id}`}
+                          layoutId={`test-tab-${id}`}
                           transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                           className="absolute inset-0 rounded-xl bg-background shadow-sm ring-1 ring-border"
                         />

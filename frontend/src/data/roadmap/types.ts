@@ -41,7 +41,8 @@ export interface TaskSeed {
   reference?: TaskReference
   // In-app lesson that teaches this task (data/lessons).
   lessonId?: string
-  // Ticked only after the in-app week test (mixed questions from the week's lessons) is passed.
+  // Ticked only after the in-app week test (mixed questions from the week's lessons, plus the
+  // mock interview of that day when there is one; month tests use the same flag) is passed.
   isWeekTest?: boolean
 }
 
@@ -54,7 +55,7 @@ export interface RoadmapDay {
   tasks: RoadmapTask[]
 }
 
-export type PhaseId = 'p0' | 'p1' | 'p2' | 'p3' | 'p4'
+export type PhaseId = 'p0' | 'm1' | 'm2' | 'p1' | 'p2' | 'p3' | 'p4'
 
 export interface RoadmapWeek {
   id: string
@@ -69,6 +70,8 @@ export interface RoadmapWeek {
 export interface RoadmapPhase {
   id: PhaseId
   number: string
+  // Shown above the title instead of "PHASE <number>" (e.g. "MONTH 1").
+  label?: string
   title: string
   start: string
   end: string

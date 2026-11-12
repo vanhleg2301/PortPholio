@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import { CourseView } from '@/components/roadmap/CourseView'
+import { cn } from '@/lib/utils'
 import { format, parseISO, startOfWeek } from 'date-fns'
 import { formatMinutes, type StudySession } from '@/hooks/useStudySessions'
 import { ActivityHeatmap } from '@/components/roadmap/ActivityHeatmap'
@@ -22,6 +25,20 @@ interface PlanViewProps {
   onToggle: (taskId: string, isDone: boolean) => void
   onOpenDay: (date: string) => void
   sessions: StudySession[]
+  passed: Set<string>
+  savedCode: Map<string, string>
+  onOpenLesson: (lessonId: string) => void
+}
+
+type PlanMode = 'course' | 'schedule'
+const MODE_KEY = 'roadmap:plan-mode'
+
+function readMode(): PlanMode {
+  try {
+    return localStorage.getItem(MODE_KEY) === 'schedule' ? 'schedule' : 'course'
+  } catch {
+    return 'course'
+  }
 }
 
 function SectionLabel({ eyebrow, title }: { eyebrow: string; title: string }) {
@@ -33,7 +50,15 @@ function SectionLabel({ eyebrow, title }: { eyebrow: string; title: string }) {
   )
 }
 
-export function PlanView({ doneIds, today, onToggle, onOpenDay, sessions }: PlanViewProps) {
+export function PlanView({ doneIds, today, onToggle, onOpenDay, sessions, passed, savedCode, onOpenLesson }: PlanViewProps) {
+  const [mode, setMode] = useState<PlanMode>(readMode)
+  useEffect(() => {
+    try {
+      localStorage.setItem(MODE_KEY, mode)
+    } catch {
+      // Storage can be blocked (private mode); the choice just won't be remembered.
+    }
+  }, [mode])
   const weekStart = format(startOfWeek(parseISO(today), { weekStartsOn: 1 }), 'yyyy-MM-dd')
   const totalMinutes = sessions.reduce((sum, s) => sum + s.minutes, 0)
   const weekMinutes = sessions.filter((s) => s.day >= weekStart && s.day <= today).reduce((sum, s) => sum + s.minutes, 0)
@@ -43,60 +68,90 @@ export function PlanView({ doneIds, today, onToggle, onOpenDay, sessions }: Plan
     { label: 'Sessions', value: String(sessions.length) },
   ]
 
+  const modes: Array<{ id: PlanMode; label: string; note: string }> = [
+    { id: 'course', label: 'Course', note: 'Everything to learn, by topic' },
+    { id: 'schedule', label: 'Schedule', note: 'Month by month, week by week' },
+  ]
+
   return (
     <div>
-      <motion.section {...reveal} className="mb-10 grid grid-cols-3 divide-x divide-border rounded-2xl border border-border">
-        {studyStats.map((stat) => (
-          <div key={stat.label} className="px-3 py-4 text-center">
-            <p className="font-display text-xl font-bold md:text-2xl">{stat.value}</p>
-            <p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
-          </div>
+      <div role="tablist" aria-label="Plan view" className="mb-8 grid grid-cols-2 gap-1 rounded-2xl bg-foreground/[0.05] p-1">
+        {modes.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            role="tab"
+            aria-selected={mode === m.id}
+            onClick={() => setMode(m.id)}
+            className={cn(
+              'rounded-xl px-3 py-2 text-left transition-colors',
+              mode === m.id ? 'bg-background shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:bg-foreground/[0.05]'
+            )}
+          >
+            <span className="block text-sm font-semibold">{m.label}</span>
+            <span className="block truncate text-[11px] text-muted-foreground">{m.note}</span>
+          </button>
         ))}
-      </motion.section>
+      </div>
 
-      <motion.section {...reveal}>
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Daily completion</p>
-        <ActivityHeatmap doneIds={doneIds} today={today} />
-      </motion.section>
+      {mode === 'course' ? (
+        <CourseView today={today} passed={passed} savedCode={savedCode} onOpenLesson={onOpenLesson} onOpenDay={onOpenDay} />
+      ) : (
+        <>
+          <motion.section {...reveal} className="mb-10 grid grid-cols-3 divide-x divide-border rounded-2xl border border-border">
+            {studyStats.map((stat) => (
+              <div key={stat.label} className="px-3 py-4 text-center">
+                <p className="font-display text-xl font-bold md:text-2xl">{stat.value}</p>
+                <p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
+              </div>
+            ))}
+          </motion.section>
 
-      <motion.section {...reveal} className="mt-12">
-        <SectionLabel eyebrow="GOAL · 31 OCT 2027" title="Targets" />
-        <ul className="divide-y divide-border/50">
-          {TARGETS.map((t) => (
-            <TaskItem key={t.id} task={t} isDone={doneIds.has(t.id)} onToggle={onToggle} />
-          ))}
-        </ul>
-      </motion.section>
+          <motion.section {...reveal}>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Daily completion</p>
+            <ActivityHeatmap doneIds={doneIds} today={today} />
+          </motion.section>
 
-      {PHASES.map((phase) => {
-        const percent = toPercent(getProgress(getPhaseTasks(phase.id), doneIds))
-        return (
-          <motion.section key={phase.id} {...reveal} className="mt-14">
-            <SectionLabel
-              eyebrow={`PHASE ${phase.number} · ${format(parseISO(phase.start), 'd MMM yyyy')} → ${format(parseISO(phase.end), 'd MMM yyyy')}`}
-              title={phase.title}
-            />
-            <p className="text-sm text-muted-foreground">{phase.goal}</p>
-            <div className="flex items-center gap-3 mt-3 mb-2">
-              <ProgressBar percent={percent} />
-              <span className="text-[11px] font-mono text-muted-foreground w-10 text-right">{percent}%</span>
-            </div>
-
-            <div className="border-t border-border">
-              {WEEKS.filter((w) => w.phaseId === phase.id).map((week) => (
-                <WeekCard key={week.id} week={week} doneIds={doneIds} today={today} onToggle={onToggle} onOpenDay={onOpenDay} />
-              ))}
-            </div>
-
-            <p className="text-[11px] uppercase tracking-widest text-muted-foreground mt-6 mb-1">Self-check: I can…</p>
-            <ul className="divide-y divide-border/40">
-              {phase.selfCheck.map((t) => (
+          <motion.section {...reveal} className="mt-12">
+            <SectionLabel eyebrow="GOAL · 31 OCT 2027" title="Targets" />
+            <ul className="divide-y divide-border/50">
+              {TARGETS.map((t) => (
                 <TaskItem key={t.id} task={t} isDone={doneIds.has(t.id)} onToggle={onToggle} />
               ))}
             </ul>
           </motion.section>
-        )
-      })}
+
+          {PHASES.map((phase) => {
+            const percent = toPercent(getProgress(getPhaseTasks(phase.id), doneIds))
+            return (
+              <motion.section key={phase.id} {...reveal} className="mt-14">
+                <SectionLabel
+                  eyebrow={`${phase.label ?? `PHASE ${phase.number}`} · ${format(parseISO(phase.start), 'd MMM yyyy')} → ${format(parseISO(phase.end), 'd MMM yyyy')}`}
+                  title={phase.title}
+                />
+                <p className="text-sm text-muted-foreground">{phase.goal}</p>
+                <div className="flex items-center gap-3 mt-3 mb-2">
+                  <ProgressBar percent={percent} />
+                  <span className="text-[11px] font-mono text-muted-foreground w-10 text-right">{percent}%</span>
+                </div>
+
+                <div className="border-t border-border">
+                  {WEEKS.filter((w) => w.phaseId === phase.id).map((week) => (
+                    <WeekCard key={week.id} week={week} doneIds={doneIds} today={today} onToggle={onToggle} onOpenDay={onOpenDay} />
+                  ))}
+                </div>
+
+                <p className="text-[11px] uppercase tracking-widest text-muted-foreground mt-6 mb-1">Self-check: I can…</p>
+                <ul className="divide-y divide-border/40">
+                  {phase.selfCheck.map((t) => (
+                    <TaskItem key={t.id} task={t} isDone={doneIds.has(t.id)} onToggle={onToggle} />
+                  ))}
+                </ul>
+              </motion.section>
+            )
+          })}
+        </>
+      )}
     </div>
   )
 }

@@ -58,6 +58,16 @@ Mỗi bài mới phải có đủ:
   Key mới trong `CS_REFERENCES` cần thêm vào `CS_GROUPS` trong `data/library.ts`.
 - Tab Library không liệt kê 150 bài NeetCode (đã có ở Today) — người dùng không muốn.
 
+### Khóa học, lộ trình tháng và bài kiểm tra
+- Lộ trình chia theo tháng từ 16/11/2026: `m1` (16/11–13/12), `m2` (14/12–31/12), từ 2027 là các phase cũ.
+- Plan → **Course** (`data/course.ts`, `components/roadmap/CourseView.tsx`) gom mọi thứ theo chủ đề; người học
+  học bất kỳ bài nào, lúc nào; test của bài nằm cuối mỗi bài (làm lại được). Bài mới phải thêm vào đúng module ở đây.
+- Bài chưa viết trong lịch dùng `plannedLesson(id, title, kind)` trong `plan.ts`; khi viết bài, `id` và `title`
+  phải trùng y hệt để id task không đổi (plan.ts báo lỗi nếu lệch).
+- Phỏng vấn thử: `data/lessons/mockTests.ts`, theo ngày. Cuối tuần (CN) = quiz bài trong tuần + 1 bài code + 2 câu
+  nói, dễ hơn; cuối tháng = quiz cả tháng + 2 bài code + 4 câu nói, có đồng hồ. Chỉ dùng kiến thức đã dạy.
+- Bài có id `sd-` hiện ở chủ đề System design của Library (`lessonTopic` trong `data/library.ts`).
+
 ### Dữ liệu và đồng bộ giữa các máy
 - Đọc Supabase qua `fetchAllRows` (vượt giới hạn 1.000 dòng, cần `order` ổn định).
 - `lib/queryPersistence.ts` lưu bản sao dữ liệu học vào localStorage để mở nhanh và dùng offline.

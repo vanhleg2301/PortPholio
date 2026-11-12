@@ -849,4 +849,1594 @@ def max_sliding_window(nums, k):
       { label: 'NeetCode 150 (videos for each problem)', url: 'https://neetcode.io/practice' },
     ],
   },
+  {
+    id: 'dsa-stack',
+    title: 'Stack',
+    summary:
+      'Last in, first out. A stack remembers what is still “open” — a bracket, a number waiting for its operator, a day waiting for a warmer day — and closes the most recent one first.',
+    minutes: 70,
+    videos: [
+      yt('NeetCode: Valid Parentheses', 'WTzjTskDFMg'),
+      yt('NeetCode: Min Stack', 'qkLl7nAwDPo'),
+      yt('NeetCode: Evaluate Reverse Polish Notation', 'iu0082c4HDE'),
+      yt('NeetCode: Generate Parentheses', 's9fokUqJ76A'),
+      yt('NeetCode: Daily Temperatures', 'cTBiBSnjO3c'),
+      yt('NeetCode: Car Fleet', 'Pr6T-3yB9RM'),
+      yt('NeetCode: Largest Rectangle in Histogram', 'zx5Sw9130L0'),
+    ],
+    blocks: [
+      {
+        type: 'text',
+        md: md(
+          '## Last in, first out',
+          'A [[stack]] is a pile of plates: you put a plate on **top** and you take from the **top**. The last item in is the first item out — [[lifo|LIFO]].',
+          '',
+          'In Python a plain `list` is a perfect stack, because both operations work at the **end** of the list:',
+          '',
+          '| Stack word | Python | Cost |',
+          '| --- | --- | --- |',
+          '| push | `stack.append(x)` | O(1) [[amortized]] |',
+          '| pop | `stack.pop()` | O(1) |',
+          '| peek (look at the top) | `stack[-1]` | O(1) |',
+          '| is empty? | `not stack` | O(1) |',
+          '',
+          'Never use `pop(0)` for a stack: it removes the **first** item and shifts all the others, O(n). If you need both ends, use a `deque`.',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'stack-basics',
+        caption: 'The browser Back button is a stack of pages.',
+        code: `stack = []
+for page in ["home", "search", "product"]:
+    stack.append(page)          # visit a page
+print(stack)                    # ['home', 'search', 'product']
+print(stack.pop())              # product   (press Back)
+print(stack[-1])                # search    (peek: look, do not remove)
+print(len(stack), bool(stack))  # 2 True`,
+      },
+      {
+        type: 'callout',
+        tone: 'compare',
+        md: '**Java** has an old `Stack` class, but the docs tell you to use `ArrayDeque` (`push`, `pop`, `peek`) instead. **C++** has `std::stack` on top of a `vector` or `deque`. **JavaScript** arrays have `push` / `pop` at the end, like Python — and `shift()` at the front is O(n), like `pop(0)`. **Go** has no stack type: you append to a slice and cut the last item with `s = s[:len(s)-1]`.',
+      },
+      {
+        type: 'text',
+        md: md(
+          '## When to think “stack”',
+          'Use a stack when something is **opened** now and **closed** later, and the most recent open thing must be closed first:',
+          '',
+          '- brackets: `(` waits for `)`;',
+          '- function calls: the [[call stack]] — the last function called returns first;',
+          '- undo: Ctrl+Z removes your **last** change;',
+          '- “next greater / warmer / taller” questions: items wait on the stack until a bigger one arrives.',
+          '',
+          'Any [[recursion]] can be rewritten as a loop with your own stack. That is how you avoid `RecursionError` on very deep input.',
+        ),
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Valid Parentheses: match the most recent opener',
+          'Push every opening bracket. For a closing bracket, the **top** of the stack must be its partner; pop it. At the end the stack must be **empty** — otherwise some bracket was never closed (`"(("`).',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'valid-parens-trace',
+        caption: 'Each closing bracket removes the most recent opener.',
+        code: `def is_valid(s):
+    pairs = {")": "(", "]": "[", "}": "{"}
+    stack = []
+    for ch in s:
+        if ch in pairs:
+            if not stack or stack.pop() != pairs[ch]:
+                return False
+        else:
+            stack.append(ch)
+        print(f"{ch} -> {stack}")
+    return not stack
+
+print(is_valid("([]{})"))
+# ( -> ['(']
+# [ -> ['(', '[']
+# ] -> ['(']
+# { -> ['(', '{']
+# } -> ['(']
+# ) -> []
+# True`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Min Stack: remember the minimum at every level',
+          'LeetCode asks for a stack with `push`, `pop`, `top` and `get_min`, **all O(1)**. Scanning for the minimum is O(n). The trick: store, next to each value, the smallest value **at that moment**. When you pop, the old minimum is back automatically.',
+          '',
+          'The problem is written as a small **class**. A class is a recipe for objects that keep their own data: `__init__` runs when you create one, and `self.items` is a list that belongs to that object. Every method gets `self` as its first argument.',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'min-stack',
+        caption: 'Each item is (value, smallest so far).',
+        code: `class MinStack:
+    def __init__(self):
+        self.items = []
+
+    def push(self, x):
+        smallest = min(x, self.items[-1][1]) if self.items else x
+        self.items.append((x, smallest))
+
+    def pop(self):
+        self.items.pop()
+
+    def top(self):
+        return self.items[-1][0]
+
+    def get_min(self):
+        return self.items[-1][1]
+
+s = MinStack()
+for x in [5, 3, 7, 2]:
+    s.push(x)
+print(s.get_min())   # 2
+s.pop()
+print(s.get_min())   # 3
+print(s.top())       # 7`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Reverse Polish Notation: numbers wait for their operator',
+          'In RPN the operator comes **after** its two numbers: `3 4 +` means 3 + 4. Push numbers. When an operator comes, pop two numbers, compute, and push the result. The **first** pop is the **right** operand: for `a b -` you pop `b`, then `a`, and compute `a - b`.',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'rpn',
+        caption: '["4", "13", "5", "/", "+"] means 4 + 13 / 5.',
+        code: `def eval_rpn(tokens):
+    stack = []
+    for t in tokens:
+        if t in {"+", "-", "*", "/"}:
+            b = stack.pop()          # the right operand comes out first
+            a = stack.pop()
+            if t == "+":
+                stack.append(a + b)
+            elif t == "-":
+                stack.append(a - b)
+            elif t == "*":
+                stack.append(a * b)
+            else:
+                stack.append(int(a / b))   # round towards zero, like C and Java
+        else:
+            stack.append(int(t))
+    return stack[0]
+
+print(eval_rpn(["4", "13", "5", "/", "+"]))  # 6
+print(-7 // 2, int(-7 / 2))                  # -4 -3`,
+      },
+      {
+        type: 'callout',
+        tone: 'warning',
+        md: 'LeetCode says division “truncates toward zero”. Python’s `//` rounds **down**: `-7 // 2` is `-4`, but the expected answer is `-3`. Use `int(a / b)`. Java and C already round towards zero, so this trap is Python-only.',
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Monotonic stack: wait for something bigger',
+          'Daily Temperatures: for each day, how many days until a warmer one? Checking every later day is O(n²).',
+          '',
+          'Keep a stack of **indexes** of days that are still waiting. Their temperatures go **down** from bottom to top — a [[monotonic stack]]. When a warmer day `i` arrives, it is the answer for every waiting day that is colder: pop them and write `i - j`. Then push `i`, because it now waits too.',
+          '',
+          'Each index is pushed once and popped at most once, so the `while` inside the `for` costs O(n) **in total**, the same argument as the sliding window.',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'daily-temps-trace',
+        caption: 'The printed list is the temperatures still waiting (always decreasing).',
+        code: `def daily_temperatures(temps):
+    answer = [0] * len(temps)
+    stack = []                       # indexes of days still waiting
+    for i, t in enumerate(temps):
+        while stack and temps[stack[-1]] < t:
+            j = stack.pop()
+            answer[j] = i - j
+        stack.append(i)
+        print(i, t, [temps[k] for k in stack])
+    return answer
+
+print(daily_temperatures([73, 74, 75, 71, 69, 72, 76, 73]))
+# 0 73 [73]
+# 1 74 [74]
+# 2 75 [75]
+# 3 71 [75, 71]
+# 4 69 [75, 71, 69]
+# 5 72 [75, 72]
+# 6 76 [76]
+# 7 73 [76, 73]
+# [1, 1, 4, 2, 1, 1, 0, 0]`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Car Fleet: sort first, then stack the arrival times',
+          'Cars drive to `target`; a fast car that catches a slower one ahead must slow down and they become one **fleet**. Sort cars by position, **closest to the target first**. Compute each car’s arrival time `(target - p) / speed`. If a car would arrive **later** than the fleet in front, it can never catch it: it starts a new fleet (push its time). Otherwise it joins that fleet (do nothing).',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'car-fleet',
+        code: `def car_fleet(target, position, speed):
+    cars = sorted(zip(position, speed), reverse=True)   # closest to target first
+    stack = []                                          # arrival time of each fleet
+    for p, s in cars:
+        time = (target - p) / s
+        if not stack or time > stack[-1]:
+            stack.append(time)     # slower than the fleet ahead: a new fleet
+    return len(stack)
+
+print(car_fleet(12, [10, 8, 0, 5, 3], [2, 4, 1, 1, 3]))   # 3`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Generate Parentheses: the stack is hidden in the rule',
+          'Build the string one character at a time. You may add `(` while fewer than `n` are open, and `)` only while `closed < opened` — that is, while there is an unmatched `(` on the “stack”. This is [[recursion]] that tries both choices (later you will call it **backtracking**).',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'generate-parens',
+        code: `def generate(n):
+    out = []
+    def build(s, opened, closed):
+        if len(s) == 2 * n:
+            out.append(s)
+            return
+        if opened < n:
+            build(s + "(", opened + 1, closed)
+        if closed < opened:
+            build(s + ")", opened, closed + 1)
+    build("", 0, 0)
+    return out
+
+print(generate(3))
+# ['((()))', '(()())', '(())()', '()(())', '()()()']`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Largest Rectangle in Histogram (hard)',
+          'Keep bars on an increasing stack as `(start index, height)`. When a lower bar arrives, every taller bar on the stack cannot reach further right: pop it and measure `height * (i - start)`. The new bar can reach back to the start of the last popped bar, so it takes that start. A `0` added at the end pops everything that is left. Each bar is pushed and popped once: O(n).',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'largest-rectangle',
+        code: `def largest_rectangle(heights):
+    stack = []                 # (start index, height), heights increasing
+    best = 0
+    for i, h in enumerate(heights + [0]):
+        start = i
+        while stack and stack[-1][1] > h:
+            j, height = stack.pop()
+            best = max(best, height * (i - j))
+            start = j
+        stack.append((start, h))
+    return best
+
+print(largest_rectangle([2, 1, 5, 6, 2, 3]))   # 10`,
+      },
+      {
+        type: 'callout',
+        tone: 'interview',
+        md: 'Signals for a stack: **brackets** or nested structure, “evaluate an expression”, **undo**, or “for each item, find the **next greater / smaller** one”. Say it out loud: “Each index is pushed once and popped once, so the inner `while` is O(n) in total.” Always check the empty stack before `pop()` or `stack[-1]`.',
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Where you meet stacks at work',
+          '- The [[call stack]] in every error trace: the last line is the function that failed, the lines above are who called it.',
+          '- Parsers for JSON, HTML and code check that every `{`, `<div>` and `(` is closed.',
+          '- Undo / redo in editors: two stacks.',
+          '- Browser history: Back and Forward are two stacks.',
+          '- Turning deep recursion (for example walking a huge folder tree) into a loop with an explicit stack.',
+        ),
+      },
+      {
+        type: 'exercise',
+        id: 'valid-parentheses',
+        title: 'Valid Parentheses',
+        prompt: '`s` has only `()[]{}`. Return `True` if every bracket is closed by the same type, in the right order.',
+        starter: `def is_valid(s):
+    # your code here
+    pass`,
+        tests: `assert is_valid("()[]{}") is True
+assert is_valid("([{}])") is True
+assert is_valid("(]") is False
+assert is_valid("([)]") is False
+assert is_valid("((") is False
+assert is_valid("){") is False`,
+        hint: 'Map each closer to its opener. On a closer: the stack must not be empty and its top must be the partner. At the end: `return not stack`.',
+        solution: `def is_valid(s):
+    pairs = {")": "(", "]": "[", "}": "{"}
+    stack = []
+    for ch in s:
+        if ch in pairs:
+            if not stack or stack.pop() != pairs[ch]:
+                return False
+        else:
+            stack.append(ch)
+    return not stack`,
+      },
+      {
+        type: 'exercise',
+        id: 'min-stack-ex',
+        title: 'Min Stack',
+        prompt: 'Write the class `MinStack` with `push(x)`, `pop()`, `top()` and `get_min()`. Every method must be O(1).',
+        starter: `class MinStack:
+    def __init__(self):
+        pass
+
+    def push(self, x):
+        pass
+
+    def pop(self):
+        pass
+
+    def top(self):
+        pass
+
+    def get_min(self):
+        pass`,
+        tests: `s = MinStack()
+s.push(-2)
+s.push(0)
+s.push(-3)
+assert s.get_min() == -3
+s.pop()
+assert s.top() == 0
+assert s.get_min() == -2
+s.push(-2)
+s.pop()
+assert s.get_min() == -2`,
+        hint: 'Push pairs `(x, min(x, current minimum))`. The minimum is always the second value of the top pair.',
+        solution: `class MinStack:
+    def __init__(self):
+        self.items = []
+
+    def push(self, x):
+        smallest = min(x, self.items[-1][1]) if self.items else x
+        self.items.append((x, smallest))
+
+    def pop(self):
+        self.items.pop()
+
+    def top(self):
+        return self.items[-1][0]
+
+    def get_min(self):
+        return self.items[-1][1]`,
+      },
+      {
+        type: 'exercise',
+        id: 'eval-rpn',
+        title: 'Evaluate Reverse Polish Notation',
+        prompt: 'Evaluate `tokens` in RPN with `+ - * /`. Division rounds **towards zero**. Numbers can be negative, like `"-3"`.',
+        starter: `def eval_rpn(tokens):
+    # your code here
+    pass`,
+        tests: `assert eval_rpn(["2", "1", "+", "3", "*"]) == 9
+assert eval_rpn(["4", "13", "5", "/", "+"]) == 6
+assert eval_rpn(["10", "6", "9", "3", "+", "-11", "*", "/", "*", "17", "+", "5", "+"]) == 22
+assert eval_rpn(["7", "-2", "/"]) == -3
+assert eval_rpn(["5", "8", "-"]) == -3`,
+        hint: 'Pop `b` first, then `a`. Use `int(a / b)` for division. Check operators with a set so `"-11"` is read as a number.',
+        solution: `def eval_rpn(tokens):
+    stack = []
+    for t in tokens:
+        if t in {"+", "-", "*", "/"}:
+            b = stack.pop()
+            a = stack.pop()
+            if t == "+":
+                stack.append(a + b)
+            elif t == "-":
+                stack.append(a - b)
+            elif t == "*":
+                stack.append(a * b)
+            else:
+                stack.append(int(a / b))
+        else:
+            stack.append(int(t))
+    return stack[0]`,
+      },
+      {
+        type: 'exercise',
+        id: 'daily-temperatures',
+        title: 'Daily Temperatures',
+        prompt: 'For each day, return how many days you wait for a **warmer** temperature (0 if never). O(n) with a monotonic stack.',
+        starter: `def daily_temperatures(temps):
+    # your code here
+    pass`,
+        tests: `assert daily_temperatures([73, 74, 75, 71, 69, 72, 76, 73]) == [1, 1, 4, 2, 1, 1, 0, 0]
+assert daily_temperatures([30, 40, 50, 60]) == [1, 1, 1, 0]
+assert daily_temperatures([30, 60, 90]) == [1, 1, 0]
+assert daily_temperatures([50, 50, 50]) == [0, 0, 0]`,
+        hint: 'Stack of indexes. While the current temperature is **higher** than the top day’s, pop it and write the distance. Then push the current index.',
+        solution: `def daily_temperatures(temps):
+    answer = [0] * len(temps)
+    stack = []
+    for i, t in enumerate(temps):
+        while stack and temps[stack[-1]] < t:
+            j = stack.pop()
+            answer[j] = i - j
+        stack.append(i)
+    return answer`,
+      },
+      {
+        type: 'quiz',
+        items: [
+          { question: 'Why is `list` a good stack but `pop(0)` a bad one?', answer: '`append` and `pop()` work at the end: O(1). `pop(0)` removes the first item and shifts the rest: O(n).' },
+          { question: 'Why must the stack be empty at the end of Valid Parentheses?', answer: 'A bracket left on the stack was opened but never closed, like `"(("`.' },
+          { question: 'Why is Daily Temperatures O(n) with a `while` inside the `for`?', answer: 'Each index is pushed once and popped at most once, so all inner steps together are at most n.' },
+        ],
+      },
+    ],
+    furtherReading: [
+      { label: 'Tech Interview Handbook: Stack', url: `${TIH}/stack/` },
+      { label: 'Python tutorial: Using lists as stacks', url: 'https://docs.python.org/3/tutorial/datastructures.html#using-lists-as-stacks' },
+      { label: 'NeetCode 150 (videos for each problem)', url: 'https://neetcode.io/practice' },
+    ],
+  },
+  {
+    id: 'dsa-binary-search',
+    title: 'Binary Search',
+    summary:
+      'Throw away half of the possible answers at every step. It works on sorted data — and on any question where the answer is “no, no, no… yes, yes, yes”, like the smallest speed that is fast enough.',
+    minutes: 70,
+    videos: [
+      yt('NeetCode: Binary Search', 's4DPM8ct1pI'),
+      yt('NeetCode: Search a 2D Matrix', 'Ber2pi2C0j0'),
+      yt('NeetCode: Koko Eating Bananas', 'U2SozAs9RzA'),
+      yt('NeetCode: Find Minimum in Rotated Sorted Array', 'nIVW4P8b1VA'),
+      yt('NeetCode: Search in Rotated Sorted Array', 'U8XENwh8Oy8'),
+      yt('NeetCode: Time Based Key-Value Store', 'fu2cD_6E8Hw'),
+      yt('NeetCode: Median of Two Sorted Arrays', 'q6IEA26hvXc'),
+    ],
+    blocks: [
+      {
+        type: 'text',
+        md: md(
+          '## Halve it, again and again',
+          'Guess a number between 1 and 100: if each answer is “higher” or “lower”, you never need more than 7 guesses. That is [[binary search]]: look at the **middle**, decide which half cannot contain the answer, and throw it away.',
+          '',
+          'Each step halves the range, so n items need about log₂ n steps — [[logarithm|O(log n)]]. That number grows very slowly:',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'log-steps',
+        caption: 'Worst-case number of steps for n sorted items.',
+        code: `import math
+for n in [8, 1_000, 1_000_000, 1_000_000_000]:
+    print(n, math.ceil(math.log2(n + 1)))
+# 8 4
+# 1000 10
+# 1000000 20
+# 1000000000 30`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## The basic template',
+          'Keep the range `[lo, hi]` where the target could still be. Look at `mid`. If `nums[mid]` is too small, the target is to the right: `lo = mid + 1`. If it is too big: `hi = mid - 1`. Stop when the range is empty (`lo > hi`).',
+          '',
+          'The `+ 1` and `- 1` matter: `mid` was already checked, so it leaves the range. Forget them and the loop can run forever.',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'bs-trace',
+        caption: 'Searching 11 in 7 numbers: 2 steps.',
+        code: `def binary_search(nums, target):
+    lo, hi = 0, len(nums) - 1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        print(f"lo={lo} hi={hi} mid={mid} nums[mid]={nums[mid]}")
+        if nums[mid] == target:
+            return mid
+        if nums[mid] < target:
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return -1
+
+print(binary_search([1, 3, 5, 7, 9, 11, 13], 11))
+# lo=0 hi=6 mid=3 nums[mid]=7
+# lo=4 hi=6 mid=5 nums[mid]=11
+# 5`,
+      },
+      {
+        type: 'callout',
+        tone: 'compare',
+        md: 'In **Java, C and C++**, `(lo + hi) / 2` can [[overflow]] when both are close to 2³¹ — this bug sat in Java’s own `Arrays.binarySearch` for nine years. They write `lo + (hi - lo) / 2`. Python ints never overflow, so `(lo + hi) // 2` is safe. Libraries: Python `bisect`, Java `Arrays.binarySearch` (returns `-(insertion point) - 1` when not found), C++ `std::lower_bound` / `upper_bound`, Go `sort.Search`.',
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Lower bound: the first position that fits',
+          'Many problems do not ask “is it there?” but “**where is the first** item ≥ target?” — the place you would insert it. Use a half-open range `[lo, hi)` with `hi = len(nums)`, because “after the last item” is a valid answer. When `nums[mid]` fits, `mid` **might be** the answer, so keep it: `hi = mid` (no `- 1`). The loop stops when `lo == hi`.',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'lower-bound',
+        caption: 'Your own lower bound, and the same thing from the standard library.',
+        code: `def first_at_least(nums, target):
+    lo, hi = 0, len(nums)      # "not found" = len(nums) is a valid answer
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if nums[mid] >= target:
+            hi = mid           # mid might be the answer: keep it
+        else:
+            lo = mid + 1
+    return lo
+
+nums = [1, 3, 3, 3, 8]
+print(first_at_least(nums, 3), first_at_least(nums, 4), first_at_least(nums, 9))  # 1 4 5
+
+from bisect import bisect_left, bisect_right
+print(bisect_left(nums, 3), bisect_right(nums, 3))   # 1 4`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Binary search on the answer',
+          'Koko eats bananas at speed `k` per hour; can she finish all piles in `h` hours? If speed `k` works, **every bigger speed works too**. So the answers look like `no, no, no, yes, yes, yes` — and you can binary search for the first “yes”, without any sorted array in the input.',
+          '',
+          'The recipe: (1) find the smallest and largest possible answer, (2) write `works(x)`, (3) lower-bound search for the first `x` that works. The cost is O(log(range) × cost of `works`).',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'koko',
+        caption: '`(p + k - 1) // k` is the ceiling of p / k without floats.',
+        code: `def hours_needed(piles, k):
+    return sum((p + k - 1) // k for p in piles)
+
+def min_speed(piles, h):
+    lo, hi = 1, max(piles)        # speed max(piles) always works
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if hours_needed(piles, mid) <= h:
+            hi = mid              # fast enough: maybe slower also works
+        else:
+            lo = mid + 1          # too slow
+    return lo
+
+print(hours_needed([3, 6, 7, 11], 4), hours_needed([3, 6, 7, 11], 3))  # 8 10
+print(min_speed([3, 6, 7, 11], 8))                                       # 4`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Rotated sorted arrays',
+          '`[4, 5, 6, 7, 0, 1, 2]` is a sorted array turned around. Compare `nums[mid]` with `nums[hi]`: if `nums[mid] > nums[hi]`, the “drop” (and the minimum) is to the right of `mid`; otherwise `mid..hi` is sorted and the minimum is at `mid` or to its left. For **Search in Rotated Sorted Array**, first find which half is sorted, then check if the target is inside that half.',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'rotated-min',
+        code: `def find_min(nums):
+    lo, hi = 0, len(nums) - 1
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if nums[mid] > nums[hi]:
+            lo = mid + 1     # the drop is to the right of mid
+        else:
+            hi = mid         # mid..hi is sorted: the minimum is mid or to the left
+    return nums[lo]
+
+print(find_min([4, 5, 6, 7, 0, 1, 2]), find_min([1, 2, 3]))   # 0 1`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## A 2-D matrix is a 1-D array in disguise',
+          'In Search a 2D Matrix every row starts after the previous row ends, so the whole matrix is one sorted list of `rows × cols` items. Search indexes `0 … rows*cols - 1` and turn each index into a cell with `divmod(i, cols)`.',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'matrix-index',
+        code: `matrix = [[1, 3, 5], [7, 9, 11], [13, 15, 17]]
+cols = len(matrix[0])
+for i in [0, 4, 8]:
+    r, c = divmod(i, cols)
+    print(i, (r, c), matrix[r][c])
+# 0 (0, 0) 1
+# 4 (1, 1) 9
+# 8 (2, 2) 17`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Time Based Key-Value Store',
+          'Each key keeps a list of `(timestamp, value)` pairs. Timestamps only grow, so the list is already sorted. `get(key, t)` wants the last value with timestamp ≤ t: that is `bisect_right(times, t) - 1`.',
+        ),
+      },
+      {
+        type: 'callout',
+        tone: 'interview',
+        md: 'Signals: **sorted** input, “find the first / last …”, or “find the **minimum** value that is big enough” (speed, capacity, days). Say the [[invariant]] out loud: “the answer is always inside `[lo, hi]`”. Test the edge cases on purpose: an empty list, one item, the target smaller than everything and bigger than everything.',
+      },
+      {
+        type: 'callout',
+        tone: 'warning',
+        md: 'The classic infinite loop: `while lo < hi` with `lo = mid` (not `mid + 1`). When `hi = lo + 1`, `mid` equals `lo` and nothing moves. Rule: if one side keeps `mid`, the other side must move past it.',
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Where you meet it at work',
+          '- **Database indexes** (B-trees) find a row among millions in a few page reads — a wide version of the same idea.',
+          '- `git bisect` finds the commit that broke a test: good, good, … bad, bad.',
+          '- Finding the largest batch size or the smallest server count that meets a deadline.',
+          '- Looking up a value by time in sorted logs or price history.',
+        ),
+      },
+      {
+        type: 'exercise',
+        id: 'binary-search',
+        title: 'Binary Search',
+        prompt: '`nums` is sorted with no duplicates. Return the index of `target`, or -1. O(log n).',
+        starter: `def search(nums, target):
+    # your code here
+    pass`,
+        tests: `assert search([-1, 0, 3, 5, 9, 12], 9) == 4
+assert search([-1, 0, 3, 5, 9, 12], 2) == -1
+assert search([5], 5) == 0
+assert search([], 1) == -1
+assert search([1, 3], 3) == 1`,
+        hint: '`lo, hi = 0, len(nums) - 1`, loop while `lo <= hi`, move to `mid + 1` or `mid - 1`.',
+        solution: `def search(nums, target):
+    lo, hi = 0, len(nums) - 1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if nums[mid] == target:
+            return mid
+        if nums[mid] < target:
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return -1`,
+      },
+      {
+        type: 'exercise',
+        id: 'search-insert',
+        title: 'Search Insert Position',
+        prompt: 'Return the index of `target` in the sorted list `nums`, or the index where it would be inserted to keep the order. This is a lower bound — do not use `bisect`.',
+        starter: `def search_insert(nums, target):
+    # your code here
+    pass`,
+        tests: `assert search_insert([1, 3, 5, 6], 5) == 2
+assert search_insert([1, 3, 5, 6], 2) == 1
+assert search_insert([1, 3, 5, 6], 7) == 4
+assert search_insert([1, 3, 5, 6], 0) == 0
+assert search_insert([], 3) == 0`,
+        hint: '`lo, hi = 0, len(nums)`. While `lo < hi`: if `nums[mid] >= target`, `hi = mid`, else `lo = mid + 1`. Return `lo`.',
+        solution: `def search_insert(nums, target):
+    lo, hi = 0, len(nums)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if nums[mid] >= target:
+            hi = mid
+        else:
+            lo = mid + 1
+    return lo`,
+      },
+      {
+        type: 'exercise',
+        id: 'koko-ex',
+        title: 'Koko Eating Bananas',
+        prompt: 'Each hour Koko picks one pile and eats up to `k` bananas from it. Return the **smallest** integer `k` that lets her eat all `piles` within `h` hours (`h >= len(piles)`).',
+        starter: `def min_eating_speed(piles, h):
+    # your code here
+    pass`,
+        tests: `assert min_eating_speed([3, 6, 7, 11], 8) == 4
+assert min_eating_speed([30, 11, 23, 4, 20], 5) == 30
+assert min_eating_speed([30, 11, 23, 4, 20], 6) == 23
+assert min_eating_speed([1], 1) == 1
+assert min_eating_speed([1000000000], 2) == 500000000`,
+        hint: 'Search `k` in `[1, max(piles)]`. Hours for speed k: `sum((p + k - 1) // k for p in piles)`.',
+        solution: `def min_eating_speed(piles, h):
+    lo, hi = 1, max(piles)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if sum((p + mid - 1) // mid for p in piles) <= h:
+            hi = mid
+        else:
+            lo = mid + 1
+    return lo`,
+      },
+      {
+        type: 'exercise',
+        id: 'rotated-search',
+        title: 'Search in Rotated Sorted Array',
+        prompt: '`nums` was sorted (all values different) and then rotated. Return the index of `target`, or -1, in O(log n).',
+        starter: `def search_rotated(nums, target):
+    # your code here
+    pass`,
+        tests: `assert search_rotated([4, 5, 6, 7, 0, 1, 2], 0) == 4
+assert search_rotated([4, 5, 6, 7, 0, 1, 2], 3) == -1
+assert search_rotated([1], 0) == -1
+assert search_rotated([3, 1], 1) == 1
+assert search_rotated([5, 1, 3], 5) == 0`,
+        hint: 'At each step one half is sorted. If `nums[lo] <= nums[mid]`, the left half is sorted: is the target between `nums[lo]` and `nums[mid]`? Otherwise the right half is sorted.',
+        solution: `def search_rotated(nums, target):
+    lo, hi = 0, len(nums) - 1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if nums[mid] == target:
+            return mid
+        if nums[lo] <= nums[mid]:
+            if nums[lo] <= target < nums[mid]:
+                hi = mid - 1
+            else:
+                lo = mid + 1
+        else:
+            if nums[mid] < target <= nums[hi]:
+                lo = mid + 1
+            else:
+                hi = mid - 1
+    return -1`,
+      },
+      {
+        type: 'quiz',
+        items: [
+          { question: 'How many steps does binary search need for one billion sorted items?', answer: 'About 30, because 2³⁰ is about one billion.' },
+          { question: 'When can you binary search without a sorted array?', answer: 'When the answers are monotonic: if x works, every bigger x works too (Koko, capacity, days). Search for the first x that works.' },
+          { question: 'Why `hi = mid` in a lower bound, but `hi = mid - 1` in the basic search?', answer: 'In a lower bound, mid might be the answer, so it must stay in the range. In the basic search mid was already checked.' },
+        ],
+      },
+    ],
+    furtherReading: [
+      { label: 'Python docs: bisect', url: 'https://docs.python.org/3/library/bisect.html' },
+      { label: 'Google Research: Nearly all binary searches are broken (overflow)', url: 'https://research.google/blog/extra-extra-read-all-about-it-nearly-all-binary-searches-and-mergesorts-are-broken/' },
+      { label: 'NeetCode 150 (videos for each problem)', url: 'https://neetcode.io/practice' },
+    ],
+  },
+  {
+    id: 'dsa-linked-list',
+    title: 'Linked List',
+    summary:
+      'Items that point to the next item instead of sitting side by side. Interview problems are about moving arrows safely: reverse them, merge with a dummy node, and find the middle or a cycle with a fast and a slow pointer.',
+    minutes: 70,
+    videos: [
+      yt('NeetCode: Reverse Linked List', 'G0_I-ZF0S38'),
+      yt('NeetCode: Merge Two Sorted Lists', 'XIdigk956u0'),
+      yt('NeetCode: Linked List Cycle', 'gBTe7lFR3vc'),
+      yt('NeetCode: Reorder List', 'S5bfdUTrKLM'),
+      yt('NeetCode: Remove Nth Node From End of List', 'XVuQxVej6y8'),
+      yt('NeetCode: Copy List With Random Pointer', '5Y2EiZST97Y'),
+      yt('NeetCode: LRU Cache', '7ABFKPK2hD4'),
+    ],
+    blocks: [
+      {
+        type: 'text',
+        md: md(
+          '## Nodes and arrows',
+          'A [[linked list]] is a chain of [[node|nodes]]. Each node holds a value and a [[reference]] to the next node; the last one points to `None`. You only keep the first node, the **head**.',
+          '',
+          '| Operation | Python `list` (array) | Linked list |',
+          '| --- | --- | --- |',
+          '| read item `i` | O(1) | O(n) — walk from the head |',
+          '| add / remove at the front | O(n) | O(1) |',
+          '| add / remove next to a node you already hold | O(n) | O(1) |',
+          '| memory | values side by side | one extra reference per node |',
+          '',
+          'LeetCode gives you nodes as a small class. `ListNode(v, head)` makes a new node that points to the old head — adding at the front in O(1).',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'list-node',
+        caption: '`build` and `to_list` turn Python lists into linked lists and back, so you can print them.',
+        code: `class ListNode:
+    def __init__(self, val, next=None):
+        self.val = val
+        self.next = next
+
+def build(values):
+    head = None
+    for v in reversed(values):
+        head = ListNode(v, head)
+    return head
+
+def to_list(head):
+    out = []
+    while head:
+        out.append(head.val)
+        head = head.next
+    return out
+
+head = build([1, 2, 3])
+print(head.val, head.next.val, head.next.next.next)   # 1 2 None
+print(to_list(head))                                  # [1, 2, 3]
+head = ListNode(0, head)        # add at the front: O(1)
+print(to_list(head))                                  # [0, 1, 2, 3]`,
+      },
+      {
+        type: 'callout',
+        tone: 'compare',
+        md: 'In **C** a node is a `struct` with a pointer, and you must `free` every node yourself — forget one and you leak memory. **Java** has `java.util.LinkedList` (a [[doubly linked list]]), but `ArrayList` is faster for almost everything because the values sit together in memory and the CPU cache loves that. Python has no linked list class; `collections.deque` is built from linked blocks. In real code you rarely write a linked list — but databases, operating systems and caches use them inside.',
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Reverse: turn every arrow around',
+          'Walk with two pointers, `prev` (starts at `None`) and `cur`. At each node: **remember** `cur.next`, point `cur.next` back to `prev`, then move both forward. Forget to save `next` first and you lose the rest of the list.',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'reverse-trace',
+        caption: 'Printed after each step: the reversed part, then the part still to do.',
+        code: `class ListNode:
+    def __init__(self, val, next=None):
+        self.val, self.next = val, next
+
+def build(values):
+    head = None
+    for v in reversed(values):
+        head = ListNode(v, head)
+    return head
+
+def to_list(head):
+    out = []
+    while head:
+        out.append(head.val)
+        head = head.next
+    return out
+
+def reverse(head):
+    prev, cur = None, head
+    while cur:
+        nxt = cur.next      # 1. remember the rest
+        cur.next = prev     # 2. turn the arrow around
+        prev, cur = cur, nxt
+        print(to_list(prev), to_list(cur))
+    return prev
+
+print(to_list(reverse(build([1, 2, 3]))))
+# [1] [2, 3]
+# [2, 1] [3]
+# [3, 2, 1] []
+# [3, 2, 1]`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## The dummy node',
+          'When the head itself might change (merging, removing the first node), start with a fake [[dummy node]] in front. You always attach to `tail.next`, never special-case an empty result, and return `dummy.next` at the end.',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'merge-dummy',
+        code: `class ListNode:
+    def __init__(self, val, next=None):
+        self.val, self.next = val, next
+
+def build(values):
+    head = None
+    for v in reversed(values):
+        head = ListNode(v, head)
+    return head
+
+def to_list(head):
+    out = []
+    while head:
+        out.append(head.val)
+        head = head.next
+    return out
+
+def merge(a, b):
+    dummy = tail = ListNode(0)
+    while a and b:
+        if a.val <= b.val:
+            tail.next, a = a, a.next
+        else:
+            tail.next, b = b, b.next
+        tail = tail.next
+    tail.next = a or b          # one list is empty: attach the rest of the other
+    return dummy.next
+
+print(to_list(merge(build([1, 4, 5]), build([2, 3, 6, 7]))))   # [1, 2, 3, 4, 5, 6, 7]`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Fast and slow pointers',
+          'Move `slow` one step and `fast` two steps at a time.',
+          '',
+          '- When `fast` reaches the end, `slow` is in the **middle**.',
+          '- If the list has a **cycle**, `fast` never reaches the end — it goes round and catches up with `slow` from behind. That is [[floyd cycle detection|Floyd’s tortoise and hare]]: O(n) time, O(1) memory (a set of seen nodes would cost O(n) memory).',
+          '',
+          'A **gap** works the same way: to remove the n-th node from the end, move one pointer n steps ahead, then move both until the first one hits the end.',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'fast-slow',
+        code: `class ListNode:
+    def __init__(self, val, next=None):
+        self.val, self.next = val, next
+
+def build(values):
+    head = None
+    for v in reversed(values):
+        head = ListNode(v, head)
+    return head
+
+def middle(head):
+    slow = fast = head
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+    return slow.val
+
+def has_cycle(head):
+    slow = fast = head
+    while fast and fast.next:
+        slow, fast = slow.next, fast.next.next
+        if slow is fast:
+            return True
+    return False
+
+print(middle(build([1, 2, 3, 4, 5])), middle(build([1, 2, 3, 4])))   # 3 3
+loop = build([1, 2, 3, 4])
+loop.next.next.next.next = loop.next      # 4 points back to 2
+print(has_cycle(loop), has_cycle(build([1, 2, 3])))                 # True False`,
+      },
+      {
+        type: 'callout',
+        tone: 'warning',
+        md: 'Use `is` to compare nodes, not `==`: two different nodes can hold the same value. And check `fast and fast.next` before `fast.next.next`, or a list with an even length crashes with `AttributeError: \'NoneType\' object has no attribute \'next\'`.',
+      },
+      {
+        type: 'text',
+        md: md(
+          '## LRU Cache: a dict plus a doubly linked list',
+          'An [[lru cache|LRU cache]] keeps the most recently used items and, when it is full, throws out the one used **longest ago**. Both `get` and `put` must be O(1):',
+          '',
+          '- a **dict** finds the node for a key in O(1);',
+          '- a [[doubly linked list]] keeps the order of use: move a node to the front in O(1) (it knows its `prev` and `next`), and remove the last node in O(1).',
+          '',
+          'Python’s `OrderedDict` is exactly this pair. In an interview, build it yourself first; then mention the shortcut.',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'ordered-dict',
+        code: `from collections import OrderedDict
+
+cache = OrderedDict()
+for key in ["a", "b", "c"]:
+    cache[key] = key.upper()
+cache.move_to_end("a")          # "a" was just used: it becomes the newest
+cache.popitem(last=False)       # the cache is full: remove the oldest ("b")
+print(list(cache))              # ['c', 'a']`,
+      },
+      {
+        type: 'callout',
+        tone: 'interview',
+        md: 'Draw the boxes and arrows before you code, and say which arrow changes first. Check the edge cases out loud: an empty list, one node, two nodes, and removing the **head**. Mention the cost: most linked-list answers are O(n) time and O(1) extra memory.',
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Where you meet linked lists at work',
+          '- Caches: the LRU list in Redis, in web frameworks and in your browser.',
+          '- `collections.deque` and many queues are linked blocks, so both ends are O(1).',
+          '- Operating systems keep free memory pages and waiting processes in linked lists.',
+          '- Git history: each commit points to its parent — a linked list (a graph, when branches merge).',
+        ),
+      },
+      {
+        type: 'exercise',
+        id: 'reverse-list',
+        title: 'Reverse Linked List',
+        prompt: 'Reverse the list in place and return the new head. O(n) time, O(1) extra memory.',
+        starter: `class ListNode:
+    def __init__(self, val, next=None):
+        self.val, self.next = val, next
+
+def reverse_list(head):
+    # your code here
+    pass`,
+        tests: `def build(values):
+    head = None
+    for v in reversed(values):
+        head = ListNode(v, head)
+    return head
+
+def to_list(head):
+    out = []
+    while head:
+        out.append(head.val)
+        head = head.next
+    return out
+
+assert to_list(reverse_list(build([1, 2, 3, 4, 5]))) == [5, 4, 3, 2, 1]
+assert to_list(reverse_list(build([1, 2]))) == [2, 1]
+assert reverse_list(None) is None`,
+        hint: '`prev, cur = None, head`. In the loop: save `cur.next`, point `cur.next` to `prev`, move both. Return `prev`.',
+        solution: `class ListNode:
+    def __init__(self, val, next=None):
+        self.val, self.next = val, next
+
+def reverse_list(head):
+    prev, cur = None, head
+    while cur:
+        nxt = cur.next
+        cur.next = prev
+        prev, cur = cur, nxt
+    return prev`,
+      },
+      {
+        type: 'exercise',
+        id: 'merge-two',
+        title: 'Merge Two Sorted Lists',
+        prompt: 'Merge two sorted linked lists into one sorted list by re-linking their nodes. Return the head.',
+        starter: `class ListNode:
+    def __init__(self, val, next=None):
+        self.val, self.next = val, next
+
+def merge_two(a, b):
+    # your code here
+    pass`,
+        tests: `def build(values):
+    head = None
+    for v in reversed(values):
+        head = ListNode(v, head)
+    return head
+
+def to_list(head):
+    out = []
+    while head:
+        out.append(head.val)
+        head = head.next
+    return out
+
+assert to_list(merge_two(build([1, 2, 4]), build([1, 3, 4]))) == [1, 1, 2, 3, 4, 4]
+assert to_list(merge_two(build([]), build([0]))) == [0]
+assert merge_two(None, None) is None`,
+        hint: 'Start with `dummy = tail = ListNode(0)`. Attach the smaller head to `tail.next`, move on. At the end attach whatever is left.',
+        solution: `class ListNode:
+    def __init__(self, val, next=None):
+        self.val, self.next = val, next
+
+def merge_two(a, b):
+    dummy = tail = ListNode(0)
+    while a and b:
+        if a.val <= b.val:
+            tail.next, a = a, a.next
+        else:
+            tail.next, b = b, b.next
+        tail = tail.next
+    tail.next = a or b
+    return dummy.next`,
+      },
+      {
+        type: 'exercise',
+        id: 'has-cycle',
+        title: 'Linked List Cycle',
+        prompt: 'Return `True` if the list has a cycle. Use O(1) extra memory (no set).',
+        starter: `class ListNode:
+    def __init__(self, val, next=None):
+        self.val, self.next = val, next
+
+def has_cycle(head):
+    # your code here
+    pass`,
+        tests: `a, b, c, d = ListNode(3), ListNode(2), ListNode(0), ListNode(-4)
+a.next, b.next, c.next, d.next = b, c, d, b
+assert has_cycle(a) is True
+one = ListNode(1)
+one.next = one
+assert has_cycle(one) is True
+assert has_cycle(ListNode(1, ListNode(2))) is False
+assert has_cycle(None) is False`,
+        hint: '`slow` one step, `fast` two steps, while `fast and fast.next`. If `slow is fast`, there is a cycle.',
+        solution: `class ListNode:
+    def __init__(self, val, next=None):
+        self.val, self.next = val, next
+
+def has_cycle(head):
+    slow = fast = head
+    while fast and fast.next:
+        slow, fast = slow.next, fast.next.next
+        if slow is fast:
+            return True
+    return False`,
+      },
+      {
+        type: 'exercise',
+        id: 'remove-nth',
+        title: 'Remove Nth Node From End',
+        prompt: 'Remove the `n`-th node from the **end** and return the head, in one pass. `n` is always valid.',
+        starter: `class ListNode:
+    def __init__(self, val, next=None):
+        self.val, self.next = val, next
+
+def remove_nth_from_end(head, n):
+    # your code here
+    pass`,
+        tests: `def build(values):
+    head = None
+    for v in reversed(values):
+        head = ListNode(v, head)
+    return head
+
+def to_list(head):
+    out = []
+    while head:
+        out.append(head.val)
+        head = head.next
+    return out
+
+assert to_list(remove_nth_from_end(build([1, 2, 3, 4, 5]), 2)) == [1, 2, 3, 5]
+assert to_list(remove_nth_from_end(build([1]), 1)) == []
+assert to_list(remove_nth_from_end(build([1, 2]), 2)) == [2]
+assert to_list(remove_nth_from_end(build([1, 2]), 1)) == [1]`,
+        hint: 'Dummy node in front. Move `fast` n steps ahead of `slow` (both start at dummy), then move both until `fast.next` is None. Now `slow.next` is the node to remove.',
+        solution: `class ListNode:
+    def __init__(self, val, next=None):
+        self.val, self.next = val, next
+
+def remove_nth_from_end(head, n):
+    dummy = ListNode(0, head)
+    slow = fast = dummy
+    for _ in range(n):
+        fast = fast.next
+    while fast.next:
+        slow, fast = slow.next, fast.next
+    slow.next = slow.next.next
+    return dummy.next`,
+      },
+      {
+        type: 'quiz',
+        items: [
+          { question: 'What do you do first in each step of reversing a list, and why?', answer: 'Save `cur.next`. After you point `cur.next` backwards, the rest of the list would be lost.' },
+          { question: 'Why use a dummy node?', answer: 'The head may change or the result may be empty. With a fake first node there is no special case; return `dummy.next`.' },
+          { question: 'Why does an LRU cache need a doubly linked list, not a singly linked one?', answer: 'To remove a node from the middle in O(1) you need its previous node; each node keeps `prev` as well as `next`.' },
+        ],
+      },
+    ],
+    furtherReading: [
+      { label: 'Tech Interview Handbook: Linked list', url: `${TIH}/linked-list/` },
+      { label: 'Python docs: OrderedDict.move_to_end', url: 'https://docs.python.org/3/library/collections.html#collections.OrderedDict.move_to_end' },
+      { label: 'NeetCode 150 (videos for each problem)', url: 'https://neetcode.io/practice' },
+    ],
+  },
+  {
+    id: 'dsa-trees',
+    title: 'Trees: DFS and BFS',
+    summary:
+      'A tree is a node with smaller trees under it, so most tree answers are short recursive functions. Learn the two ways to walk a tree — depth first with recursion, breadth first with a queue — and the one rule that makes a binary search tree fast.',
+    minutes: 75,
+    videos: [
+      yt('NeetCode: Invert Binary Tree', 'OnSn2XEQ4MY'),
+      yt('NeetCode: Maximum Depth of Binary Tree', 'hTM3phVI6YQ'),
+      yt('NeetCode: Diameter of Binary Tree', 'K81C31ytOZE'),
+      yt('NeetCode: Lowest Common Ancestor of a BST', 'gs2LMfuOR9k'),
+      yt('NeetCode: Binary Tree Level Order Traversal', '6ZnyEApgFYg'),
+      yt('NeetCode: Validate Binary Search Tree', 's6ATEkipzow'),
+    ],
+    blocks: [
+      {
+        type: 'text',
+        md: md(
+          '## Words first',
+          'A [[binary tree]] is made of nodes; each node has a value and at most two children, `left` and `right`. The top node is the **root**; a node with no children is a [[leaf]]. The [[tree height|height]] (or depth) is the number of nodes on the longest path from the root down to a leaf.',
+          '',
+          'The key idea: **every child is the root of a smaller tree**. So a tree question can almost always be answered as “answer for the left subtree + answer for the right subtree + this node” — [[recursion]] with the base case `node is None`.',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'max-depth',
+        caption: 'The tree used in this lesson, and its depth with three lines of recursion.',
+        code: `class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+#        4
+#      /   \\
+#     2     6
+#    / \\     \\
+#   1   3     7
+root = TreeNode(4, TreeNode(2, TreeNode(1), TreeNode(3)), TreeNode(6, None, TreeNode(7)))
+
+def max_depth(node):
+    if node is None:            # base case: an empty tree has depth 0
+        return 0
+    return 1 + max(max_depth(node.left), max_depth(node.right))
+
+print(max_depth(root))   # 3`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Depth-first search (DFS): three orders',
+          '[[dfs|DFS]] goes as deep as it can before it comes back. The only difference between the three orders is **when** you look at the node itself:',
+          '',
+          '| Order | Steps | Typical use |',
+          '| --- | --- | --- |',
+          '| pre-order | node, left, right | copy or print a tree, serialize it |',
+          '| in-order | left, node, right | a BST gives its values **sorted** |',
+          '| post-order | left, right, node | the answer needs the children first: height, diameter, delete a folder |',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'dfs-orders',
+        code: `class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+root = TreeNode(4, TreeNode(2, TreeNode(1), TreeNode(3)), TreeNode(6, None, TreeNode(7)))
+
+def preorder(n, out):
+    if n:
+        out.append(n.val)
+        preorder(n.left, out)
+        preorder(n.right, out)
+    return out
+
+def inorder(n, out):
+    if n:
+        inorder(n.left, out)
+        out.append(n.val)
+        inorder(n.right, out)
+    return out
+
+def postorder(n, out):
+    if n:
+        postorder(n.left, out)
+        postorder(n.right, out)
+        out.append(n.val)
+    return out
+
+print(preorder(root, []))    # [4, 2, 1, 3, 6, 7]
+print(inorder(root, []))     # [1, 2, 3, 4, 6, 7]
+print(postorder(root, []))   # [1, 3, 2, 7, 6, 4]`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Breadth-first search (BFS): level by level',
+          '[[bfs|BFS]] visits the root, then all nodes one level down, then the next level. It uses a **queue** (`collections.deque`, O(1) `popleft`). To group nodes by level, read `len(queue)` at the start of each round: exactly that many nodes belong to the current level.',
+          '',
+          'BFS is the natural choice for “level”, “closest”, “minimum depth” or “right side view” questions: it reaches the nearest nodes first.',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'bfs-levels',
+        code: `from collections import deque
+
+class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+root = TreeNode(4, TreeNode(2, TreeNode(1), TreeNode(3)), TreeNode(6, None, TreeNode(7)))
+
+def level_order(root):
+    levels, queue = [], deque([root] if root else [])
+    while queue:
+        level = []
+        for _ in range(len(queue)):        # the nodes of this level only
+            node = queue.popleft()
+            level.append(node.val)
+            if node.left:
+                queue.append(node.left)
+            if node.right:
+                queue.append(node.right)
+        levels.append(level)
+    return levels
+
+print(level_order(root))   # [[4], [2, 6], [1, 3, 7]]`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## DFS or BFS?',
+          '| | DFS (recursion or a stack) | BFS (a queue) |',
+          '| --- | --- | --- |',
+          '| memory | O(height) — small for a balanced tree | O(width) — the widest level can be n / 2 nodes |',
+          '| good for | paths, subtree answers, BST order | levels, the nearest node, the shortest path |',
+          '| risk | very deep trees hit Python’s recursion limit (~1,000) | none from depth |',
+          '',
+          'Both visit every node once: **O(n) time**. For a very deep tree, write DFS with your own stack (the Stack lesson): push `right`, then `left`, so `left` is popped first.',
+        ),
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Binary search trees',
+          'A [[binary search tree|BST]] adds one rule: **everything** in the left subtree is smaller than the node, **everything** in the right subtree is bigger. Then a search goes left or right at each node — binary search on a tree, O(height).',
+          '',
+          '- Balanced (height ≈ log n): search, insert and delete are O(log n).',
+          '- Unbalanced — for example inserting 1, 2, 3, 4, … in order — the tree becomes a line: O(n). Real libraries use self-balancing trees (red-black, AVL, B-trees).',
+          '',
+          'To **validate** a BST it is not enough to compare a node with its two children: pass down the allowed range `(low, high)` instead.',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'validate-bst',
+        caption: 'In `bad`, 4 is smaller than 7 (its parent) but also smaller than 5 (the root) — it is on the wrong side.',
+        code: `class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+root = TreeNode(4, TreeNode(2, TreeNode(1), TreeNode(3)), TreeNode(6, None, TreeNode(7)))
+bad = TreeNode(5, TreeNode(3), TreeNode(7, TreeNode(4), TreeNode(8)))
+
+def is_bst(node, low=float("-inf"), high=float("inf")):
+    if node is None:
+        return True
+    if not (low < node.val < high):
+        return False
+    return is_bst(node.left, low, node.val) and is_bst(node.right, node.val, high)
+
+print(is_bst(root), is_bst(bad))   # True False`,
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Return one thing, remember another',
+          'Diameter of a Binary Tree: the longest path between any two nodes (counted in edges). The path through a node is `height(left) + height(right)`. So the recursive function **returns** the height (what the parent needs) and **updates** the best diameter on the side (with `nonlocal`). This “return X, record Y” shape solves many hard tree problems, like Binary Tree Maximum Path Sum.',
+        ),
+      },
+      {
+        type: 'code',
+        id: 'diameter',
+        code: `class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+root = TreeNode(4, TreeNode(2, TreeNode(1), TreeNode(3)), TreeNode(6, None, TreeNode(7)))
+
+def diameter(root):
+    best = 0
+    def height(node):
+        nonlocal best
+        if node is None:
+            return 0
+        left, right = height(node.left), height(node.right)
+        best = max(best, left + right)      # the path that bends at this node
+        return 1 + max(left, right)         # what the parent needs
+    height(root)
+    return best
+
+print(diameter(root))   # 4  (1 → 2 → 4 → 6 → 7)`,
+      },
+      {
+        type: 'callout',
+        tone: 'compare',
+        md: '**Java** has `TreeMap` / `TreeSet` and **C++** has `std::map` / `std::set`: balanced BSTs (red-black trees) with sorted keys and O(log n) operations. **Python has none** in the standard library — `dict` is a hash table with no order by key. In Python you use `sorted()`, `bisect` on a sorted list, or the third-party `sortedcontainers`. Recursion limits differ too: Java and C++ usually allow thousands of nested calls, Python stops at about 1,000.',
+      },
+      {
+        type: 'callout',
+        tone: 'interview',
+        md: 'Say the plan in one sentence: “I solve it for the left and right subtrees, then combine at this node; base case: an empty tree.” Then state the cost: **O(n) time**, **O(h) memory** for the recursion (h = height: log n if balanced, n in the worst case). Always try the empty tree and a single node.',
+      },
+      {
+        type: 'text',
+        md: md(
+          '## Where you meet trees at work',
+          '- The file system: folders inside folders. Deleting a folder is a post-order walk.',
+          '- The HTML DOM and JSON documents are trees; React walks them to render a page.',
+          '- Database indexes are B-trees; a query planner reads the tree, not the whole table.',
+          '- Org charts, category menus, comment threads.',
+        ),
+      },
+      {
+        type: 'exercise',
+        id: 'max-depth-ex',
+        title: 'Maximum Depth of Binary Tree',
+        prompt: 'Return the number of nodes on the longest path from the root down to a leaf. An empty tree has depth 0.',
+        starter: `class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+def max_depth(root):
+    # your code here
+    pass`,
+        tests: `def build(values):
+    if not values:
+        return None
+    nodes = [None if v is None else TreeNode(v) for v in values]
+    kids = nodes[::-1]
+    root = kids.pop()
+    for node in nodes:
+        if node:
+            if kids:
+                node.left = kids.pop()
+            if kids:
+                node.right = kids.pop()
+    return root
+
+assert max_depth(build([3, 9, 20, None, None, 15, 7])) == 3
+assert max_depth(build([1, None, 2])) == 2
+assert max_depth(build([])) == 0
+assert max_depth(build([1, 2, None, 3, None, 4])) == 4`,
+        hint: 'Base case: `None` → 0. Otherwise `1 + max(depth of left, depth of right)`.',
+        solution: `class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+def max_depth(root):
+    if root is None:
+        return 0
+    return 1 + max(max_depth(root.left), max_depth(root.right))`,
+      },
+      {
+        type: 'exercise',
+        id: 'invert-tree',
+        title: 'Invert Binary Tree',
+        prompt: 'Swap the left and right child of **every** node (a mirror image) and return the root.',
+        starter: `class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+def invert(root):
+    # your code here
+    pass`,
+        tests: `def build(values):
+    if not values:
+        return None
+    nodes = [None if v is None else TreeNode(v) for v in values]
+    kids = nodes[::-1]
+    root = kids.pop()
+    for node in nodes:
+        if node:
+            if kids:
+                node.left = kids.pop()
+            if kids:
+                node.right = kids.pop()
+    return root
+
+def preorder(n):
+    return [n.val] + preorder(n.left) + preorder(n.right) if n else [None]
+
+assert preorder(invert(build([4, 2, 7, 1, 3, 6, 9]))) == preorder(build([4, 7, 2, 9, 6, 3, 1]))
+assert preorder(invert(build([2, 1, 3]))) == preorder(build([2, 3, 1]))
+assert invert(None) is None`,
+        hint: 'If the node is None, return None. Otherwise swap: `root.left, root.right = invert(root.right), invert(root.left)`.',
+        solution: `class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+def invert(root):
+    if root is None:
+        return None
+    root.left, root.right = invert(root.right), invert(root.left)
+    return root`,
+      },
+      {
+        type: 'exercise',
+        id: 'level-order',
+        title: 'Binary Tree Level Order Traversal',
+        prompt: 'Return the values level by level, left to right: a list of lists. Use BFS with a `deque`.',
+        starter: `from collections import deque
+
+class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+def level_order(root):
+    # your code here
+    pass`,
+        tests: `def build(values):
+    if not values:
+        return None
+    nodes = [None if v is None else TreeNode(v) for v in values]
+    kids = nodes[::-1]
+    root = kids.pop()
+    for node in nodes:
+        if node:
+            if kids:
+                node.left = kids.pop()
+            if kids:
+                node.right = kids.pop()
+    return root
+
+assert level_order(build([3, 9, 20, None, None, 15, 7])) == [[3], [9, 20], [15, 7]]
+assert level_order(build([1])) == [[1]]
+assert level_order(build([])) == []`,
+        hint: 'Queue starts with the root (if any). Each round: `for _ in range(len(queue))`, pop left, record, push its children.',
+        solution: `from collections import deque
+
+class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+def level_order(root):
+    levels, queue = [], deque([root] if root else [])
+    while queue:
+        level = []
+        for _ in range(len(queue)):
+            node = queue.popleft()
+            level.append(node.val)
+            if node.left:
+                queue.append(node.left)
+            if node.right:
+                queue.append(node.right)
+        levels.append(level)
+    return levels`,
+      },
+      {
+        type: 'exercise',
+        id: 'valid-bst',
+        title: 'Validate Binary Search Tree',
+        prompt: 'Return `True` if the tree is a valid BST: every value in a left subtree is **smaller** than the node, every value in a right subtree is **bigger** (no duplicates).',
+        starter: `class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+def is_valid_bst(root):
+    # your code here
+    pass`,
+        tests: `def build(values):
+    if not values:
+        return None
+    nodes = [None if v is None else TreeNode(v) for v in values]
+    kids = nodes[::-1]
+    root = kids.pop()
+    for node in nodes:
+        if node:
+            if kids:
+                node.left = kids.pop()
+            if kids:
+                node.right = kids.pop()
+    return root
+
+assert is_valid_bst(build([2, 1, 3])) is True
+assert is_valid_bst(build([5, 1, 4, None, None, 3, 6])) is False
+assert is_valid_bst(build([5, 4, 6, None, None, 3, 7])) is False
+assert is_valid_bst(build([2, 2, 2])) is False
+assert is_valid_bst(None) is True`,
+        hint: 'Pass the allowed range down: `check(node, low, high)`. Going left, `high` becomes `node.val`; going right, `low` becomes `node.val`.',
+        solution: `class TreeNode:
+    def __init__(self, val, left=None, right=None):
+        self.val, self.left, self.right = val, left, right
+
+def is_valid_bst(root, low=float("-inf"), high=float("inf")):
+    if root is None:
+        return True
+    if not (low < root.val < high):
+        return False
+    return is_valid_bst(root.left, low, root.val) and is_valid_bst(root.right, root.val, high)`,
+      },
+      {
+        type: 'quiz',
+        items: [
+          { question: 'Which traversal gives the values of a BST in sorted order?', answer: 'In-order: left, node, right.' },
+          { question: 'When is BFS a better choice than DFS?', answer: 'For levels or the nearest / shallowest node: BFS reaches them first. DFS is better for paths and subtree answers, and uses less memory on wide trees.' },
+          { question: 'Why can a BST become slow?', answer: 'If values are inserted in sorted order it turns into a line: height n, so search is O(n). Balanced trees keep the height near log n.' },
+        ],
+      },
+    ],
+    furtherReading: [
+      { label: 'Tech Interview Handbook: Tree', url: `${TIH}/tree/` },
+      { label: 'Python docs: collections.deque', url: 'https://docs.python.org/3/library/collections.html#collections.deque' },
+      { label: 'NeetCode 150 (videos for each problem)', url: 'https://neetcode.io/practice' },
+    ],
+  },
 ]

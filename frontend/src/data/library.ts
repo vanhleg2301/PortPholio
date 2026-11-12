@@ -58,6 +58,7 @@ const CS_GROUPS: Record<string, string> = {
 function lessonTopic(lesson: Lesson): LibraryTopic {
   if (lesson.id.startsWith('py-')) return 'python'
   if (lesson.id.startsWith('dsa-')) return 'dsa'
+  if (lesson.id.startsWith('sd-')) return 'sd'
   return 'cs'
 }
 

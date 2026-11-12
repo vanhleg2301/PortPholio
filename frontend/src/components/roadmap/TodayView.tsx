@@ -7,7 +7,7 @@ import { FlashcardSession } from '@/components/learn/FlashcardSession'
 import { useReviewDeck } from '@/components/learn/ReviewDeckContext'
 import { LessonTestCard } from '@/components/learn/LessonTestCard'
 import { LESSON_BY_ID, LESSON_TESTS, getConceptCount, isLessonTestPassed } from '@/data/lessons'
-import { WEEK_TEST_LESSON, WEEK_TEST_SIZE, getTestedLessonIds, getWeekTestQuestions, isTaskLocked, isWeekTestPassed } from '@/lib/testGate'
+import { WEEK_TEST_LESSON, WEEK_TEST_SIZE, getDayMockTest, getTestedLessonIds, getWeekTestQuestions, isTaskLocked, isWeekTestPassed } from '@/lib/testGate'
 import { DayNotes } from '@/components/roadmap/DayNotes'
 import { ResourceList } from '@/components/roadmap/ResourceList'
 import { TaskItem } from '@/components/roadmap/TaskItem'
@@ -102,7 +102,8 @@ export function TodayView({
   const testedLessonIds = getTestedLessonIds(tasks)
   const passedTests = testedLessonIds.filter((id) => isLessonTestPassed(id, passed)).length
   const hasWeekTest = Boolean(week) && tasks.some((t) => t.isWeekTest)
-  const weekTestQuestions = week && hasWeekTest ? getWeekTestQuestions(week, date) : []
+  const dayMock = hasWeekTest ? getDayMockTest(date) : null
+  const weekTestQuestions = week && hasWeekTest && !dayMock ? getWeekTestQuestions(week, date) : []
   const references = [...new Map(tasks.flatMap((t) => (t.reference ? [[t.reference.title, t.reference] as const] : []))).values()]
 
   // Slide direction follows the calendar: later day comes in from the right.
@@ -221,7 +222,8 @@ export function TodayView({
                   return (
                     <LessonTestCard
                       key={id}
-                      lesson={lesson}
+                      id={id}
+                      title={`Test: ${lesson.title}`}
                       test={LESSON_TESTS[id]}
                       canSave={canSaveAnswers}
                       passed={passed}
@@ -234,6 +236,30 @@ export function TodayView({
                 })}
               </div>
               )}
+            </motion.section>
+          )}
+
+          {dayMock && isAnswersReady && (
+            <motion.section variants={section} layout="position" id="day-test" className="scroll-mt-20">
+              <SectionTitle>{dayMock.mock.kind === 'month' ? 'Month test' : 'Week test'}</SectionTitle>
+              <p className="mb-3 text-sm text-muted-foreground">
+                {dayMock.mock.kind === 'month'
+                  ? 'A mock interview over the whole month: quiz, two coding tasks and four spoken answers. Start the timer and try it without opening the lessons.'
+                  : 'A short mock interview: a quiz on this week’s lessons, one new coding task and two questions to answer out loud. Easier than the month test.'}
+              </p>
+              <LessonTestCard
+                id={dayMock.id}
+                title={dayMock.mock.title}
+                test={dayMock.test}
+                quizSize={dayMock.mock.quizSize}
+                minutes={dayMock.mock.minutes}
+                canSave={canSaveAnswers}
+                passed={passed}
+                savedCode={savedCode}
+                isOpenByDefault={!isWeekTestPassed(date, passed)}
+                onSaveCode={onSaveCode}
+                onPassed={(itemId) => onTestPassed(dayMock.id, itemId)}
+              />
             </motion.section>
           )}
 

@@ -16,7 +16,7 @@ import { LessonOutlinePanel, scrollToAnchor } from '@/components/learn/LessonOut
 import { SearchDialog } from '@/components/roadmap/SearchDialog'
 import type { SearchEntry } from '@/lib/searchIndex'
 import { LESSON_BY_ID, LESSON_TESTS, isLessonTestPassed } from '@/data/lessons'
-import { WEEK_TEST_LESSON, isTaskLocked } from '@/lib/testGate'
+import { WEEK_TEST_LESSON, getDayMockTest, isMockPassed, isTaskLocked } from '@/lib/testGate'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { useLessonProgress, useMarkExercisePassed, useSaveCode, useSavedCode } from '@/hooks/useLessonData'
 import { formatClock, useFocusTimer } from '@/hooks/useFocusTimer'
@@ -189,6 +189,11 @@ export default function RoadmapPage() {
             return
           }
           const next = new Set(passedItems).add(`${lessonId}:${itemId}`)
+          const mock = lessonId.startsWith('mock-') ? getDayMockTest(lessonId.slice(5)) : null
+          if (mock) {
+            setToast(isMockPassed(mock, next) ? 'Test passed — you can tick it now' : 'Part passed')
+            return
+          }
           setToast(isLessonTestPassed(lessonId, next) ? 'Test passed — you can tick the lesson now' : 'Part passed')
         },
       }
@@ -456,9 +461,7 @@ export default function RoadmapPage() {
                   savedCode={savedCode}
                   isTaskDone={lessonTaskId ? doneIds.has(lessonTaskId) : null}
                   isTestPending={isOwner && Boolean(LESSON_TESTS[lesson.id]) && !isLessonTestPassed(lesson.id, passedItems)}
-                  onOpenTest={() => {
-                    if (lessonTaskId) goToTest(lessonTaskId.slice(0, 10))
-                  }}
+                  onTestPassed={(itemId) => handleTestPassed(lesson.id, itemId)}
                   onBack={closeLesson}
                   onToggleDone={(isDone) => {
                     if (lessonTaskId) handleToggle(lessonTaskId, isDone)
@@ -505,7 +508,16 @@ export default function RoadmapPage() {
           />
         )}
         {tab === 'plan' && (
-          <PlanView doneIds={doneIds} today={today} onToggle={handleToggle} onOpenDay={openDay} sessions={sessions} />
+          <PlanView
+            doneIds={doneIds}
+            today={today}
+            onToggle={handleToggle}
+            onOpenDay={openDay}
+            sessions={sessions}
+            passed={passedItems}
+            savedCode={savedCode}
+            onOpenLesson={(id) => openLessonById(id)}
+          />
         )}
         {tab === 'library' && (
           <LibraryView request={libraryRequest} onOpenLesson={(id, query) => openLessonById(id, undefined, query)} />

@@ -79,6 +79,10 @@ export const CATEGORY_LESSON: Record<string, string> = {
   'Arrays & Hashing': 'dsa-arrays-hashing',
   'Two Pointers': 'dsa-two-pointers',
   'Sliding Window': 'dsa-sliding-window',
+  Stack: 'dsa-stack',
+  'Binary Search': 'dsa-binary-search',
+  'Linked List': 'dsa-linked-list',
+  Trees: 'dsa-trees',
 }
 
 export function getExerciseIds(lesson: Lesson): string[] {
@@ -91,7 +95,7 @@ export function getPassMark(total: number): number {
 
 // Progress item ids (stored per lesson) that together mean "test passed".
 export function getTestItemIds(test: LessonTest): string[] {
-  return ['test:choice', ...test.code.map((q) => `test:code:${q.id}`), ...test.explain.map((q) => `test:explain:${q.id}`)]
+  return [...(test.choice.length > 0 ? ['test:choice'] : []), ...test.code.map((q) => `test:code:${q.id}`), ...test.explain.map((q) => `test:explain:${q.id}`)]
 }
 
 // `passed` holds "lessonId:itemId" keys. Lessons without a test count as passed.
@@ -178,6 +182,6 @@ export function getLessonOutline(lesson: Lesson): OutlineItem[] {
   })
   if (getLessonTerms(lesson).length > 0) items.push({ anchor: LESSON_ANCHORS.words, label: 'Words in this lesson', kind: 'words' })
   items.push({ anchor: LESSON_ANCHORS.reading, label: 'Further reading', kind: 'reading' })
-  items.push({ anchor: LESSON_ANCHORS.finish, label: LESSON_TESTS[lesson.id] ? 'Finish · day test' : 'Finish', kind: 'finish' })
+  items.push({ anchor: LESSON_ANCHORS.finish, label: LESSON_TESTS[lesson.id] ? 'Finish · test' : 'Finish', kind: 'finish' })
   return items
 }
