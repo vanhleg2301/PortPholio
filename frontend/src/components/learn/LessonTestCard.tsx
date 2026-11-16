@@ -11,6 +11,7 @@ import { EASE_OUT } from '@/lib/motion'
 import { getConceptCount, getPassMark, getTestItemIds } from '@/data/lessons'
 import type { LessonTest } from '@/data/lessons/types'
 import { TestTimer } from '@/components/learn/TestTimer'
+import { useReviewDeck } from '@/components/learn/ReviewDeckContext'
 
 type PartId = 'choice' | 'code' | 'explain'
 
@@ -48,6 +49,10 @@ const partVariants = {
 
 export function LessonTestCard({ id, title, test, quizSize, minutes, canSave, passed, savedCode, isOpenByDefault, onSaveCode, onPassed }: LessonTestCardProps) {
   const has = (itemId: string) => passed.has(`${id}:${itemId}`)
+  const deck = useReviewDeck()
+  // 12–16 Nov 2026 a bug saved lesson-test answers under `code:test:<item>` / `explain:test:explain:<item>`
+  // instead of `<lesson id>:test:…`. Item ids are unique across lessons, so those answers are still found.
+  const getSaved = (key: string, legacyKey: string) => savedCode.get(key) ?? (id.startsWith('mock-') ? undefined : savedCode.get(legacyKey))
   const questionCount = Math.min(quizSize ?? Infinity, getConceptCount(test.choice))
   const itemIds = getTestItemIds(test)
   const doneCount = itemIds.filter(has).length
@@ -71,7 +76,7 @@ export function LessonTestCard({ id, title, test, quizSize, minutes, canSave, pa
       icon: Code2,
       done: test.code.filter((q) => has(`test:code:${q.id}`)).length,
       total: test.code.length,
-      note: 'Like a coding round: think first, say the complexity, then write it. Run checks your code against the test cases; Submit saves the task once every case passes. The ⤢ button opens a full-screen editor.',
+      note: 'Like a coding round: think first, say the complexity, then write it. Run checks your code against the test cases; Submit saves the task once every case passes. A failed Submit or a look at the solution adds the task to your flashcards. The ⤢ button opens a full-screen editor.',
     },
     {
       id: 'explain',
@@ -79,7 +84,7 @@ export function LessonTestCard({ id, title, test, quizSize, minutes, canSave, pa
       icon: MessagesSquare,
       done: test.explain.filter((q) => has(`test:explain:${q.id}`)).length,
       total: test.explain.length,
-      note: 'Answer in your own words, as if the interviewer asked you. Then compare with the key points. Saying it out loud in English is great practice.',
+      note: 'Answer in your own words, as if the interviewer asked you. Then compare with the key points; questions where you missed a point go to your flashcards. Saying it out loud in English is great practice.',
     },
   ]
   const parts = allParts.filter((p) => (p.id === 'choice' ? test.choice.length > 0 : p.total > 0))
@@ -97,8 +102,9 @@ export function LessonTestCard({ id, title, test, quizSize, minutes, canSave, pa
     setActiveId(id)
   }
 
-  function renderPart(id: PartId) {
-    switch (id) {
+  // `part`, not `id`: `id` is the test id that every saved key starts with.
+  function renderPart(part: PartId) {
+    switch (part) {
       case 'choice':
         return (
           <ChoiceTest
@@ -123,7 +129,7 @@ export function LessonTestCard({ id, title, test, quizSize, minutes, canSave, pa
                       <MarkdownPreview content={q.hint} />
                     </Reveal>
                   )}
-                  <Reveal label="Solution">
+                  <Reveal label="Solution" onOpen={() => deck?.addTestItem('code', id, q.id)}>
                     <MarkdownPreview content={`\`\`\`python\n${q.solution}\n\`\`\``} />
                   </Reveal>
                 </div>
@@ -153,11 +159,12 @@ export function LessonTestCard({ id, title, test, quizSize, minutes, canSave, pa
                   <CodeCell
                     label="Your solution"
                     initialCode={q.starter}
-                    savedCode={savedCode.get(key)}
+                    savedCode={getSaved(key, `code:test:${q.id}`)}
                     tests={q.tests}
                     isPassed={has(itemId)}
                     onSave={canSave ? (code) => onSaveCode(key, code) : undefined}
                     onPassed={() => pass(itemId)}
+                    onSubmitFailed={() => deck?.addTestItem('code', id, q.id)}
                     title={q.title}
                     problem={
                       <>
@@ -182,13 +189,14 @@ export function LessonTestCard({ id, title, test, quizSize, minutes, canSave, pa
                 <ExplainItem
                   key={q.id}
                   question={q}
-                  savedAnswer={savedCode.get(key)}
+                  savedAnswer={getSaved(key, `explain:test:explain:${q.id}`)}
                   isPassed={has(itemId)}
                   onSave={(text) => {
                     if (canSave && text.trim()) onSaveCode(key, text)
                   }}
-                  onPass={(text) => {
+                  onPass={(text, isComplete) => {
                     if (canSave && text.trim()) onSaveCode(key, text)
+                    if (!isComplete) deck?.addTestItem('explain', id, q.id)
                     pass(itemId)
                   }}
                 />

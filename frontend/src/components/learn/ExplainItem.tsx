@@ -15,7 +15,8 @@ interface ExplainItemProps {
   savedAnswer?: string
   isPassed: boolean
   onSave: (text: string) => void
-  onPass: (text: string) => void
+  // `isComplete`: the learner ticked every key point.
+  onPass: (text: string, isComplete: boolean) => void
 }
 
 // Interview-style question: write an answer first, then compare it with the key points and a model answer.
@@ -109,7 +110,7 @@ export function ExplainItem({ question, savedAnswer, isPassed, onSave, onPass }:
               ) : (
                 <button
                   type="button"
-                  onClick={() => onPass(text)}
+                  onClick={() => onPass(text, coveredCount === question.points.length)}
                   className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 transition-colors"
                 >
                   {coveredCount === question.points.length ? 'I covered everything — done' : 'I learned the missing points — done'}

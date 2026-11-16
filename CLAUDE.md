@@ -70,6 +70,12 @@ Mỗi bài mới phải có đủ:
   bài test của ngày), `/roadmap/plan/course|schedule`, `/roadmap/library[/<topic>]`, `/roadmap/notes`,
   `/roadmap/learn/<id>[#<mục>]`. `/roadmap` (start_url của PWA) mở lại màn hình lần trước. Đổi ngày/chế độ/topic
   dùng `replace`, đổi tab thì thêm vào lịch sử. Màn hình mới phải có path, không giữ trạng thái chỉ trong state.
+- Flashcard (`lib/reviewDeck.ts`, lưu trong roadmap_code key `review-deck`, ôn 1/3/7/30 ngày): câu trắc nghiệm sai,
+  từ đã tra, bài code của test bị Submit sai hoặc đã mở Solution, câu phỏng vấn chưa đủ ý. Ref của code/explain là
+  `<testId>/<itemId>` (testId = id bài hoặc `mock-<ngày>`). Loại thẻ mới phải thêm vào `cardSchema`; `parseDeck` bỏ
+  qua từng thẻ không đọc được chứ không xóa cả bộ.
+- Key lưu đáp án của test luôn bắt đầu bằng id của test (`<id>:test:…`). Đừng đặt tên biến cục bộ là `id`
+  trong `LessonTestCard` (12–16/11/2026 lỗi này làm đáp án lưu sai key; có đọc bù key cũ).
 - Bài có id `sd-` hiện ở chủ đề System design của Library (`lessonTopic` trong `data/library.ts`).
 
 ### Dữ liệu và đồng bộ giữa các máy

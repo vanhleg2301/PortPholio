@@ -4,6 +4,9 @@ import { ArrowRight, Check, Eye, Layers, PartyPopper, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { InlineText } from '@/components/learn/InlineText'
 import { QuestionCard } from '@/components/learn/QuestionCard'
+import { CodeCell } from '@/components/learn/CodeCell'
+import { Reveal } from '@/components/learn/Reveal'
+import { MarkdownPreview } from '@/components/roadmap/MarkdownPreview'
 import { useReviewDeck } from '@/components/learn/ReviewDeckContext'
 import { EASE_OUT } from '@/lib/motion'
 import { GLOSSARY } from '@/data/lessons/glossary'
@@ -23,7 +26,8 @@ interface FlashcardSessionProps {
   today: string
 }
 
-// Daily spaced review of wrong answers and looked-up words (1 → 3 → 7 → 30 days).
+// Daily spaced review of wrong answers, looked-up words, hard coding tasks and missed interview
+// points (1 → 3 → 7 → 30 days).
 export function FlashcardSession({ today }: FlashcardSessionProps) {
   const deck = useReviewDeck()
   // The session works on a snapshot, so grading a card does not reshuffle the queue.
@@ -33,6 +37,8 @@ export function FlashcardSession({ today }: FlashcardSessionProps) {
   const [isRevealed, setIsRevealed] = useState(false)
   const [order, setOrder] = useState<number[]>([])
   const [correctCount, setCorrectCount] = useState(0)
+  // A coding card was solved (Submit passed) in this session.
+  const [isSolved, setIsSolved] = useState(false)
 
   if (!deck?.isReady) return null
   const cards = Object.values(deck.deck)
@@ -51,6 +57,7 @@ export function FlashcardSession({ today }: FlashcardSessionProps) {
   function prepare(card: ResolvedCard | undefined) {
     setChosen(null)
     setIsRevealed(false)
+    setIsSolved(false)
     setOrder(card?.kind === 'choice' ? shuffledOrder(card.question.options.length) : [])
   }
 
@@ -92,7 +99,7 @@ export function FlashcardSession({ today }: FlashcardSessionProps) {
         )}
         <p className="mt-2 text-sm text-muted-foreground">
           {due.length > 0
-            ? `${due.length} card${due.length === 1 ? '' : 's'} due today. Wrong test answers and words you tap come back after 1, 3, 7 and 30 days.`
+            ? `${due.length} card${due.length === 1 ? '' : 's'} due today. Wrong answers, words you tap, hard coding tasks and missed interview points come back after 1, 3, 7 and 30 days.`
             : 'Nothing due today. Cards come back after 1, 3, 7 and 30 days.'}
         </p>
         {due.length > 0 && (
@@ -110,7 +117,8 @@ export function FlashcardSession({ today }: FlashcardSessionProps) {
 
   const card = queue[index]
   const isAnswered = card.kind === 'choice' ? chosen !== null : false
-  const source = card.kind === 'choice' ? LESSON_BY_ID.get(card.lessonId)?.title : 'Word'
+  const source =
+    card.kind === 'choice' ? LESSON_BY_ID.get(card.lessonId)?.title : card.kind === 'term' ? 'Word' : `${card.source} · ${card.kind === 'code' ? 'coding' : 'interview'}`
 
   return (
     <div className="rounded-2xl border border-sky-500/30 bg-sky-500/[0.04] p-4">
@@ -144,6 +152,58 @@ export function FlashcardSession({ today }: FlashcardSessionProps) {
                 grade(card, optionIndex === card.question.answer)
               }}
             />
+          ) : card.kind === 'code' ? (
+            <div className="min-w-0">
+              <p className="mb-1 font-semibold">{card.question.title}</p>
+              <MarkdownPreview content={card.question.prompt} withGlossary />
+              <div className="mt-3">
+                <CodeCell
+                  label="Solve it again"
+                  initialCode={card.question.starter}
+                  tests={card.question.tests}
+                  isPassed={isSolved}
+                  onPassed={() => {
+                    if (isSolved) return
+                    setIsSolved(true)
+                    grade(card, true)
+                  }}
+                  title={card.question.title}
+                  problem={<MarkdownPreview content={card.question.prompt} withGlossary />}
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {card.question.hint && (
+                  <Reveal label="Hint">
+                    <MarkdownPreview content={card.question.hint} />
+                  </Reveal>
+                )}
+                <Reveal label="Solution">
+                  <MarkdownPreview content={`\`\`\`python\n${card.question.solution}\n\`\`\``} />
+                </Reveal>
+              </div>
+            </div>
+          ) : card.kind === 'explain' ? (
+            <div className="min-w-0">
+              <MarkdownPreview content={card.question.question} withGlossary />
+              {isRevealed ? (
+                <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mt-3 text-sm">
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Key points</p>
+                  <ul className="list-disc space-y-1 pl-5">
+                    {card.question.points.map((point) => (
+                      <li key={point} className="leading-relaxed">
+                        <InlineText text={point} />
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-3 rounded-xl bg-violet-500/[0.06] px-3 py-2.5">
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-violet-700 dark:text-violet-300">A strong answer</p>
+                    <MarkdownPreview content={card.question.answer} withGlossary />
+                  </div>
+                </motion.div>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">Answer out loud in English, as in an interview, then check the key points.</p>
+              )}
+            </div>
           ) : (
             <div className="py-2 text-center">
               <p className="font-display text-2xl font-bold">{card.term}</p>
@@ -166,6 +226,60 @@ export function FlashcardSession({ today }: FlashcardSessionProps) {
       </AnimatePresence>
 
       <div className="mt-3 flex flex-wrap justify-end gap-2">
+        {card.kind === 'explain' && !isRevealed && (
+          <button
+            type="button"
+            onClick={() => setIsRevealed(true)}
+            className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors"
+          >
+            <Eye className="h-4 w-4" /> Show key points
+          </button>
+        )}
+        {card.kind === 'explain' && isRevealed && (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                grade(card, false)
+                advance()
+              }}
+              className="inline-flex items-center gap-1.5 rounded-full border border-red-500/40 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-500/10 dark:text-red-300 transition-colors"
+            >
+              <X className="h-4 w-4" /> Missed some
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                grade(card, true)
+                advance()
+              }}
+              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 transition-colors"
+            >
+              <Check className="h-4 w-4" /> I covered them
+            </button>
+          </>
+        )}
+        {card.kind === 'code' && !isSolved && (
+          <button
+            type="button"
+            onClick={() => {
+              grade(card, false)
+              advance()
+            }}
+            className="inline-flex items-center gap-1.5 rounded-full border border-red-500/40 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-500/10 dark:text-red-300 transition-colors"
+          >
+            <X className="h-4 w-4" /> Not yet — skip
+          </button>
+        )}
+        {card.kind === 'code' && isSolved && (
+          <button
+            type="button"
+            onClick={advance}
+            className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background hover:bg-foreground/85 transition-colors"
+          >
+            {index === queue.length - 1 ? 'Finish' : 'Next'} <ArrowRight className="h-4 w-4" />
+          </button>
+        )}
         {card.kind === 'term' && !isRevealed && (
           <button
             type="button"

@@ -7,6 +7,8 @@ interface ReviewDeckValue {
   isReady: boolean
   addWrongAnswer: (question: ChoiceQuestion) => void
   addTerm: (key: string) => void
+  // A coding task or interview question from a test (`testId` = lesson id or mock-<date>).
+  addTestItem: (kind: 'code' | 'explain', testId: string, itemId: string) => void
   grade: (cardId: string, isCorrect: boolean) => void
 }
 
@@ -54,6 +56,7 @@ export function ReviewDeckProvider({ today, isReady, saved, onSave, children }: 
     },
     // Looking a word up again means it is not remembered yet, so it restarts the schedule.
     addTerm: (key) => commit((prev) => addCard(prev, 'term', key, today)),
+    addTestItem: (kind, testId, itemId) => commit((prev) => addCard(prev, kind, `${testId}/${itemId}`, today)),
     grade: (cardId, isCorrect) => commit((prev) => gradeCard(prev, cardId, isCorrect, today)),
   }
 

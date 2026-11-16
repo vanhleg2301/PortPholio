@@ -5,15 +5,19 @@ import { EASE_OUT } from '@/lib/motion'
 interface RevealProps {
   label: string
   children: ReactNode
+  onOpen?: () => void
 }
 
-export function Reveal({ label, children }: RevealProps) {
+export function Reveal({ label, children, onOpen }: RevealProps) {
   const [isOpen, setIsOpen] = useState(false)
   return (
     <div>
       <button
         type="button"
-        onClick={() => setIsOpen((v) => !v)}
+        onClick={() => {
+          if (!isOpen) onOpen?.()
+          setIsOpen(!isOpen)
+        }}
         className="rounded-full bg-foreground/[0.06] px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-foreground/[0.12] hover:text-foreground transition-colors"
       >
         {isOpen ? `Hide ${label.toLowerCase()}` : label}

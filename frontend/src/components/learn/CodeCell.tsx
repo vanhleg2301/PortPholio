@@ -19,12 +19,14 @@ interface CodeCellProps {
   isPassed?: boolean
   onSave?: (code: string) => void
   onPassed?: () => void
+  // Submit ran and at least one test case failed.
+  onSubmitFailed?: () => void
   // Shown on the left of the full-screen workspace (title, prompt, hints).
   title?: string
   problem?: ReactNode
 }
 
-export function CodeCell({ initialCode, savedCode, tests, label = 'Python', isPassed = false, onSave, onPassed, title, problem }: CodeCellProps) {
+export function CodeCell({ initialCode, savedCode, tests, label = 'Python', isPassed = false, onSave, onPassed, onSubmitFailed, title, problem }: CodeCellProps) {
   const [code, setCode] = useState(savedCode ?? initialCode)
   const [result, setResult] = useState<RunResult | null>(null)
   const [mode, setMode] = useState<RunMode>('run')
@@ -65,7 +67,10 @@ export function CodeCell({ initialCode, savedCode, tests, label = 'Python', isPa
     setResult(res)
     setRunCount((n) => n + 1)
     setIsRunning(false)
-    if (nextMode === 'submit' && res.passed) onPassed?.()
+    if (nextMode === 'submit') {
+      if (res.passed) onPassed?.()
+      else onSubmitFailed?.()
+    }
     return res
   }
 
