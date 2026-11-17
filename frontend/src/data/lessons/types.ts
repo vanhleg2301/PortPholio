@@ -45,6 +45,16 @@ export type VisualId =
   | 'sliding-window'
   | 'udp-vs-tcp'
 
+// "Learn first": a short explanation of the idea a question needs (without giving the answer
+// away), plus the part of a lesson that teaches it. Filled in from tests/primers.ts.
+export interface Primer {
+  read: string
+  // An item of the lesson outline: a `## heading`, an exercise title or a visual title.
+  section?: string
+  // The lesson that holds `section`; defaults to the test's own lesson.
+  lessonId?: string
+}
+
 export interface ChoiceQuestion {
   id: string
   // Questions with the same concept test the same idea; a test asks one of them per attempt.
@@ -59,6 +69,7 @@ export interface ChoiceQuestion {
   explain: string
   // The page the fact comes from (filled in from tests/sources.ts).
   ref?: TaskLink
+  primer?: Primer
 }
 
 export interface CodeQuestion {
@@ -71,6 +82,7 @@ export interface CodeQuestion {
   solution: string
   // The original problem, when there is one (filled in from tests/sources.ts).
   ref?: TaskLink
+  primer?: Primer
 }
 
 // Interview-style open question: the learner answers in their own words, then compares
@@ -80,6 +92,7 @@ export interface ExplainQuestion {
   question: string
   points: string[]
   answer: string
+  primer?: Primer
 }
 
 export interface LessonTest {

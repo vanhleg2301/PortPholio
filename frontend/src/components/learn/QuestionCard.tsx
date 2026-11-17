@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowUpRight, CircleCheck, CircleX, FlaskConical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { InlineText } from '@/components/learn/InlineText'
+import { LearnFirst } from '@/components/learn/LearnFirst'
 import { MarkdownPreview } from '@/components/roadmap/MarkdownPreview'
 import { EASE_OUT } from '@/lib/motion'
 import { PRINT } from '@/data/lessons/tests/helpers'
@@ -14,10 +15,11 @@ interface QuestionCardProps {
   // Chosen option index; once set, the answer is locked and the explanation shows.
   chosen: number | null
   onChoose: (optionIndex: number) => void
+  hasLessonLink?: boolean
 }
 
 // One multiple-choice question with instant feedback, shared by tests and flashcards.
-export function QuestionCard({ question, order, chosen, onChoose }: QuestionCardProps) {
+export function QuestionCard({ question, order, chosen, onChoose, hasLessonLink }: QuestionCardProps) {
   const isAnswered = chosen !== null
   const isCorrect = chosen === question.answer
 
@@ -27,6 +29,11 @@ export function QuestionCard({ question, order, chosen, onChoose }: QuestionCard
       {question.code && (
         <div className="mt-2">
           <MarkdownPreview content={`\`\`\`python\n${question.code}\n\`\`\``} />
+        </div>
+      )}
+      {question.primer && (
+        <div className="mt-3">
+          <LearnFirst primer={question.primer} hasLessonLink={hasLessonLink} />
         </div>
       )}
       <div className="mt-4 grid gap-2">

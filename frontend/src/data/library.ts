@@ -3,7 +3,7 @@ import { GLOSSARY, type GlossaryArea } from '@/data/lessons/glossary'
 import { CATEGORY_REFERENCES, CS_REFERENCES, PYTHON_REFERENCES, SD_REFERENCES } from '@/data/roadmap/references'
 import { AI_REFERENCES, CAREER_REFERENCES } from '@/data/roadmap/practicalReferences'
 import { PYTHON_REFERENCE, type ReferenceItem } from '@/data/reference/python'
-import { normalize } from '@/lib/normalize'
+import { getQueryTokens, normalize } from '@/lib/normalize'
 import type { Lesson } from '@/data/lessons/types'
 import type { TaskReference } from '@/data/roadmap/types'
 
@@ -150,31 +150,44 @@ export interface LibraryHit {
   isExact: boolean
 }
 
-// Every word of the query must appear; title matches come first.
-// Every query word must start a word in the entry ("rag" finds RAG, not "storage"); whole-word
-// and title matches rank first.
+// Every query word must start a word in the entry ("rag" finds RAG, not "storage"); a one-letter
+// word must be a whole word ("o" in "Big O"). Question words are ignored ("what is", "how does").
+// Whole-word, title and whole-phrase matches rank first. When no entry has every word, entries
+// with the most of them are shown (as partial matches).
 export function searchLibrary(query: string, topic: LibraryTopic | 'all'): LibraryHit[] {
   const pool = topic === 'all' ? LIBRARY : LIBRARY.filter((e) => e.topic === topic)
-  const tokens = normalize(query).split(' ').filter(Boolean)
+  const tokens = getQueryTokens(query)
   if (tokens.length === 0) return pool.map((entry) => ({ entry, snippet: null, isExact: true }))
   const escape = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const starts = tokens.map((t) => new RegExp(`(^|[^a-z0-9])${escape(t)}`))
+  const starts = tokens.map((t) => new RegExp(`(^|[^a-z0-9])${escape(t)}${t.length === 1 ? '($|[^a-z0-9])' : ''}`))
   const whole = tokens.map((t) => new RegExp(`(^|[^a-z0-9])${escape(t)}(s|es)?($|[^a-z0-9])`))
-  const hits: Array<LibraryHit & { score: number }> = []
+  const phrase = tokens.length > 1 ? new RegExp(`(^|[^a-z0-9])${escape(tokens.join(' '))}($|[^a-z0-9])`) : null
+  const scored: Array<LibraryHit & { score: number; matched: number; isTitleInQuery: boolean }> = []
   for (const entry of pool) {
     const text = NORMALIZED.get(entry.id)
-    if (!text || !starts.every((re) => re.test(text.title) || re.test(text.body))) continue
+    if (!text) continue
+    const found = starts.map((re) => re.test(text.title) || re.test(text.body))
+    const matched = found.filter(Boolean).length
+    if (matched === 0) continue
+    // The whole title is in the question: "what is big o notation" → the word "big o".
+    const isTitleInQuery = tokens.length > 1 && text.title.length > 1 && ` ${tokens.join(' ')} `.includes(` ${text.title} `)
     const score =
       whole.filter((re) => re.test(text.title)).length * 20 +
       starts.filter((re) => re.test(text.title)).length * 10 +
       whole.filter((re) => re.test(text.body)).length * 3 +
+      (phrase?.test(text.title) ? 30 : 0) +
+      (phrase?.test(text.body) ? 8 : 0) +
+      (isTitleInQuery ? 25 : 0) +
       (entry.kind === 'lesson' ? 2 : entry.kind === 'theory' || entry.kind === 'ref' ? 1 : 0)
     // The search text starts with the title (and, for theory cards, the summary) — both already shown.
     const shown = entry.title.length + (entry.kind === 'theory' || entry.kind === 'ref' ? entry.summary.length + 1 : 0)
     // A title that starts a word with the query counts too: "dead" keeps "Deadlock" in the main list.
-    const isExact = tokens.every((_, i) => whole[i].test(text.title) || whole[i].test(text.body) || starts[i].test(text.title))
-    hits.push({ entry, snippet: getSnippet(entry.search.slice(shown), tokens), isExact, score })
+    const isExact = matched === tokens.length && tokens.every((_, i) => whole[i].test(text.title) || whole[i].test(text.body) || starts[i].test(text.title))
+    scored.push({ entry, snippet: getSnippet(entry.search.slice(shown), tokens), isExact, score, matched, isTitleInQuery })
   }
+  const best = Math.max(0, ...scored.map((h) => h.matched))
+  // Every word somewhere, or else the entries that have the most of them.
+  const hits = scored.filter((h) => h.isTitleInQuery || (h.matched === best && (best === tokens.length || best >= 2 || tokens.length <= 2)))
   return hits.sort((a, b) => b.score - a.score)
 }
 

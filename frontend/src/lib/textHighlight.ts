@@ -54,13 +54,19 @@ export function findRanges(root: HTMLElement, query: string, isWordStart = false
   return ranges
 }
 
-// Ranges for the whole query; if the words never appear together, for its longest word.
+// Ranges for the whole query; if the words never appear together, for the longest run of them
+// that does ("big o" from "big o notation"), and last for its longest word.
 export function findBestRanges(root: HTMLElement, query: string): { ranges: Range[]; used: string } {
-  const phrase = query.trim()
-  const whole = findRanges(root, phrase, true)
-  if (whole.length > 0) return { ranges: whole, used: phrase }
-  const longest = phrase.split(/\s+/).sort((a, b) => b.length - a.length)[0] ?? ''
-  return { ranges: longest && longest !== phrase ? findRanges(root, longest, true) : [], used: longest }
+  const words = query.trim().split(/\s+/).filter(Boolean)
+  for (let size = words.length; size >= 2; size--) {
+    for (let i = 0; i + size <= words.length; i++) {
+      const phrase = words.slice(i, i + size).join(' ')
+      const ranges = findRanges(root, phrase, true)
+      if (ranges.length > 0) return { ranges, used: phrase }
+    }
+  }
+  const longest = [...words].sort((a, b) => b.length - a.length)[0] ?? ''
+  return { ranges: longest ? findRanges(root, longest, true) : [], used: longest }
 }
 
 // True when `range` starts inside `element` or anywhere after it in the page.

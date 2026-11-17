@@ -4,6 +4,7 @@ import { ArrowRight, Check, Eye, Layers, PartyPopper, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { InlineText } from '@/components/learn/InlineText'
 import { QuestionCard } from '@/components/learn/QuestionCard'
+import { LearnFirst } from '@/components/learn/LearnFirst'
 import { CodeCell } from '@/components/learn/CodeCell'
 import { Reveal } from '@/components/learn/Reveal'
 import { MarkdownPreview } from '@/components/roadmap/MarkdownPreview'
@@ -151,11 +152,17 @@ export function FlashcardSession({ today }: FlashcardSessionProps) {
                 setChosen(optionIndex)
                 grade(card, optionIndex === card.question.answer)
               }}
+              hasLessonLink={false}
             />
           ) : card.kind === 'code' ? (
             <div className="min-w-0">
               <p className="mb-1 font-semibold">{card.question.title}</p>
               <MarkdownPreview content={card.question.prompt} withGlossary />
+              {card.question.primer && (
+                <div className="mt-3">
+                  <LearnFirst primer={card.question.primer} hasLessonLink={false} />
+                </div>
+              )}
               <div className="mt-3">
                 <CodeCell
                   label="Solve it again"
@@ -185,6 +192,11 @@ export function FlashcardSession({ today }: FlashcardSessionProps) {
           ) : card.kind === 'explain' ? (
             <div className="min-w-0">
               <MarkdownPreview content={card.question.question} withGlossary />
+              {card.question.primer && (
+                <div className="mt-3">
+                  <LearnFirst primer={card.question.primer} hasLessonLink={false} />
+                </div>
+              )}
               {isRevealed ? (
                 <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mt-3 text-sm">
                   <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Key points</p>

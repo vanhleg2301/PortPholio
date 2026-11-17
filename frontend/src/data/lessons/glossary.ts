@@ -271,6 +271,22 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     example: '"egg" and "add" have the same pattern (x, y, y). "foo" and "bar" do not.',
   },
 
+  'list comprehension': {
+    area: 'Python',
+    en: 'a short way to build a new list from another one in one line: `[expression for item in items if condition]`',
+    example: '`[x * x for x in range(5) if x % 2 == 0]` gives `[0, 4, 16]`.',
+  },
+  generator: {
+    area: 'Python',
+    en: 'a function that uses `yield` to give values one at a time, only when they are asked for, instead of building the whole list in memory',
+    example: 'Reading a 10 GB log file line by line with a generator needs only a little memory; reading it all into a list would not fit.',
+  },
+  decorator: {
+    area: 'Python',
+    en: 'a function that wraps another function to add behaviour before or after it, written as `@name` above a `def`',
+    example: '`@functools.cache` above a slow function remembers its answers, so a second call with the same arguments returns at once.',
+  },
+
   // DSA
   'binary search': {
     area: 'DSA',
@@ -416,6 +432,37 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     area: 'DSA',
     en: 'a deque kept in increasing or decreasing order, so its front is always the current min or max',
     example: 'A line for “the tallest person in view”: when a taller person arrives, everyone shorter in front of them leaves.',
+  },
+
+  'time complexity': {
+    area: 'DSA',
+    en: 'how the number of steps grows when the input gets bigger, written with Big O',
+    example: 'Checking every item of a list once is O(n); checking every pair is O(n²) — for 1,000 items that is about 1,000,000 pairs.',
+  },
+  'space complexity': {
+    area: 'DSA',
+    en: 'how much extra memory an algorithm needs as the input grows, written with Big O',
+    example: 'Finding duplicates with a set needs O(n) extra memory; sorting in place and comparing neighbours needs O(1).',
+  },
+  queue: {
+    area: 'DSA',
+    en: 'a line where the first item in is the first item out (FIFO)',
+    example: 'Print jobs wait in a queue: the first document sent is printed first. In Python use `collections.deque` with `append` and `popleft`.',
+  },
+  tree: {
+    area: 'DSA',
+    en: 'nodes joined like a family tree: one root at the top, each node has children, and there are no loops',
+    example: 'The folders on your computer form a tree: one top folder, and each folder holds files and more folders.',
+  },
+  graph: {
+    area: 'DSA',
+    en: 'a set of nodes (points) joined by edges (links); unlike a tree, it can have loops',
+    example: 'A map app sees cities as nodes and roads as edges, then finds the shortest path between two cities.',
+  },
+  'dynamic programming': {
+    area: 'DSA',
+    en: 'solving a big problem by solving its small, repeated sub-problems once, saving each answer and reusing it',
+    example: 'To count the ways to climb 10 stairs taking 1 or 2 steps: ways(10) = ways(9) + ways(8). Save every ways(i) instead of computing it again and again.',
   },
 
   // Networking
@@ -658,6 +705,22 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     area: 'Networking',
     en: 'Server Name Indication: the site name the browser sends at the start of TLS, before encryption starts',
     example: 'Your Wi-Fi provider cannot read the page, but it can see from the SNI that you opened facebook.com.',
+  },
+
+  tcp: {
+    area: 'Networking',
+    en: 'Transmission Control Protocol: delivers bytes reliably and in order over a connection, and sends again whatever is lost',
+    example: 'Web pages, APIs and database connections use TCP, so a missing piece is sent again instead of leaving a hole in your data.',
+  },
+  udp: {
+    area: 'Networking',
+    en: 'User Datagram Protocol: sends small packets with no connection, no resending and no order — fast but not reliable',
+    example: 'Video calls and online games use UDP: a late video frame is useless, so it is better to skip it than to wait for it.',
+  },
+  api: {
+    area: 'Networking',
+    en: 'Application Programming Interface: the requests one program can send to another, and the answers it gets back',
+    example: 'A weather app sends `GET /forecast?city=Hanoi` to a weather API and gets back JSON with tomorrow’s temperature.',
   },
 
   // Operating systems

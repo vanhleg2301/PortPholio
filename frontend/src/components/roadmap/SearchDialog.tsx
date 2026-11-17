@@ -1,3 +1,4 @@
+import { getSearchPhrase } from '@/lib/normalize'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -74,7 +75,7 @@ export function SearchDialog({ isOpen, notes, onClose, onSelect }: SearchDialogP
 
   function choose(entry: SearchEntry) {
     if (query.trim()) saveRecent(query.trim())
-    onSelect(entry, query.trim())
+    onSelect(entry, getSearchPhrase(query))
     onClose()
   }
 

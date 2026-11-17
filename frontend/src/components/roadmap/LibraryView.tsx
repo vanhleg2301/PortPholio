@@ -2,11 +2,13 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode 
 import { motion } from 'framer-motion'
 import { BookMarked, ChevronRight, Clock, GraduationCap, Library, Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getQueryTokens, normalize } from '@/lib/normalize'
 import { InlineText } from '@/components/learn/InlineText'
 import { findRanges, flashFirstMatch, getHighlightApi } from '@/lib/textHighlight'
 import { TheoryCard } from '@/components/roadmap/TheoryCard'
 import { ReferenceCard } from '@/components/roadmap/ReferenceCard'
 import { listContainer, listItem } from '@/lib/motion'
+import { getTermPlace } from '@/data/lessons'
 import { LIBRARY, LIBRARY_TOPICS, searchLibrary, type LibraryHit, type LibraryTopic } from '@/data/library'
 
 const COUNTS = {
@@ -27,10 +29,22 @@ const slug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-')
 
 const TOPIC_LABEL = Object.fromEntries(LIBRARY_TOPICS.map((t) => [t.id, t.label])) as Record<LibraryTopic, string>
 
-// Wraps every query word found in `text` in a <mark>.
+const escapeRe = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+// Runs of two or more query words, longest first: "big o notation" → "big o notation", "big o", "o notation".
+function getPhrases(tokens: string[]): string[] {
+  const out: string[] = []
+  for (let size = tokens.length; size >= 2; size--)
+    for (let i = 0; i + size <= tokens.length; i++) out.push(tokens.slice(i, i + size).join(' '))
+  return out
+}
+
+// Wraps the query (as phrases, then each word) in a <mark> where it starts a word; a one-letter
+// word only as a whole word, so "big o" does not mark every "o".
 function Highlight({ text, tokens }: { text: string; tokens: string[] }) {
   if (tokens.length === 0) return <>{text}</>
-  const pattern = new RegExp(`(${tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi')
+  const parts = [...getPhrases(tokens), ...tokens].map((t) => escapeRe(t) + (t.length === 1 ? '(?![a-z0-9])' : ''))
+  const pattern = new RegExp(`(?<![a-z0-9])(${parts.join('|')})`, 'gi')
   return (
     <>
       {text.split(pattern).map((part, i) =>
@@ -78,7 +92,11 @@ export function LibraryView({ onOpenLesson, request, topic, onChangeTopic: setTo
   }
   const deferredQuery = useDeferredValue(query)
   const isSearching = deferredQuery.trim().length > 0
-  const tokens = useMemo(() => deferredQuery.toLowerCase().split(/\s+/).filter(Boolean), [deferredQuery])
+  const tokens = useMemo(() => getQueryTokens(deferredQuery), [deferredQuery])
+  // What to look for inside a lesson or card: the query without its question words.
+  const searchPhrase = tokens.join(' ')
+  // Question words were dropped ("what is …"), so the first result is shown as the answer.
+  const isQuestion = normalize(deferredQuery).split(' ').filter(Boolean).length > tokens.length
 
   // When some results contain the exact word, show only those; results that only match the
   // start of a longer word ("star" in "start") wait behind a "partial matches" button.
@@ -114,7 +132,7 @@ export function LibraryView({ onOpenLesson, request, topic, onChangeTopic: setTo
     const api = getHighlightApi()
     const root = resultsRef.current
     if (!api || !root) return
-    const words = tokens.filter((t) => t.length >= 2)
+    const words = [...getPhrases(tokens), ...tokens.filter((t) => t.length >= 2)]
     if (!isSearching || words.length === 0) {
       api.registry.delete(LIBRARY_HIGHLIGHT)
       return
@@ -149,7 +167,7 @@ export function LibraryView({ onOpenLesson, request, topic, onChangeTopic: setTo
       return (
         <button
           type="button"
-          onClick={() => onOpenLesson(entry.lesson.id, isSearching ? deferredQuery : undefined)}
+          onClick={() => onOpenLesson(entry.lesson.id, isSearching ? searchPhrase : undefined)}
           className="group flex w-full items-start gap-3 rounded-2xl border border-violet-500/25 bg-violet-500/[0.04] px-4 py-3.5 text-left hover:border-violet-500/50 hover:bg-violet-500/[0.08] transition-colors"
         >
           <GraduationCap className="mt-0.5 h-4 w-4 shrink-0 text-violet-600 dark:text-violet-400" />
@@ -177,7 +195,7 @@ export function LibraryView({ onOpenLesson, request, topic, onChangeTopic: setTo
           item={entry.item}
           isOpenByDefault={entry.id === openRequest?.entryId}
           onOpenChange={(isOpen) => {
-            if (isOpen && isSearching) jumpInsideCard(entry.id, deferredQuery)
+            if (isOpen && isSearching) jumpInsideCard(entry.id, searchPhrase)
           }}
           headerExtra={
             (topicChip || snippetLine) && (
@@ -197,7 +215,7 @@ export function LibraryView({ onOpenLesson, request, topic, onChangeTopic: setTo
           reference={entry.reference}
           isOpenByDefault={entry.id === openRequest?.entryId}
           onOpenChange={(isOpen) => {
-            if (isOpen && isSearching) jumpInsideCard(entry.id, deferredQuery)
+            if (isOpen && isSearching) jumpInsideCard(entry.id, searchPhrase)
           }}
           headerExtra={
             (topicChip || snippetLine) && (
@@ -210,6 +228,7 @@ export function LibraryView({ onOpenLesson, request, topic, onChangeTopic: setTo
         />
       )
     }
+    const place = getTermPlace(entry.title)
     return (
       <div className="rounded-2xl border border-border px-4 py-3">
         <p className="flex flex-wrap items-center gap-2">
@@ -226,6 +245,16 @@ export function LibraryView({ onOpenLesson, request, topic, onChangeTopic: setTo
           <span className="font-semibold">For example: </span>
           <InlineText text={entry.example} />
         </p>
+        {place && (
+          <button
+            type="button"
+            onClick={() => onOpenLesson(place.lessonId, entry.title)}
+            className="mt-2 inline-flex max-w-full items-start gap-1.5 text-left text-xs font-medium text-sky-700 underline decoration-sky-500/30 underline-offset-2 hover:decoration-sky-500 dark:text-sky-300 transition-colors"
+          >
+            <GraduationCap className="mt-px h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0">Learn it in the lesson: {place.lessonTitle}</span>
+          </button>
+        )}
       </div>
     )
   }
@@ -396,8 +425,13 @@ export function LibraryView({ onOpenLesson, request, topic, onChangeTopic: setTo
                 {hits.length} result{hits.length === 1 ? '' : 's'}
               </p>
               <div className="grid grid-cols-1 gap-2">
-                {hits.map((h) => (
-                  <div key={h.entry.id} data-entry-id={h.entry.id} className="min-w-0">{renderEntry(h, topic === 'all')}</div>
+                {hits.map((h, i) => (
+                  <div key={h.entry.id} data-entry-id={h.entry.id} className="min-w-0">
+                    {i === 0 && isQuestion && h.entry.kind !== 'lesson' && (
+                      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Best answer</p>
+                    )}
+                    {renderEntry(h, topic === 'all')}
+                  </div>
                 ))}
               </div>
               {partialHits.length > 0 && (

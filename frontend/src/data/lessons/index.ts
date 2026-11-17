@@ -8,9 +8,10 @@ import { DSA_TESTS } from './tests/dsa'
 import { PYTHON_TESTS } from './tests/python'
 import { PYTHON_SYNTAX_TESTS, PYTHON_SYNTAX_VARIANTS } from './tests/pythonSyntax'
 import { PYTHON_FOUNDATION_TESTS, PYTHON_FOUNDATION_VARIANTS } from './tests/pythonFoundations'
+import { TEST_PRIMERS } from './tests/primers'
 import { TEST_SOURCES } from './tests/sources'
 import { CHOICE_VARIANTS } from './tests/variants'
-import type { ChoiceQuestion, Lesson, LessonTest, VisualId } from './types'
+import type { ChoiceQuestion, Lesson, LessonTest, Primer, VisualId } from './types'
 
 // Week 0 order: if / else, how Python runs, for, while, Python vs other languages, then the rest.
 const [SYNTAX_IF, SYNTAX_FOR, SYNTAX_WHILE, ...SYNTAX_REST] = PYTHON_SYNTAX_LESSONS
@@ -29,18 +30,26 @@ export const LESSONS: Lesson[] = [
 export const LESSON_BY_ID = new Map(LESSONS.map((l) => [l.id, l]))
 const VARIANTS: Record<string, ChoiceQuestion[]> = { ...CHOICE_VARIANTS, ...PYTHON_SYNTAX_VARIANTS, ...PYTHON_FOUNDATION_VARIANTS }
 
+// The "Learn first" primer of a test item, pointing at `lessonId` unless it names its own lesson.
+export function getTestPrimer(testId: string, key: string, lessonId?: string): Primer | undefined {
+  const primer = TEST_PRIMERS[testId]?.[key]
+  return primer && { ...primer, lessonId: primer.lessonId ?? lessonId }
+}
+
 // Lesson id → its end-of-day test: original questions plus the alternative question for each
 // concept, with the source of every concept and problem attached.
 export const LESSON_TESTS: Record<string, LessonTest> = Object.fromEntries(
   Object.entries({ ...PYTHON_SYNTAX_TESTS, ...PYTHON_FOUNDATION_TESTS, ...PYTHON_TESTS, ...DSA_TESTS, ...CS_TESTS }).map(([id, test]) => {
     const { sources, refs } = TEST_SOURCES[id] ?? { sources: [], refs: {} }
+    const primer = (key: string) => getTestPrimer(id, key, id)
     return [
       id,
       {
         ...test,
         sources,
-        choice: [...test.choice, ...(VARIANTS[id] ?? [])].map((q) => ({ ...q, ref: refs[q.concept ?? q.id] })),
-        code: test.code.map((q) => ({ ...q, ref: refs[q.id] })),
+        choice: [...test.choice, ...(VARIANTS[id] ?? [])].map((q) => ({ ...q, ref: refs[q.concept ?? q.id], primer: primer(q.concept ?? q.id) })),
+        code: test.code.map((q) => ({ ...q, ref: refs[q.id], primer: primer(q.id) })),
+        explain: test.explain.map((q) => ({ ...q, primer: primer(q.id) })),
       },
     ]
   })
@@ -118,6 +127,32 @@ export function getLessonTerms(lesson: Lesson): string[] {
   return [...new Set(keys)]
 }
 
+export interface TermPlace {
+  lessonId: string
+  lessonTitle: string
+  anchor?: string
+}
+
+let termPlaces: Map<string, TermPlace> | null = null
+
+// The first lesson block that explains a glossary word, in course order; null for a word no lesson uses.
+export function getTermPlace(term: string): TermPlace | null {
+  if (!termPlaces) {
+    termPlaces = new Map()
+    for (const lesson of LESSONS) {
+      for (const key of getLessonTerms(lesson)) {
+        if (termPlaces.has(key)) continue
+        const index = lesson.blocks.findIndex((b) => {
+          const md = b.type === 'text' || b.type === 'callout' ? b.md : b.type === 'exercise' ? b.prompt : ''
+          return md.toLowerCase().includes(`[[${key}`)
+        })
+        termPlaces.set(key, { lessonId: lesson.id, lessonTitle: lesson.title, anchor: index >= 0 ? blockAnchor(index) : undefined })
+      }
+    }
+  }
+  return termPlaces.get(term) ?? null
+}
+
 // Titles of the animated diagrams (shown in the lesson menu and search without loading them).
 export const VISUAL_TITLES: Record<VisualId, string> = {
   aliasing: 'Names and objects',
@@ -184,4 +219,19 @@ export function getLessonOutline(lesson: Lesson): OutlineItem[] {
   items.push({ anchor: LESSON_ANCHORS.reading, label: 'Further reading', kind: 'reading' })
   items.push({ anchor: LESSON_ANCHORS.finish, label: LESSON_TESTS[lesson.id] ? 'Finish · test' : 'Finish', kind: 'finish' })
   return items
+}
+
+export interface PrimerLink {
+  lessonId: string
+  lessonTitle: string
+  anchor: string
+  label: string
+}
+
+// Where in its lesson a primer's idea is taught, or null when it names no section.
+export function getPrimerLink(primer: Primer): PrimerLink | null {
+  const lesson = primer.lessonId ? LESSON_BY_ID.get(primer.lessonId) : undefined
+  if (!lesson || !primer.section) return null
+  const item = getLessonOutline(lesson).find((i) => i.label === primer.section)
+  return item ? { lessonId: lesson.id, lessonTitle: lesson.title, anchor: item.anchor, label: item.label } : null
 }

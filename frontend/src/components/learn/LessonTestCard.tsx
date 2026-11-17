@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { ChoiceTest } from '@/components/learn/ChoiceTest'
 import { CodeCell } from '@/components/learn/CodeCell'
 import { ExplainItem } from '@/components/learn/ExplainItem'
+import { LearnFirst } from '@/components/learn/LearnFirst'
 import { Reveal } from '@/components/learn/Reveal'
 import { MarkdownPreview } from '@/components/roadmap/MarkdownPreview'
 import { EASE_OUT } from '@/lib/motion'
@@ -156,6 +157,11 @@ export function LessonTestCard({ id, title, test, quizSize, minutes, canSave, pa
                   <div className="mt-1 mb-3">
                     <MarkdownPreview content={q.prompt} withGlossary />
                   </div>
+                  {q.primer && (
+                    <div className="mb-3">
+                      <LearnFirst primer={q.primer} />
+                    </div>
+                  )}
                   <CodeCell
                     label="Your solution"
                     initialCode={q.starter}
@@ -169,6 +175,11 @@ export function LessonTestCard({ id, title, test, quizSize, minutes, canSave, pa
                     problem={
                       <>
                         <MarkdownPreview content={q.prompt} withGlossary />
+                        {q.primer && (
+                          <div className="mt-3">
+                            <LearnFirst primer={q.primer} hasLessonLink={false} />
+                          </div>
+                        )}
                         {help}
                       </>
                     }

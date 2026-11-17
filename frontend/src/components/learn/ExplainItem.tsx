@@ -4,6 +4,7 @@ import { Check, CircleCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AutoTextarea } from '@/components/roadmap/AutoTextarea'
 import { InlineText } from '@/components/learn/InlineText'
+import { LearnFirst } from '@/components/learn/LearnFirst'
 import { MarkdownPreview } from '@/components/roadmap/MarkdownPreview'
 import { EASE_OUT } from '@/lib/motion'
 import type { ExplainQuestion } from '@/data/lessons/types'
@@ -35,6 +36,11 @@ export function ExplainItem({ question, savedAnswer, isPassed, onSave, onPass }:
   return (
     <div className="rounded-xl border border-border/70 bg-background/40 p-3.5">
       <MarkdownPreview content={question.question} withGlossary />
+      {question.primer && (
+        <div className="mt-3">
+          <LearnFirst primer={question.primer} />
+        </div>
+      )}
       <AutoTextarea
         value={text}
         onChange={(e) => setText(e.target.value)}

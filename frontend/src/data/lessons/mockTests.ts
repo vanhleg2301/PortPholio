@@ -1,5 +1,6 @@
 import type { TaskLink } from '../roadmap/types'
 import type { CodeQuestion, ExplainQuestion } from './types'
+import { TEST_PRIMERS } from './tests/primers'
 
 // Interview-style tests on the test day of a week (Sunday) or at the end of a month.
 // Quiz questions are drawn from the lessons already taught that week (or month); the coding
@@ -19,7 +20,7 @@ export interface MockTest {
 
 const leet = (title: string, slug: string): TaskLink => ({ label: `LeetCode: ${title}`, url: `https://leetcode.com/problems/${slug}/` })
 
-export const MOCK_TESTS: Record<string, MockTest> = {
+const MOCK_TEST_DATA: Record<string, MockTest> = {
   '2026-11-22': {
     kind: 'week',
     title: 'Week 1 mock interview',
@@ -614,3 +615,11 @@ def zigzag(root):
     ],
   },
 }
+
+// A mock item's primer always names its lesson (the test spans several).
+const withPrimers = <T extends { id: string }>(day: string, items: T[]): T[] =>
+  items.map((q) => ({ ...q, primer: TEST_PRIMERS[`mock-${day}`]?.[q.id] }))
+
+export const MOCK_TESTS: Record<string, MockTest> = Object.fromEntries(
+  Object.entries(MOCK_TEST_DATA).map(([day, mock]) => [day, { ...mock, code: withPrimers(day, mock.code), explain: withPrimers(day, mock.explain) }])
+)

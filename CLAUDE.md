@@ -48,6 +48,11 @@ Mỗi bài mới phải có đủ:
   `tests/variants.ts` hoặc file variants của bài; làm lại thì đổi câu ở concept làm sai) + 2 bài code
   + 2–3 câu phỏng vấn. Task "Lesson:" bị khóa cho tới khi qua test.
 - Nguồn cho từng concept/bài trong `tests/sources.ts`.
+- "Learn first" cho từng concept, bài code và câu phỏng vấn trong `tests/primers.ts` (cả bài phỏng vấn thử, key
+  `mock-<ngày>`, phải ghi `lessonId`): giải thích ý cần để trả lời bằng chữ đơn giản + một ví dụ nhỏ, **không lộ đáp án**
+  của cả hai câu cùng concept, và `section` = tên một mục trong mục lục bài. Ví dụ Python ghi output bằng `# comment`
+  (`check:lessons` chạy và so khớp). Mới có cho tuần 1 (dsa-arrays-hashing, net-latency-tcp, mock 22/11); bài khác
+  viết dần theo góp ý của người dùng.
 - Test **chỉ được dùng kiến thức bài đó hoặc bài trước đã dạy**; thiếu thì dạy thêm trong bài hoặc đổi câu.
 - Chạy `npm run check:lessons` (chạy Python thật trên mọi ví dụ, bài tập và câu "What does this print?").
 - Thêm task vào lịch trong `frontend/src/data/roadmap/plan.ts`. Đổi lịch không được làm đổi id của task
@@ -76,6 +81,10 @@ Mỗi bài mới phải có đủ:
   qua từng thẻ không đọc được chứ không xóa cả bộ.
 - Key lưu đáp án của test luôn bắt đầu bằng id của test (`<id>:test:…`). Đừng đặt tên biến cục bộ là `id`
   trong `LessonTestCard` (12–16/11/2026 lỗi này làm đáp án lưu sai key; có đọc bù key cũ).
+- Tìm kiếm (Library `searchLibrary`, ô tìm chung `lib/searchIndex.ts`) đọc được câu hỏi: `getQueryTokens` (`lib/normalize.ts`)
+  bỏ từ để hỏi ("what is", "how does", "là gì"); chữ 1 ký tự chỉ khớp nguyên từ ("o" trong "big o"); không mục nào đủ
+  mọi từ thì hiện mục khớp nhiều từ nhất, và mục có cả tiêu đề nằm trong câu hỏi luôn được giữ. Câu hỏi hay gặp mà chưa
+  có từ trong glossary thì thêm vào glossary (đó là "câu trả lời" hiện đầu tiên).
 - Bài có id `sd-` hiện ở chủ đề System design của Library (`lessonTopic` trong `data/library.ts`).
 
 ### Dữ liệu và đồng bộ giữa các máy

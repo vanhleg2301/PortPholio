@@ -1,9 +1,9 @@
 import { format, parseISO } from 'date-fns'
-import { LESSONS, VISUAL_TITLES, blockAnchor, getLessonTerms, toPlainText } from '@/data/lessons'
+import { LESSONS, VISUAL_TITLES, blockAnchor, getTermPlace, toPlainText } from '@/data/lessons'
 import { GLOSSARY } from '@/data/lessons/glossary'
 import { WEEKS } from '@/data/roadmap/plan'
 import { LIBRARY } from '@/data/library'
-import { normalize } from '@/lib/normalize'
+import { getQueryTokens, normalize } from '@/lib/normalize'
 
 export type SearchGroup = 'Lessons' | 'Reference' | 'Theory' | 'Words' | 'Problems' | 'Plan' | 'Notes'
 
@@ -72,20 +72,9 @@ function buildStaticEntries(): SearchEntry[] {
   }
 
   // A word opens the first block that explains it.
-  const termPlace = new Map<string, { lessonId: string; anchor?: string }>()
-  for (const lesson of LESSONS) {
-    for (const term of getLessonTerms(lesson)) {
-      if (termPlace.has(term)) continue
-      const index = lesson.blocks.findIndex((b) => {
-        const md = b.type === 'text' || b.type === 'callout' ? b.md : b.type === 'exercise' ? b.prompt : ''
-        return md.toLowerCase().includes(`[[${term}`)
-      })
-      termPlace.set(term, { lessonId: lesson.id, anchor: index >= 0 ? blockAnchor(index) : undefined })
-    }
-  }
   for (const [key, value] of Object.entries(GLOSSARY)) {
-    const place = termPlace.get(key) ?? { lessonId: LESSONS[0].id }
-    entries.push(entry(`word:${key}`, 'Words', key, `${value.en} — e.g. ${value.example}`, { type: 'lesson', ...place }))
+    const place = getTermPlace(key)
+    entries.push(entry(`word:${key}`, 'Words', key, `${value.en} — e.g. ${value.example}`, { type: 'lesson', lessonId: place?.lessonId ?? LESSONS[0].id, anchor: place?.anchor }))
   }
 
   const seenProblems = new Set<string>()
@@ -120,37 +109,46 @@ export function getSearchEntries(notes: SearchNote[]): SearchEntry[] {
 
 const GROUP_LIMIT = 6
 
-// Every word of the query must appear; matches in the title, and at the start of a word, rank higher.
+// Question words are ignored ("what is", "how does"). Every word should appear; matches in the title,
+// at the start of a word and the whole phrase rank higher. A one-letter word must be a whole word
+// ("o" in "big o"). When nothing has every word, entries with the most of them are shown.
 export function search(entries: SearchEntry[], query: string): SearchEntry[] {
-  const tokens = normalize(query).split(' ').filter(Boolean)
+  const tokens = getQueryTokens(query)
   if (tokens.length === 0) return []
-  const scored: Array<{ entry: SearchEntry; score: number }> = []
+  const phrase = tokens.join(' ')
+  const isWord = (text: string, token: string) => ` ${text} `.includes(` ${token} `)
+  const scored: Array<{ entry: SearchEntry; score: number; matched: number; isTitleInQuery: boolean }> = []
   for (const e of entries) {
     let score = 0
-    let isMatch = true
+    let matched = 0
     for (const token of tokens) {
-      if (e.titleKey.startsWith(token)) score += 6
+      const before = score
+      if (token.length === 1) {
+        if (isWord(e.titleKey, token)) score += 4
+        else if (isWord(e.textKey, token)) score += 1.5
+      } else if (e.titleKey.startsWith(token)) score += 6
       else if (e.titleKey.includes(` ${token}`)) score += 4
       else if (e.titleKey.includes(token)) score += 3
       else if (e.textKey.includes(` ${token}`) || e.textKey.startsWith(token)) score += 1.5
       else if (e.textKey.includes(token)) score += 1
-      else {
-        isMatch = false
-        break
-      }
+      if (score > before) matched++
     }
-    if (!isMatch) continue
-    const phrase = tokens.join(' ')
+    if (matched === 0) continue
     if (e.titleKey === phrase) score += 5
     // The words appear together, in order ("do tre" inside "do tre lan truyen").
-    if (tokens.length > 1 && e.textKey.includes(phrase)) score += 8
+    if (tokens.length > 1 && isWord(e.textKey, phrase)) score += 8
+    // The whole title is in the question: "what is big o notation" → the word "big o".
+    const isTitleInQuery = tokens.length > 1 && e.titleKey.length > 1 && isWord(phrase, e.titleKey)
+    if (isTitleInQuery) score += 10
     if (e.id.startsWith('lesson:')) score += 1
-    scored.push({ entry: e, score })
+    scored.push({ entry: e, score, matched, isTitleInQuery })
   }
-  scored.sort((a, b) => b.score - a.score)
+  const best = Math.max(0, ...scored.map((s) => s.matched))
+  const kept = scored.filter((s) => s.isTitleInQuery || (s.matched === best && (best === tokens.length || best >= 2 || tokens.length <= 2)))
+  kept.sort((a, b) => b.score - a.score)
   const perGroup = new Map<SearchGroup, number>()
   const out: SearchEntry[] = []
-  for (const { entry: e } of scored) {
+  for (const { entry: e } of kept) {
     const count = perGroup.get(e.group) ?? 0
     if (count >= GROUP_LIMIT) continue
     perGroup.set(e.group, count + 1)
