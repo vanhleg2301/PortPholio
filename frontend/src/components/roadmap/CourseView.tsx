@@ -1,25 +1,25 @@
 import type { ReactNode } from 'react'
-import { format, parseISO } from 'date-fns'
 import { ArrowRight, CalendarClock, ChevronRight, Circle, CircleCheck, CircleDot, ClipboardCheck, Clock, History } from 'lucide-react'
 import { COURSE, MOCK_TEST_DAYS, SCHEDULED_LESSONS, type CourseItem } from '@/data/course'
 import { LESSON_TESTS, isLessonTestPassed } from '@/data/lessons'
 import { ProgressBar } from '@/components/roadmap/ProgressBar'
 import { getDayMockTest, isMockPassed } from '@/lib/testGate'
 import { cn } from '@/lib/utils'
+import { getStudyDayByDate, type StudyDay } from '@/data/roadmap/studyDays'
 
 interface CourseViewProps {
-  today: string
+  currentDay: StudyDay
   // "lessonId:itemId" keys of passed exercises and test parts.
   passed: Set<string>
   savedCode: Map<string, string>
   onOpenLesson: (lessonId: string) => void
-  onOpenDay: (date: string) => void
+  onOpenDay: (day: number) => void
 }
 
 type Status = 'done' | 'started' | 'new' | 'planned'
 
-const shortDate = (date: string) => format(parseISO(date), 'EEE d MMM')
-const monthOf = (date: string) => format(parseISO(date), 'MMM yyyy')
+// Course items and mock tests carry the calendar date of the plan; show the study day it became.
+const dayOf = (date: string) => getStudyDayByDate(date).number
 
 function hasKeyFor(prefix: string, passed: Set<string>, savedCode: Map<string, string>): boolean {
   for (const key of passed) if (key.startsWith(prefix)) return true
@@ -44,11 +44,11 @@ const STATUS_ICON = {
   planned: <CalendarClock className="h-5 w-5 text-muted-foreground/50" />,
 } satisfies Record<Status, ReactNode>
 
-export function CourseView({ today, passed, savedCode, onOpenLesson, onOpenDay }: CourseViewProps) {
+export function CourseView({ currentDay, passed, savedCode, onOpenLesson, onOpenDay }: CourseViewProps) {
   const lessonStatus = (lessonId: string) => getLessonStatus(lessonId, passed, savedCode)
   const notDone = SCHEDULED_LESSONS.filter((s) => lessonStatus(s.lesson.id) !== 'done')
   const next = notDone.find((s) => lessonStatus(s.lesson.id) === 'started') ?? notDone[0]
-  const behind = notDone.filter((s) => s.date && s.date < today)
+  const behind = notDone.filter((s) => s.date && dayOf(s.date) < currentDay.number)
   const doneCount = SCHEDULED_LESSONS.length - notDone.length
 
   return (
@@ -68,7 +68,7 @@ export function CourseView({ today, passed, savedCode, onOpenLesson, onOpenDay }
             <span className="min-w-0 flex-1">
               <span className="block text-[11px] font-semibold uppercase tracking-widest opacity-70">
                 {lessonStatus(next.lesson.id) === 'started' ? 'Continue' : 'Next lesson'}
-                {next.date && ` · planned ${shortDate(next.date)}`}
+                {next.date && ` · Day ${dayOf(next.date)}`}
               </span>
               <span className="mt-0.5 block font-semibold leading-snug">{next.lesson.title}</span>
             </span>
@@ -78,9 +78,9 @@ export function CourseView({ today, passed, savedCode, onOpenLesson, onOpenDay }
         {behind.length > 0 && (
           <div className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.06] px-3.5 py-3">
             <p className="flex items-center gap-1.5 text-sm font-semibold">
-              <History className="h-4 w-4 text-amber-500" /> Catch up · {behind.length} lesson{behind.length > 1 ? 's' : ''} behind the plan
+              <History className="h-4 w-4 text-amber-500" /> Catch up · {behind.length} lesson{behind.length > 1 ? 's' : ''} before Day {currentDay.number} not passed yet
             </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">No penalty — do them when you can. The plan does not move.</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">No penalty — do them when you can.</p>
             <ul className="mt-2 flex flex-wrap gap-2">
               {behind.slice(0, 6).map((s) => (
                 <li key={s.lesson.id}>
@@ -135,7 +135,7 @@ export function CourseView({ today, passed, savedCode, onOpenLesson, onOpenDay }
         <div className="border-b border-border pb-3">
           <h2 className="font-display text-2xl font-bold uppercase leading-none tracking-tight md:text-3xl">Mock interviews</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            A short one every week, a longer timed one at the end of each month. Open the day to take it — early or late is fine.
+            A short one every week, a longer timed one at the end of each month. Open its day to take it — early or late is fine.
           </p>
         </div>
         <ul className="divide-y divide-border/50">
@@ -146,14 +146,14 @@ export function CourseView({ today, passed, savedCode, onOpenLesson, onOpenDay }
               <li key={m.date}>
                 <button
                   type="button"
-                  onClick={() => onOpenDay(m.date)}
+                  onClick={() => onOpenDay(dayOf(m.date))}
                   className="group flex w-full items-center gap-3 py-3 text-left hover:bg-foreground/[0.03] transition-colors"
                 >
                   {isDone ? <CircleCheck className="h-5 w-5 shrink-0 text-emerald-500" /> : <ClipboardCheck className={cn('h-5 w-5 shrink-0', m.kind === 'month' ? 'text-violet-500' : 'text-muted-foreground/70')} />}
                   <span className="min-w-0 flex-1">
                     <span className="block text-[15px] font-semibold leading-snug">{m.title}</span>
                     <span className="block text-xs text-muted-foreground">
-                      {shortDate(m.date)} · {m.minutes} min{m.kind === 'month' ? ' · month test' : ''}
+                      Day {dayOf(m.date)} · {m.minutes} min{m.kind === 'month' ? ' · month test' : ''}
                     </span>
                   </span>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
@@ -171,14 +171,14 @@ interface CourseRowProps {
   item: CourseItem
   status: Status
   onOpenLesson: (lessonId: string) => void
-  onOpenDay: (date: string) => void
+  onOpenDay: (day: number) => void
 }
 
 function CourseRow({ item, status, onOpenLesson, onOpenDay }: CourseRowProps) {
   const lesson = item.lesson
   const detail = lesson
-    ? [item.date && `Planned ${shortDate(item.date)}`, `${lesson.minutes} min`, status === 'done' ? 'test passed' : status === 'started' ? 'in progress' : null]
-    : [item.date ? `Coming · ${monthOf(item.date)}` : 'Coming later', item.category && 'problems in the plan']
+    ? [item.date && `Day ${dayOf(item.date)}`, `${lesson.minutes} min`, status === 'done' ? 'test passed' : status === 'started' ? 'in progress' : null]
+    : [item.date ? `Coming · Day ${dayOf(item.date)}` : 'Coming later', item.category && 'problems in the plan']
   const content = (
     <>
       <span className="shrink-0">{STATUS_ICON[status]}</span>
@@ -206,7 +206,7 @@ function CourseRow({ item, status, onOpenLesson, onOpenDay }: CourseRowProps) {
     const date = item.date
     return (
       <li>
-        <button type="button" onClick={() => onOpenDay(date)} className={rowClass} aria-label={`${item.title}: open ${shortDate(date)} in Today`}>
+        <button type="button" onClick={() => onOpenDay(dayOf(date))} className={rowClass} aria-label={`${item.title}: open Day ${dayOf(date)}`}>
           {content}
         </button>
       </li>

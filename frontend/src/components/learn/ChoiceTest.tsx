@@ -26,12 +26,21 @@ interface TestState {
   finishedAt: number | null
   // Every question id shown in this or earlier attempts, so retakes prefer new questions.
   seen: string[]
+  // Score of every finished attempt, oldest first.
+  results: AttemptResult[]
+}
+
+interface AttemptResult {
+  score: number
+  total: number
+  at: number
 }
 
 interface History {
   // Questions answered wrong last time: their concept gets a different question.
   wrongIds: Set<string>
   seen: Set<string>
+  results: AttemptResult[]
 }
 
 const SWIPE_PX = 70
@@ -60,7 +69,7 @@ function pickQuestions(questions: ChoiceQuestion[], sampleSize: number | undefin
   })
 }
 
-function createState(questions: ChoiceQuestion[], sampleSize?: number, history: History = { wrongIds: new Set(), seen: new Set() }): TestState {
+function createState(questions: ChoiceQuestion[], sampleSize?: number, history: History = { wrongIds: new Set(), seen: new Set(), results: [] }): TestState {
   const picked = pickQuestions(questions, sampleSize, history)
   return {
     attempt: { questions: picked, orders: picked.map((q) => shuffle(q.options.map((_, i) => i))) },
@@ -70,6 +79,7 @@ function createState(questions: ChoiceQuestion[], sampleSize?: number, history: 
     startedAt: null,
     finishedAt: null,
     seen: [...new Set([...history.seen, ...picked.map((q) => q.id)])],
+    results: history.results,
   }
 }
 
@@ -83,6 +93,7 @@ const savedStateSchema = z.object({
   startedAt: z.number().nullable().optional(),
   finishedAt: z.number().nullable().optional(),
   seen: z.array(z.string()).optional(),
+  results: z.array(z.object({ score: z.number().int(), total: z.number().int(), at: z.number() })).optional(),
 })
 
 // Returns null when the saved state no longer fits the questions (e.g. the test was edited).
@@ -107,6 +118,7 @@ function restoreState(saved: string | undefined, questions: ChoiceQuestion[]): T
       startedAt: s.startedAt ?? null,
       finishedAt: s.finishedAt ?? null,
       seen: s.seen ?? s.ids,
+      results: s.results ?? [],
     }
   } catch {
     return null
@@ -123,6 +135,7 @@ function serializeState(s: TestState): string {
     startedAt: s.startedAt,
     finishedAt: s.finishedAt,
     seen: s.seen,
+    results: s.results,
   })
 }
 
@@ -209,7 +222,8 @@ export function ChoiceTest({ questions, sampleSize, isPassed, onPass, savedState
       goTo(firstOpen)
       return
     }
-    update({ ...state, isSubmitted: true, finishedAt: Date.now() })
+    const finishedAt = Date.now()
+    update({ ...state, isSubmitted: true, finishedAt, results: [...state.results, { score, total, at: finishedAt }] })
     if (score >= passMark && !isPassed) onPass()
   }
 
@@ -217,7 +231,7 @@ export function ChoiceTest({ questions, sampleSize, isPassed, onPass, savedState
   function retake() {
     setDirection(1)
     const wrongIds = new Set(attempt.questions.filter((q, i) => answers[i] !== q.answer).map((q) => q.id))
-    update(createState(questions, sampleSize, { wrongIds, seen: new Set(state.seen) }))
+    update(createState(questions, sampleSize, { wrongIds, seen: new Set(state.seen), results: state.results }))
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
@@ -240,8 +254,16 @@ export function ChoiceTest({ questions, sampleSize, isPassed, onPass, savedState
     else if (info.offset.x > SWIPE_PX) goTo(current - 1)
   }
 
+  const best = state.results.reduce<AttemptResult | null>((top, r) => (!top || r.score / r.total > top.score / top.total ? r : top), null)
+  const record = best && (
+    <span className="inline-flex items-center gap-1">
+      <Trophy className="h-3.5 w-3.5" /> Best {best.score}/{best.total} · {state.results.length} attempt{state.results.length === 1 ? '' : 's'}
+    </span>
+  )
+
   if (isSubmitted) {
-    const isPassing = score >= passMark
+    // A pass is never taken back: a weaker retake is practice.
+    const isPassing = score >= passMark || isPassed
     const wrong = attempt.questions.flatMap((q, i) => (answers[i] !== q.answer ? [{ q, i }] : []))
     const duration = state.startedAt && state.finishedAt ? state.finishedAt - state.startedAt : null
     return (
@@ -260,7 +282,11 @@ export function ChoiceTest({ questions, sampleSize, isPassed, onPass, savedState
             <span className="text-xl text-muted-foreground">/{total}</span>
           </p>
           <p className={cn('mt-1 text-sm font-semibold', isPassing ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300')}>
-            {isPassing ? 'Passed — nice work' : `${passMark} needed to pass — read the explanations and try again`}
+            {score >= passMark
+              ? 'Passed — nice work'
+              : isPassed
+                ? `Practice round: ${passMark} is the pass mark. Your pass is kept.`
+                : `${passMark} needed to pass — read the explanations and try again`}
           </p>
           <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             {duration !== null && (
@@ -273,6 +299,7 @@ export function ChoiceTest({ questions, sampleSize, isPassed, onPass, savedState
                 <Layers className="h-3.5 w-3.5" /> {wrong.length} added to your flashcards
               </span>
             )}
+            {record}
           </div>
           <button
             type="button"
@@ -301,6 +328,12 @@ export function ChoiceTest({ questions, sampleSize, isPassed, onPass, savedState
 
   return (
     <div ref={containerRef} tabIndex={-1} onKeyDown={handleKeyDown} className="scroll-mt-24 outline-none">
+      {isPassed && (
+        <p className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-emerald-500/[0.08] px-3 py-2 text-xs text-emerald-800 dark:text-emerald-200">
+          <span className="font-semibold">Passed. Retake it any time for practice — your pass stays.</span>
+          {record}
+        </p>
+      )}
       <div className="mb-3 flex gap-1" role="list" aria-label="Questions">
         {attempt.questions.map((q, i) => {
           const answer = answers[i]

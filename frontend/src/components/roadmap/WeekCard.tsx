@@ -1,28 +1,29 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { DayCard } from '@/components/roadmap/DayCard'
 import { ProgressBar } from '@/components/roadmap/ProgressBar'
 import { getProgress, toPercent } from '@/lib/roadmapStats'
 import { appear } from '@/lib/motion'
 import type { RoadmapWeek } from '@/data/roadmap/types'
+import { formatDayRange, getWeekDays, type StudyDay } from '@/data/roadmap/studyDays'
 
 interface WeekCardProps {
   week: RoadmapWeek
   doneIds: Set<string>
-  today: string
+  currentDay: StudyDay
   onToggle: (taskId: string, isDone: boolean) => void
-  onOpenDay: (date: string) => void
+  onOpenDay: (day: number) => void
 }
 
-export function WeekCard({ week, doneIds, today, onToggle, onOpenDay }: WeekCardProps) {
-  const isCurrent = today >= week.start && today <= week.end
+export function WeekCard({ week, doneIds, currentDay, onToggle, onOpenDay }: WeekCardProps) {
+  const days = getWeekDays(week)
+  const isCurrent = currentDay.week.id === week.id
   const [isOpen, setIsOpen] = useState(isCurrent)
-  const progress = getProgress(week.days.flatMap((d) => d.tasks), doneIds)
+  const progress = getProgress(days.flatMap((d) => d.tasks), doneIds)
   const percent = toPercent(progress)
-  const range = `${format(parseISO(week.start), 'd MMM')} – ${format(parseISO(week.end), 'd MMM yyyy')}`
+  const range = days.length > 0 ? formatDayRange(days[0].number, days[days.length - 1].number) : ''
 
   return (
     <div className={cn('border-b border-border', isCurrent && 'bg-foreground/[0.02]')}>
@@ -61,13 +62,12 @@ export function WeekCard({ week, doneIds, today, onToggle, onOpenDay }: WeekCard
             className="overflow-hidden"
           >
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 pb-8">
-              {week.days.map((day, i) => (
-                <motion.div key={day.date} {...appear(i)}>
+              {days.map((day, i) => (
+                <motion.div key={day.number} {...appear(i)}>
                 <DayCard
-                  key={day.date}
                   day={day}
                   doneIds={doneIds}
-                  isToday={day.date === today}
+                  isToday={day.number === currentDay.number}
                   onToggle={onToggle}
                   onOpen={onOpenDay}
                 />

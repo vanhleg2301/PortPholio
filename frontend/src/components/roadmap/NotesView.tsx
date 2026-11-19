@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { format, parseISO } from 'date-fns'
+import { getStudyDayByDate } from '@/data/roadmap/studyDays'
 import { ArrowRight, FileText, Link2, Lock, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { appear, listContainer, listItem } from '@/lib/motion'
@@ -93,7 +93,7 @@ export function NotesView({ isOwner, isLoading, notes, resources, onOpenDay, onR
                 onClick={() => onOpenDay(day)}
                 className="group -mx-2 -my-1 w-[calc(100%+1rem)] flex items-center justify-between rounded-lg px-2 py-1 hover:bg-foreground/[0.06] transition-colors"
               >
-                <span className="text-xs font-semibold uppercase tracking-widest">{format(parseISO(day), 'EEE d MMM yyyy')}</span>
+                <span className="min-w-0 truncate text-xs font-semibold uppercase tracking-widest">Day {getStudyDayByDate(day).number} · {getStudyDayByDate(day).title}</span>
                 <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
               </button>
 

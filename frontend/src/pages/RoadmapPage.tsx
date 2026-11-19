@@ -36,10 +36,10 @@ import { useRoadmapRoute } from '@/hooks/useSavedView'
 import { useRoadmapNotes } from '@/hooks/useRoadmapNotes'
 import { useRoadmapProgress, useToggleTask } from '@/hooks/useRoadmapProgress'
 import { useRoadmapResources } from '@/hooks/useRoadmapResources'
+import { getCurrentDay, getStudyDay, getStudyDayByDate, getStudyDayOfTask } from '@/data/roadmap/studyDays'
 import {
   ALL_TASKS,
   TASK_BY_ID,
-  DAY_BY_DATE,
   getActivityDates,
   getNeetCodeSolved,
   getProgress,
@@ -74,7 +74,7 @@ const PAGE_LOADED_AT = Date.now()
 export default function RoadmapPage() {
   useDocumentTitle('Road to Big Tech · Study plan')
   const today = getTodayIso()
-  const { tab, date: selectedDate, planMode, libraryTopic, viewPath, goTo } = useRoadmapRoute(today)
+  const { tab, day: routeDay, planMode, libraryTopic, viewPath, goTo } = useRoadmapRoute()
   const [isAccountOpen, setIsAccountOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -143,7 +143,10 @@ export default function RoadmapPage() {
     for (const s of sessions) map.set(s.day, (map.get(s.day) ?? 0) + s.minutes)
     return map
   }, [sessions])
-  const todayTasks = DAY_BY_DATE.get(today)?.tasks ?? []
+  // Self-paced: the current day is the first one with work left, whatever the calendar says.
+  const currentDay = useMemo(() => getCurrentDay(doneIds), [doneIds])
+  const selectedDay = (routeDay !== null ? getStudyDay(routeDay) : undefined) ?? currentDay
+  const todayTasks = currentDay.tasks
   const runningTask = focus.timer?.taskId ? TASK_BY_ID.get(focus.timer.taskId) : undefined
 
   useEffect(() => {
@@ -164,15 +167,16 @@ export default function RoadmapPage() {
     const task = TASK_BY_ID.get(taskId)
     if (isDone && task && isTaskLocked(task, passedItems)) {
       setToast(task.isWeekTest ? 'Pass the week test first' : 'Pass the day test first')
-      goToTest(taskId.slice(0, 10))
+      goToTest(taskId)
       return
     }
     toggle.mutate({ taskId, isDone }, { onError: (err) => setToast(`Save failed: ${err.message}`) })
   }
 
-  // Opens the Today page of `date` at its test section (/roadmap/today/<date>#test).
-  function goToTest(date: string) {
-    goTo({ tab: 'today', date }, { hash: 'test' })
+  // Opens the study day of a task at its test section (/roadmap/day/<n>#test).
+  function goToTest(taskId: string) {
+    const day = getStudyDayOfTask(taskId)
+    if (day) goTo({ tab: 'today', day: day.number }, { hash: 'test' })
   }
 
   function handleTestPassed(lessonId: string, itemId: string) {
@@ -263,7 +267,7 @@ export default function RoadmapPage() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // A section in the URL: /roadmap/learn/<id>#<section> or /roadmap/today/<date>#test.
+  // A section in the URL: /roadmap/learn/<id>#<section> or /roadmap/day/<n>#test.
   const hash = decodeURIComponent(location.hash.slice(1))
   const isTodayView = tab === 'today' && !lesson
   useEffect(() => {
@@ -311,7 +315,7 @@ export default function RoadmapPage() {
       changeTab('library', { libraryTopic: 'all' })
       setLibraryRequest({ id: Date.now(), query, entryId: action.entryId })
     } else {
-      openDay(action.date)
+      openDayOfDate(action.date)
       if (query.length >= 2) setDayFind({ id: Date.now(), query })
     }
   }
@@ -337,10 +341,14 @@ export default function RoadmapPage() {
     saveCode.mutate({ key, code }, { onError: (err) => setToast(`Could not save code: ${err.message}`) })
   }
 
-  function openDay(date: string) {
-    goTo({ tab: 'today', date })
+  // A study day by number; null = the current day.
+  function openDay(day: number | null) {
+    goTo({ tab: 'today', day: day === currentDay.number ? null : day })
     window.scrollTo({ top: 0 })
   }
+
+  // Something saved under a calendar date of the plan (a note, a search result).
+  const openDayOfDate = (date: string) => openDay(getStudyDayByDate(date).number)
 
   const avatarUrl = session?.user.user_metadata.avatar_url as string | undefined
   const showSidePanel = isDesktop && (tab === 'today' || Boolean(lesson))
@@ -450,11 +458,10 @@ export default function RoadmapPage() {
           <aside className="sticky top-32 self-start">
             <DesktopSidebar
               tab={tab}
-              selectedDate={selectedDate}
-              today={today}
+              selectedDay={selectedDay}
+              currentDay={currentDay}
               doneIds={doneIds}
               onChangeTab={changeTab}
-              onSelectDate={(date) => goTo({ date })}
               onOpenDay={openDay}
             />
           </aside>
@@ -491,21 +498,22 @@ export default function RoadmapPage() {
               <motion.div key={tab} variants={fadeSwap} initial="initial" animate="animate" exit="exit">
         {tab === 'today' && (
           <TodayView
-            date={selectedDate}
+            day={selectedDay}
+            currentDay={currentDay}
             today={today}
             doneIds={doneIds}
             isOwner={isOwner}
             notes={notesQuery.data ?? []}
             isNotesReady={notesQuery.isSuccess}
             resources={resourcesQuery.data ?? []}
-            onSelectDate={(date) => goTo({ date })}
+            onSelectDay={(n) => goTo({ day: n === currentDay.number ? null : n })}
             onToggle={handleToggle}
             onRequestSignIn={() => setIsAccountOpen(true)}
             reviews={reviewsQuery.data ?? []}
             isReviewBusy={completeReview.isPending}
             onToggleReview={handleToggleReview}
             onCompleteReview={handleCompleteReview}
-            focusMinutes={minutesByDay.get(selectedDate) ?? 0}
+            focusMinutes={selectedDay === currentDay ? (minutesByDay.get(today) ?? 0) : 0}
             onOpenLesson={openLesson}
             isDesktop={isDesktop}
             canSaveAnswers={canSaveAnswers}
@@ -524,6 +532,7 @@ export default function RoadmapPage() {
             today={today}
             onToggle={handleToggle}
             onOpenDay={openDay}
+            currentDay={currentDay}
             sessions={sessions}
             passed={passedItems}
             savedCode={savedCode}
@@ -544,7 +553,7 @@ export default function RoadmapPage() {
             isLoading={notesQuery.isLoading || resourcesQuery.isLoading}
             notes={notesQuery.data ?? []}
             resources={resourcesQuery.data ?? []}
-            onOpenDay={openDay}
+            onOpenDay={openDayOfDate}
             onRequestSignIn={() => setIsAccountOpen(true)}
           />
         )}
@@ -556,7 +565,7 @@ export default function RoadmapPage() {
           <aside className="sticky top-32 self-start max-h-[calc(100dvh-9rem)] overflow-y-auto pb-8 pr-1 [scrollbar-width:thin]">
             {lesson && <LessonOutlinePanel lesson={lesson} passed={passedItems} isTestPassed={isLessonTestPassed(lesson.id, passedItems)} />}
             <SidePanel
-              date={selectedDate}
+              day={selectedDay}
               isOwner={isOwner}
               notes={notesQuery.data ?? []}
               isNotesReady={notesQuery.isSuccess}

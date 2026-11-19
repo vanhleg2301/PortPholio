@@ -1,9 +1,8 @@
 import { motion } from 'framer-motion'
-import { addDays, format, parseISO, startOfWeek } from 'date-fns'
 import { CalendarCheck, ChevronLeft, ChevronRight, Library, Map as MapIcon, NotebookPen, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SPRING } from '@/lib/motion'
-import { DAY_BY_DATE, clampToPlan, getWeekForDate } from '@/lib/roadmapStats'
+import { STUDY_DAYS, getWeekDays, type StudyDay } from '@/data/roadmap/studyDays'
 import type { RoadmapTab } from '@/components/roadmap/BottomTabBar'
 
 const NAV: Array<{ id: RoadmapTab; label: string; icon: LucideIcon }> = [
@@ -15,19 +14,19 @@ const NAV: Array<{ id: RoadmapTab; label: string; icon: LucideIcon }> = [
 
 interface DesktopSidebarProps {
   tab: RoadmapTab
-  selectedDate: string
-  today: string
+  selectedDay: StudyDay
+  currentDay: StudyDay
   doneIds: Set<string>
   onChangeTab: (tab: RoadmapTab) => void
-  onSelectDate: (date: string) => void
-  onOpenDay: (date: string) => void
+  onOpenDay: (day: number) => void
 }
 
-export function DesktopSidebar({ tab, selectedDate, today, doneIds, onChangeTab, onSelectDate, onOpenDay }: DesktopSidebarProps) {
-  const monday = startOfWeek(parseISO(selectedDate), { weekStartsOn: 1 })
-  const dates = Array.from({ length: 7 }, (_, i) => format(addDays(monday, i), 'yyyy-MM-dd'))
-  const week = getWeekForDate(selectedDate)
-  const shiftWeek = (weeks: number) => onSelectDate(clampToPlan(format(addDays(parseISO(selectedDate), weeks * 7), 'yyyy-MM-dd')))
+export function DesktopSidebar({ tab, selectedDay, currentDay, doneIds, onChangeTab, onOpenDay }: DesktopSidebarProps) {
+  const week = selectedDay.week
+  const days = getWeekDays(week)
+  const previous = STUDY_DAYS[days[0].number - 2]
+  const next = STUDY_DAYS[days[days.length - 1].number]
+  const shiftWeek = (target: StudyDay | undefined) => target && onOpenDay(getWeekDays(target.week)[0].number)
 
   return (
     <nav className="flex flex-col gap-8" aria-label="Roadmap">
@@ -53,52 +52,58 @@ export function DesktopSidebar({ tab, selectedDate, today, doneIds, onChangeTab,
 
       <section>
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{week?.label ?? 'Week'}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{week.label}</p>
           <div className="flex">
             <button
               type="button"
-              onClick={() => shiftWeek(-1)}
+              onClick={() => shiftWeek(previous)}
+              disabled={!previous}
               aria-label="Previous week"
-              className="rounded-full p-1.5 text-muted-foreground hover:bg-foreground/[0.08] hover:text-foreground transition-colors"
+              className="rounded-full p-1.5 text-muted-foreground hover:bg-foreground/[0.08] hover:text-foreground disabled:opacity-30 transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               type="button"
-              onClick={() => shiftWeek(1)}
+              onClick={() => shiftWeek(next)}
+              disabled={!next}
               aria-label="Next week"
-              className="rounded-full p-1.5 text-muted-foreground hover:bg-foreground/[0.08] hover:text-foreground transition-colors"
+              className="rounded-full p-1.5 text-muted-foreground hover:bg-foreground/[0.08] hover:text-foreground disabled:opacity-30 transition-colors"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>
         <ul className="flex flex-col gap-0.5">
-          {dates.map((date) => {
-            const day = DAY_BY_DATE.get(date)
-            const total = day?.tasks.length ?? 0
-            const done = day?.tasks.filter((t) => doneIds.has(t.id)).length ?? 0
-            const isSelected = date === selectedDate && tab === 'today'
+          {days.map((day) => {
+            const total = day.tasks.length
+            const done = day.tasks.filter((t) => doneIds.has(t.id)).length
+            const isSelected = day.number === selectedDay.number && tab === 'today'
             return (
-              <li key={date}>
+              <li key={day.number}>
                 <button
                   type="button"
-                  disabled={!day}
-                  onClick={() => onOpenDay(date)}
+                  onClick={() => onOpenDay(day.number)}
+                  title={day.title}
                   className={cn(
-                    'relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors disabled:opacity-30',
+                    'relative flex w-full items-start gap-3 rounded-xl px-3 py-2 text-left transition-colors',
                     isSelected ? 'bg-foreground/[0.08]' : 'hover:bg-foreground/[0.05]'
                   )}
                 >
-                  <span className={cn('w-9 text-[11px] font-semibold uppercase', date === today ? 'text-emerald-500' : 'text-muted-foreground')}>
-                    {format(parseISO(date), 'EEE')}
-                  </span>
-                  <span className="flex-1 text-sm font-semibold">{format(parseISO(date), 'd MMM')}</span>
-                  <span className="font-mono text-[11px] text-muted-foreground">{total === 0 ? '—' : `${done}/${total}`}</span>
                   <span
                     className={cn(
-                      'h-1.5 w-1.5 rounded-full transition-colors',
-                      total > 0 && done === total ? 'bg-emerald-500' : done > 0 ? 'bg-emerald-500/40' : 'bg-foreground/15'
+                      'w-12 shrink-0 pt-px text-[11px] font-semibold uppercase tabular-nums',
+                      day.number === currentDay.number ? 'text-emerald-500' : 'text-muted-foreground'
+                    )}
+                  >
+                    Day {day.number}
+                  </span>
+                  <span className="min-w-0 flex-1 text-sm font-semibold leading-snug line-clamp-2">{day.title}</span>
+                  <span className="pt-px font-mono text-[11px] text-muted-foreground">{`${done}/${total}`}</span>
+                  <span
+                    className={cn(
+                      'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full transition-colors',
+                      done === total ? 'bg-emerald-500' : done > 0 ? 'bg-emerald-500/40' : 'bg-foreground/15'
                     )}
                   />
                 </button>
@@ -106,7 +111,7 @@ export function DesktopSidebar({ tab, selectedDate, today, doneIds, onChangeTab,
             )
           })}
         </ul>
-        {week && <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">{week.goal}</p>}
+        <p className="mt-3 px-1 text-xs leading-relaxed text-muted-foreground">{week.goal}</p>
       </section>
     </nav>
   )

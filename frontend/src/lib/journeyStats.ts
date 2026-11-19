@@ -1,6 +1,7 @@
 import { differenceInCalendarDays, format, parseISO } from 'date-fns'
 import { CATEGORY_SIZES, DIFFICULTY_TOTALS, NEETCODE_CATEGORIES } from '@/data/roadmap/neetcode'
-import { PHASES, ROADMAP_START } from '@/data/roadmap/plan'
+import { PHASES } from '@/data/roadmap/plan'
+import { getCurrentDay } from '@/data/roadmap/studyDays'
 import type { ProblemDifficulty, RoadmapTask } from '@/data/roadmap/types'
 import { ALL_TASKS, getPhaseTasks, getProgress, toPercent } from '@/lib/roadmapStats'
 
@@ -43,7 +44,7 @@ function getStreakMilestoneDate(activeDays: string[], length: number): string | 
   return null
 }
 
-export function getJourneyStats(rows: ProgressRow[], sessions: SessionRow[], today: string) {
+export function getJourneyStats(rows: ProgressRow[], sessions: SessionRow[]) {
   const sortedRows = [...rows].sort((a, b) => a.completed_at.localeCompare(b.completed_at))
   const doneIds = new Set(rows.map((r) => r.task_id))
 
@@ -108,7 +109,8 @@ export function getJourneyStats(rows: ProgressRow[], sessions: SessionRow[], tod
     .slice(0, 8)
 
   return {
-    dayNumber: Math.max(0, differenceInCalendarDays(parseISO(today), parseISO(ROADMAP_START)) + 1),
+    // The study day being worked on (self-paced), not the calendar.
+    dayNumber: getCurrentDay(doneIds).number,
     planPercent: toPercent(getProgress(ALL_TASKS, doneIds)),
     solved: solvedProblems.length,
     byDifficulty,

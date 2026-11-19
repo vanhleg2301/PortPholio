@@ -1,7 +1,7 @@
-import { format, parseISO } from 'date-fns'
 import { LESSONS, VISUAL_TITLES, blockAnchor, getTermPlace, toPlainText } from '@/data/lessons'
 import { GLOSSARY } from '@/data/lessons/glossary'
 import { WEEKS } from '@/data/roadmap/plan'
+import { getStudyDayByDate } from '@/data/roadmap/studyDays'
 import { LIBRARY } from '@/data/library'
 import { getQueryTokens, normalize } from '@/lib/normalize'
 
@@ -31,7 +31,8 @@ export interface SearchNote {
   content: string
 }
 
-const dayLabel = (date: string) => format(parseISO(date), 'EEE d MMM')
+// Plan items and notes are saved under a calendar date of the plan; show the study day it became.
+const dayLabel = (date: string) => `Day ${getStudyDayByDate(date).number}`
 
 function entry(id: string, group: SearchGroup, title: string, subtitle: string, action: SearchAction, text = ''): SearchEntry {
   return { id, group, title, subtitle, action, titleKey: normalize(title), textKey: normalize(`${title} ${subtitle} ${text}`) }
@@ -80,7 +81,7 @@ function buildStaticEntries(): SearchEntry[] {
   const seenProblems = new Set<string>()
   const seenTasks = new Set<string>()
   for (const week of WEEKS) {
-    entries.push(entry(`week:${week.id}`, 'Plan', week.label, week.goal, { type: 'day', date: week.start }, `${dayLabel(week.start)} ${dayLabel(week.end)}`))
+    entries.push(entry(`week:${week.id}`, 'Plan', week.label, week.goal, { type: 'day', date: week.start }))
     for (const day of week.days) {
       for (const task of day.tasks) {
         if (task.difficulty) {

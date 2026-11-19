@@ -10,6 +10,7 @@ import { TaskItem } from '@/components/roadmap/TaskItem'
 import { WeekCard } from '@/components/roadmap/WeekCard'
 import { PHASES, TARGETS, WEEKS } from '@/data/roadmap/plan'
 import { getPhaseTasks, getProgress, toPercent } from '@/lib/roadmapStats'
+import { STUDY_DAYS, STUDY_DAY_COUNT, formatDayRange, getWeekDays, type StudyDay } from '@/data/roadmap/studyDays'
 import { EASE_OUT } from '@/lib/motion'
 
 const reveal = {
@@ -23,7 +24,8 @@ interface PlanViewProps {
   doneIds: Set<string>
   today: string
   onToggle: (taskId: string, isDone: boolean) => void
-  onOpenDay: (date: string) => void
+  onOpenDay: (day: number) => void
+  currentDay: StudyDay
   sessions: StudySession[]
   passed: Set<string>
   savedCode: Map<string, string>
@@ -41,7 +43,7 @@ function SectionLabel({ eyebrow, title }: { eyebrow: string; title: string }) {
   )
 }
 
-export function PlanView({ doneIds, today, onToggle, onOpenDay, sessions, passed, savedCode, onOpenLesson, mode, onChangeMode }: PlanViewProps) {
+export function PlanView({ doneIds, today, onToggle, onOpenDay, currentDay, sessions, passed, savedCode, onOpenLesson, mode, onChangeMode }: PlanViewProps) {
   const weekStart = format(startOfWeek(parseISO(today), { weekStartsOn: 1 }), 'yyyy-MM-dd')
   const totalMinutes = sessions.reduce((sum, s) => sum + s.minutes, 0)
   const weekMinutes = sessions.filter((s) => s.day >= weekStart && s.day <= today).reduce((sum, s) => sum + s.minutes, 0)
@@ -53,7 +55,7 @@ export function PlanView({ doneIds, today, onToggle, onOpenDay, sessions, passed
 
   const modes: Array<{ id: PlanMode; label: string; note: string }> = [
     { id: 'course', label: 'Course', note: 'Everything to learn, by topic' },
-    { id: 'schedule', label: 'Schedule', note: 'Month by month, week by week' },
+    { id: 'schedule', label: 'Schedule', note: 'Day by day, at your own pace' },
   ]
 
   return (
@@ -78,7 +80,7 @@ export function PlanView({ doneIds, today, onToggle, onOpenDay, sessions, passed
       </div>
 
       {mode === 'course' ? (
-        <CourseView today={today} passed={passed} savedCode={savedCode} onOpenLesson={onOpenLesson} onOpenDay={onOpenDay} />
+        <CourseView currentDay={currentDay} passed={passed} savedCode={savedCode} onOpenLesson={onOpenLesson} onOpenDay={onOpenDay} />
       ) : (
         <>
           <motion.section {...reveal} className="mb-10 grid grid-cols-3 divide-x divide-border rounded-2xl border border-border">
@@ -91,12 +93,12 @@ export function PlanView({ doneIds, today, onToggle, onOpenDay, sessions, passed
           </motion.section>
 
           <motion.section {...reveal}>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Daily completion</p>
-            <ActivityHeatmap doneIds={doneIds} today={today} />
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Days completed</p>
+            <ActivityHeatmap doneIds={doneIds} currentDay={currentDay} />
           </motion.section>
 
           <motion.section {...reveal} className="mt-12">
-            <SectionLabel eyebrow="GOAL · 31 OCT 2027" title="Targets" />
+            <SectionLabel eyebrow={`GOAL · ${STUDY_DAY_COUNT} DAYS`} title="Targets" />
             <ul className="divide-y divide-border/50">
               {TARGETS.map((t) => (
                 <TaskItem key={t.id} task={t} isDone={doneIds.has(t.id)} onToggle={onToggle} />
@@ -106,10 +108,12 @@ export function PlanView({ doneIds, today, onToggle, onOpenDay, sessions, passed
 
           {PHASES.map((phase) => {
             const percent = toPercent(getProgress(getPhaseTasks(phase.id), doneIds))
+            const phaseDays = STUDY_DAYS.filter((d) => d.week.phaseId === phase.id)
+            const range = phaseDays.length > 0 ? formatDayRange(phaseDays[0].number, phaseDays[phaseDays.length - 1].number) : ''
             return (
               <motion.section key={phase.id} {...reveal} className="mt-14">
                 <SectionLabel
-                  eyebrow={`${phase.label ?? `PHASE ${phase.number}`} · ${format(parseISO(phase.start), 'd MMM yyyy')} → ${format(parseISO(phase.end), 'd MMM yyyy')}`}
+                  eyebrow={`${phase.label ?? `PHASE ${phase.number}`} · ${range.toUpperCase()}`}
                   title={phase.title}
                 />
                 <p className="text-sm text-muted-foreground">{phase.goal}</p>
@@ -119,8 +123,8 @@ export function PlanView({ doneIds, today, onToggle, onOpenDay, sessions, passed
                 </div>
 
                 <div className="border-t border-border">
-                  {WEEKS.filter((w) => w.phaseId === phase.id).map((week) => (
-                    <WeekCard key={week.id} week={week} doneIds={doneIds} today={today} onToggle={onToggle} onOpenDay={onOpenDay} />
+                  {WEEKS.filter((w) => w.phaseId === phase.id && getWeekDays(w).length > 0).map((week) => (
+                    <WeekCard key={week.id} week={week} doneIds={doneIds} currentDay={currentDay} onToggle={onToggle} onOpenDay={onOpenDay} />
                   ))}
                 </div>
 

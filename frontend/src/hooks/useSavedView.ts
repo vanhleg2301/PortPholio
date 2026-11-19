@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { RoadmapTab } from '@/components/roadmap/BottomTabBar'
 import { LIBRARY_TOPICS, type LibraryTopic } from '@/data/library'
-import { clampToPlan } from '@/lib/roadmapStats'
+import { STUDY_DAY_COUNT, getStudyDayByDate } from '@/data/roadmap/studyDays'
 
 const STORAGE_KEY = 'roadmap:view'
 const LEGACY_PLAN_MODE_KEY = 'roadmap:plan-mode'
@@ -14,7 +14,8 @@ export type LibraryFilter = LibraryTopic | 'all'
 
 export interface RoadmapView {
   tab: RoadmapTab
-  date: string
+  // Study day open on Today; null = the current day (the first one with work left).
+  day: number | null
   planMode: PlanMode
   libraryTopic: LibraryFilter
 }
@@ -23,16 +24,16 @@ const isPlanMode = (value: unknown): value is PlanMode => value === 'course' || 
 const isLibraryFilter = (value: unknown): value is LibraryFilter =>
   value === 'all' || LIBRARY_TOPICS.some((t) => t.id === value)
 
-function readSaved(today: string): RoadmapView {
-  const view: RoadmapView = { tab: 'today', date: clampToPlan(today), planMode: 'course', libraryTopic: 'all' }
+// The tab, plan mode and topic are remembered; Today always reopens on the current day.
+function readSaved(): RoadmapView {
+  const view: RoadmapView = { tab: 'today', day: null, planMode: 'course', libraryTopic: 'all' }
   try {
     if (localStorage.getItem(LEGACY_PLAN_MODE_KEY) === 'schedule') view.planMode = 'schedule'
     const raw = localStorage.getItem(STORAGE_KEY)
     const parsed: unknown = raw ? JSON.parse(raw) : null
     if (typeof parsed !== 'object' || parsed === null) return view
-    const { tab, date, planMode, libraryTopic } = parsed as Record<string, unknown>
+    const { tab, planMode, libraryTopic } = parsed as Record<string, unknown>
     if (TABS.includes(tab as RoadmapTab)) view.tab = tab as RoadmapTab
-    if (typeof date === 'string' && DATE_RE.test(date)) view.date = clampToPlan(date)
     if (isPlanMode(planMode)) view.planMode = planMode
     if (isLibraryFilter(libraryTopic)) view.libraryTopic = libraryTopic
   } catch {
@@ -41,10 +42,15 @@ function readSaved(today: string): RoadmapView {
   return view
 }
 
+const toDayNumber = (value: string | undefined): number | null => {
+  const n = Number(value)
+  return Number.isInteger(n) && n >= 1 ? Math.min(n, STUDY_DAY_COUNT) : null
+}
+
 export function getViewPath(view: RoadmapView): string {
   switch (view.tab) {
     case 'today':
-      return `/roadmap/today/${view.date}`
+      return view.day === null ? '/roadmap/today' : `/roadmap/day/${view.day}`
     case 'plan':
       return `/roadmap/plan/${view.planMode}`
     case 'library':
@@ -54,37 +60,39 @@ export function getViewPath(view: RoadmapView): string {
   }
 }
 
-// `/roadmap` alone or an unknown path falls back to the last view.
-function parseView(pathname: string, today: string, last: RoadmapView): RoadmapView {
+// `/roadmap` alone or an unknown path falls back to the last view (Today on the current day).
+// `/roadmap/today/<date>` is an old link from the calendar plan: it opens the day that date became.
+function parseView(pathname: string, last: RoadmapView): RoadmapView {
   const [tab, arg] = pathname.split('/').slice(2)
-  if (tab === 'today') return { ...last, tab, date: arg && DATE_RE.test(arg) ? clampToPlan(arg) : clampToPlan(today) }
+  if (tab === 'day') return { ...last, tab: 'today', day: toDayNumber(arg) }
+  if (tab === 'today') return { ...last, tab, day: arg && DATE_RE.test(arg) ? getStudyDayByDate(arg).number : null }
   if (tab === 'plan') return { ...last, tab, planMode: isPlanMode(arg) ? arg : last.planMode }
   if (tab === 'library') return { ...last, tab, libraryTopic: isLibraryFilter(arg) ? arg : 'all' }
   if (tab === 'notes') return { ...last, tab }
-  return last
+  return { ...last, day: null }
 }
 
 export const isLessonPath = (pathname: string) => pathname.startsWith('/roadmap/learn/')
 
 /*
-  The URL holds the open view: /roadmap/today/2026-11-16, /roadmap/plan/course, /roadmap/library/dsa,
-  /roadmap/notes. While a lesson (/roadmap/learn/:id) is open, the last view is kept for the side panel
+  The URL holds the open view: /roadmap/today (the current study day), /roadmap/day/12,
+  /roadmap/plan/course, /roadmap/library/dsa, /roadmap/notes. While a lesson (/roadmap/learn/:id) is open, the last view is kept for the side panel
   and for "back". The last view is also saved, so opening /roadmap (the PWA start) returns to it.
 */
-export function useRoadmapRoute(today: string) {
+export function useRoadmapRoute() {
   const location = useLocation()
   const navigate = useNavigate()
   const lastRef = useRef<RoadmapView | null>(null)
-  if (lastRef.current === null) lastRef.current = readSaved(today)
+  if (lastRef.current === null) lastRef.current = readSaved()
   const isLesson = isLessonPath(location.pathname)
-  const view = isLesson ? lastRef.current : parseView(location.pathname, today, lastRef.current)
+  const view = isLesson ? lastRef.current : parseView(location.pathname, lastRef.current)
   const path = getViewPath(view)
 
   useEffect(() => {
     if (isLesson) return
     lastRef.current = view
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(view))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...view, day: null }))
     } catch {
       // Storage can be blocked (private mode); the view just won't be remembered.
     }
@@ -93,7 +101,7 @@ export function useRoadmapRoute(today: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLesson, path, location.pathname, location.hash, navigate])
 
-  // Same view (a new day on Today, another plan mode or topic) replaces the history entry;
+  // Same view (another day on Today, another plan mode or topic) replaces the history entry;
   // another tab, or leaving a lesson, adds one so Back returns.
   function goTo(next: Partial<RoadmapView>, options: { hash?: string; replace?: boolean } = {}) {
     const target = { ...view, ...next }

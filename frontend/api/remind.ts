@@ -30,7 +30,8 @@ export async function GET(request: Request): Promise<Response> {
   const today = getTodayInVietnam()
 
   const [progress, reviews, subscriptions] = await Promise.all([
-    supabase.from('roadmap_progress').select('task_id').like('task_id', `${today}:%`),
+    // The plan is self-paced (study days, not dates): anything ticked since midnight in Vietnam counts.
+    supabase.from('roadmap_progress').select('task_id').gte('completed_at', new Date(`${today}T00:00:00+07:00`).toISOString()),
     supabase.from('roadmap_reviews').select('id').lte('due_date', today).is('completed_at', null),
     supabase.from('push_subscriptions').select('endpoint, p256dh, auth'),
   ])
@@ -38,7 +39,6 @@ export async function GET(request: Request): Promise<Response> {
     return Response.json({ error: (progress.error ?? reviews.error ?? subscriptions.error)?.message }, { status: 500 })
   }
 
-  // Task ids start with the plan date, so this counts what was ticked for today.
   const tickedToday = progress.data.length
   const dueReviews = reviews.data.length
   if (tickedToday > 0 && dueReviews === 0) {
@@ -48,7 +48,7 @@ export async function GET(request: Request): Promise<Response> {
   const reviewText = `${dueReviews} review${dueReviews > 1 ? 's' : ''} waiting`
   const payload = JSON.stringify({
     title: tickedToday === 0 ? 'No study yet today' : 'Reviews are waiting',
-    body: tickedToday === 0 ? `Open today's plan and keep the streak going.${dueReviews > 0 ? ` ${reviewText}.` : ''}` : `${reviewText}. A few minutes is enough.`,
+    body: tickedToday === 0 ? `Open your next study day and keep the streak going.${dueReviews > 0 ? ` ${reviewText}.` : ''}` : `${reviewText}. A few minutes is enough.`,
     url: '/roadmap/today',
   })
 

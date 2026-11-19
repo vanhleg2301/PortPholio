@@ -71,10 +71,17 @@ Mỗi bài mới phải có đủ:
   phải trùng y hệt để id task không đổi (plan.ts báo lỗi nếu lệch).
 - Phỏng vấn thử: `data/lessons/mockTests.ts`, theo ngày. Cuối tuần (CN) = quiz bài trong tuần + 1 bài code + 2 câu
   nói, dễ hơn; cuối tháng = quiz cả tháng + 2 bài code + 4 câu nói, có đồng hồ. Chỉ dùng kiến thức đã dạy.
-- URL giữ màn hình đang mở (`hooks/useSavedView.ts` → `useRoadmapRoute`): `/roadmap/today/<ngày>` (`#test` = cuộn tới
-  bài test của ngày), `/roadmap/plan/course|schedule`, `/roadmap/library[/<topic>]`, `/roadmap/notes`,
-  `/roadmap/learn/<id>[#<mục>]`. `/roadmap` (start_url của PWA) mở lại màn hình lần trước. Đổi ngày/chế độ/topic
-  dùng `replace`, đổi tab thì thêm vào lịch sử. Màn hình mới phải có path, không giữ trạng thái chỉ trong state.
+- Học theo **Day**, không theo lịch (`data/roadmap/studyDays.ts`): ngày lịch trong `plan.ts` vẫn là nguồn thứ tự, id task,
+  bài test tuần/tháng (`mock-<ngày>`), nhưng được gộp trong từng tuần thành Day 1, 2, … mỗi Day ~1–3 giờ (`estimateMinutes`),
+  tiêu đề = tên kiến thức. Không bao giờ tách một ngày lịch (id, ghi chú, đáp án giữ nguyên). "Today" = Day đầu tiên còn
+  task bắt buộc chưa xong (`getCurrentDay`); task "Optional" không tính giờ. Ghi chú/file lưu dưới `day.key` (ngày đầu của Day),
+  đọc theo mọi ngày trong `day.dates`. Nhắc học (`api/remind.ts`) đếm task tick từ nửa đêm giờ VN.
+- Test đã pass thì luôn tính là pass; làm lại thoải mái (kết quả mỗi lần + điểm cao nhất lưu trong `choice-state`).
+- URL giữ màn hình đang mở (`hooks/useSavedView.ts` → `useRoadmapRoute`): `/roadmap/today` (Day hiện tại),
+  `/roadmap/day/<n>` (`#test` = cuộn tới bài test), link cũ `/roadmap/today/<ngày>` tự chuyển sang Day chứa ngày đó,
+  `/roadmap/plan/course|schedule`, `/roadmap/library[/<topic>]`, `/roadmap/notes`, `/roadmap/learn/<id>[#<mục>]`.
+  `/roadmap` (start_url của PWA) mở lại tab lần trước, Today luôn mở Day hiện tại. Đổi Day/chế độ/topic dùng `replace`,
+  đổi tab thì thêm vào lịch sử. Màn hình mới phải có path, không giữ trạng thái chỉ trong state.
 - Flashcard (`lib/reviewDeck.ts`, lưu trong roadmap_code key `review-deck`, ôn 1/3/7/30 ngày): câu trắc nghiệm sai,
   từ đã tra, bài code của test bị Submit sai hoặc đã mở Solution, câu phỏng vấn chưa đủ ý. Ref của code/explain là
   `<testId>/<itemId>` (testId = id bài hoặc `mock-<ngày>`). Loại thẻ mới phải thêm vào `cardSchema`; `parseDeck` bỏ

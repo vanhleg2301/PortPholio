@@ -1,15 +1,14 @@
-import { format, parseISO } from 'date-fns'
 import { ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TaskItem } from '@/components/roadmap/TaskItem'
-import type { RoadmapDay } from '@/data/roadmap/types'
+import { formatStudyTime, type StudyDay } from '@/data/roadmap/studyDays'
 
 interface DayCardProps {
-  day: RoadmapDay
+  day: StudyDay
   doneIds: Set<string>
   isToday: boolean
   onToggle: (taskId: string, isDone: boolean) => void
-  onOpen: (date: string) => void
+  onOpen: (day: number) => void
 }
 
 export function DayCard({ day, doneIds, isToday, onToggle, onOpen }: DayCardProps) {
@@ -26,15 +25,18 @@ export function DayCard({ day, doneIds, isToday, onToggle, onOpen }: DayCardProp
     >
       <button
         type="button"
-        onClick={() => onOpen(day.date)}
-        className="group -mx-2 -mt-1 w-[calc(100%+1rem)] flex items-center justify-between rounded-lg px-2 pt-1 pb-2 border-b border-border/60 hover:bg-foreground/[0.06] transition-colors"
+        onClick={() => onOpen(day.number)}
+        className="group -mx-2 -mt-1 w-[calc(100%+1rem)] flex items-start justify-between gap-3 rounded-lg px-2 pt-1 pb-2 border-b border-border/60 text-left hover:bg-foreground/[0.06] transition-colors"
       >
-        <span className="text-xs font-semibold uppercase tracking-widest">
-          {format(parseISO(day.date), 'EEE d MMM')}
-          {isToday && <span className="ml-2 text-emerald-500">Today</span>}
+        <span className="min-w-0">
+          <span className="block text-xs font-semibold uppercase tracking-widest">
+            Day {day.number} · {formatStudyTime(day.minutes)}
+            {isToday && <span className="ml-2 text-emerald-500">Today</span>}
+          </span>
+          <span className="mt-0.5 block text-sm font-semibold leading-snug">{day.title}</span>
         </span>
-        <span className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground group-hover:text-foreground">
-          {day.tasks.length === 0 ? 'rest' : `${done}/${day.tasks.length}`}
+        <span className="flex shrink-0 items-center gap-2 text-[11px] font-mono text-muted-foreground group-hover:text-foreground">
+          {`${done}/${day.tasks.length}`}
           <ArrowRight className="h-3.5 w-3.5" />
         </span>
       </button>

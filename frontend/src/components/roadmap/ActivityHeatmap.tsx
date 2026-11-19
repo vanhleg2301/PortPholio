@@ -1,11 +1,9 @@
-import { format, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
-import { getWeekday } from '@/data/roadmap/plan'
-import { ALL_DAYS } from '@/lib/roadmapStats'
+import { STUDY_DAYS, type StudyDay } from '@/data/roadmap/studyDays'
 
 interface ActivityHeatmapProps {
   doneIds: Set<string>
-  today: string
+  currentDay: StudyDay
 }
 
 function getLevelClass(ratio: number, isFuture: boolean): string {
@@ -16,28 +14,24 @@ function getLevelClass(ratio: number, isFuture: boolean): string {
   return 'bg-emerald-500'
 }
 
-export function ActivityHeatmap({ doneIds, today }: ActivityHeatmapProps) {
-  const leadingBlanks = (getWeekday(ALL_DAYS[0].date) + 6) % 7
-
+// One square per study day, Day 1 first, filled by the share of its tasks that are done.
+export function ActivityHeatmap({ doneIds, currentDay }: ActivityHeatmapProps) {
   return (
     <div className="overflow-x-auto pb-2">
       <div className="grid grid-rows-7 grid-flow-col gap-[3px] w-max">
-        {Array.from({ length: leadingBlanks }, (_, i) => (
-          <span key={`blank-${i}`} className="h-[11px] w-[11px]" />
-        ))}
-        {ALL_DAYS.map((day) => {
+        {STUDY_DAYS.map((day) => {
           const done = day.tasks.filter((t) => doneIds.has(t.id)).length
-          const ratio = day.tasks.length === 0 ? 0 : done / day.tasks.length
-          const label = `${format(parseISO(day.date), 'EEE d MMM yyyy')}: ${done}/${day.tasks.length} tasks`
+          const ratio = done / day.tasks.length
+          const label = `Day ${day.number} · ${day.title}: ${done}/${day.tasks.length} tasks`
           return (
             <span
-              key={day.date}
+              key={day.number}
               title={label}
               aria-label={label}
               className={cn(
                 'h-[11px] w-[11px] rounded-[2px]',
-                getLevelClass(ratio, day.date > today),
-                day.date === today && 'ring-1 ring-foreground ring-offset-1 ring-offset-background'
+                getLevelClass(ratio, day.number > currentDay.number),
+                day.number === currentDay.number && 'ring-1 ring-foreground ring-offset-1 ring-offset-background'
               )}
             />
           )

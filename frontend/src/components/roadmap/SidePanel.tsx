@@ -4,7 +4,7 @@ import { CodeCell } from '@/components/learn/CodeCell'
 import { DayNotes } from '@/components/roadmap/DayNotes'
 import { ResourceList } from '@/components/roadmap/ResourceList'
 import { appear } from '@/lib/motion'
-import { DAY_BY_DATE } from '@/lib/roadmapStats'
+import type { StudyDay } from '@/data/roadmap/studyDays'
 import type { NoteTopic } from '@/data/roadmap/topics'
 import type { RoadmapNote } from '@/hooks/useRoadmapNotes'
 import type { RoadmapResource } from '@/hooks/useRoadmapResources'
@@ -15,7 +15,7 @@ nums = [3, 1, 2]
 print(sorted(nums))`
 
 interface SidePanelProps {
-  date: string
+  day: StudyDay
   isOwner: boolean
   notes: RoadmapNote[]
   isNotesReady: boolean
@@ -31,8 +31,8 @@ function Title({ children }: { children: string }) {
 }
 
 // Desktop right column: notes, resources and a Python scratchpad next to whatever you are reading.
-export function SidePanel({ date, isOwner, notes, isNotesReady, resources, savedCode, isCodeReady, onSaveCode, onRequestSignIn }: SidePanelProps) {
-  const tasks = DAY_BY_DATE.get(date)?.tasks ?? []
+export function SidePanel({ day, isOwner, notes, isNotesReady, resources, savedCode, isCodeReady, onSaveCode, onRequestSignIn }: SidePanelProps) {
+  const tasks = day.tasks
   const suggestedTopics = [...new Set(tasks.map((t): NoteTopic => t.kind))]
 
   if (!isOwner) {
@@ -53,14 +53,14 @@ export function SidePanel({ date, isOwner, notes, isNotesReady, resources, saved
       <motion.section {...appear(0)}>
         <Title>Notes</Title>
         {isNotesReady ? (
-          <DayNotes key={date} day={date} notes={notes.filter((n) => n.day === date)} suggestedTopics={suggestedTopics} />
+          <DayNotes key={day.key} day={day.key} notes={notes.filter((n) => day.dates.includes(n.day))} suggestedTopics={suggestedTopics} />
         ) : (
           <div className="h-24 animate-pulse rounded-2xl bg-foreground/[0.04]" />
         )}
       </motion.section>
       <motion.section {...appear(1)}>
         <Title>Resources</Title>
-        <ResourceList day={date} resources={resources.filter((r) => r.day === date)} />
+        <ResourceList day={day.key} resources={resources.filter((r) => day.dates.includes(r.day))} />
       </motion.section>
       <motion.section {...appear(2)}>
         <Title>Scratchpad</Title>

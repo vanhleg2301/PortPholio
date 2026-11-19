@@ -6,7 +6,7 @@ import { ArrowUpRight, Check, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ActivityHeatmap } from '@/components/roadmap/ActivityHeatmap'
 import { ProgressBar } from '@/components/roadmap/ProgressBar'
-import { ALL_DAYS, getTodayIso } from '@/lib/roadmapStats'
+import { STUDY_DAY_COUNT, getCurrentDay } from '@/data/roadmap/studyDays'
 import { getJourneyStats } from '@/lib/journeyStats'
 import { EASE_OUT } from '@/lib/motion'
 import { NEETCODE_150_TOTAL } from '@/data/roadmap/neetcode'
@@ -41,10 +41,9 @@ function SectionHeader({ num, title }: { num: string; title: string }) {
 
 export default function JourneyPage() {
   useDocumentTitle('Road to Big Tech · Hoang Cao Viet Anh')
-  const today = getTodayIso()
   const { data: rows = [], isLoading } = useRoadmapProgress()
   const { data: sessions = [] } = useStudySessions()
-  const stats = useMemo(() => getJourneyStats(rows, sessions, today), [rows, sessions, today])
+  const stats = useMemo(() => getJourneyStats(rows, sessions), [rows, sessions])
 
   const headline = [
     { value: `${stats.solved}`, suffix: `/${NEETCODE_150_TOTAL}`, label: 'NeetCode solved' },
@@ -59,7 +58,7 @@ export default function JourneyPage() {
       <motion.div initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: EASE_OUT }}>
         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-6">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          Learning in public · Day {Math.min(stats.dayNumber, ALL_DAYS.length)} of {ALL_DAYS.length}
+          Learning in public · Day {stats.dayNumber} of {STUDY_DAY_COUNT}
         </p>
         <h1 className="font-display font-extrabold uppercase leading-[0.9] tracking-tight" style={{ fontSize: 'clamp(3rem, 9vw, 9rem)' }}>
           Road to
@@ -124,7 +123,7 @@ export default function JourneyPage() {
       {/* Activity */}
       <motion.section {...reveal} className="mt-24">
         <SectionHeader num="01" title="Consistency" />
-        <ActivityHeatmap doneIds={stats.doneIds} today={today} />
+        <ActivityHeatmap doneIds={stats.doneIds} currentDay={getCurrentDay(stats.doneIds)} />
         <p className="mt-4 text-sm text-muted-foreground">
           {stats.activeDays} active day{stats.activeDays === 1 ? '' : 's'} so far. Each square is one day of the plan, coloured by how much of
           it got done.
