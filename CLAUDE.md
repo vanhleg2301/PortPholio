@@ -77,7 +77,8 @@ Mỗi bài mới phải có đủ:
   task bắt buộc chưa xong (`getCurrentDay`); task "Optional" không tính giờ. Ghi chú/file lưu dưới `day.key` (ngày đầu của Day),
   đọc theo mọi ngày trong `day.dates`. Nhắc học (`api/remind.ts`) đếm task tick từ nửa đêm giờ VN.
 - **Track riêng tư** (vd "Gateway of Asia"): repo này CÔNG KHAI, nên nội dung track riêng tư **không bao giờ** nằm trong
-  repo hay bundle JS. Nội dung viết ở repo riêng (GOA: `goa-smart-corpsec/docs/learn/goa-track.ts`), kiểm tra và sinh SQL
+  repo hay bundle JS. Nội dung để ngoài mọi repo, ở `My Project/private-tracks/<id>/` cạnh PortPholio (GOA:
+  `private-tracks/goa/goa-track.ts`; KHÔNG commit vào repo GOA), kiểm tra và sinh SQL
   bằng `npx tsx scripts/build-private-track.ts <track.ts> <out.sql>`, người dùng dán SQL vào SQL Editor (bảng
   `roadmap_private_tracks`, RLS chỉ owner, migration 012). App tải khi owner đăng nhập (`lib/privateTracks.ts`) rồi đăng ký
   vào LESSON_BY_ID / LESSON_TESTS / GLOSSARY / TASK_BY_ID / ngày học (`lib/privateTrackRegistry.ts`). URL
