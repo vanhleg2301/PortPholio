@@ -51,8 +51,10 @@ Mỗi bài mới phải có đủ:
 - "Learn first" cho từng concept, bài code và câu phỏng vấn trong `tests/primers.ts` (cả bài phỏng vấn thử, key
   `mock-<ngày>`, phải ghi `lessonId`): giải thích ý cần để trả lời bằng chữ đơn giản + một ví dụ nhỏ, **không lộ đáp án**
   của cả hai câu cùng concept, và `section` = tên một mục trong mục lục bài. Ví dụ Python ghi output bằng `# comment`
-  (`check:lessons` chạy và so khớp). Mới có cho tuần 1 (dsa-arrays-hashing, net-latency-tcp, mock 22/11); bài khác
-  viết dần theo góp ý của người dùng.
+  (`check:lessons` chạy và so khớp). Đã có cho tuần 1 (dsa-arrays-hashing, net-latency-tcp, mock 22/11) và tuần 2
+  (dsa-two-pointers, dsa-sliding-window, net-udp-tls, mock 29/11); bài khác viết dần theo góp ý của người dùng.
+  Mục lục chỉ lấy `## heading` đầu tiên của mỗi khối text; heading thứ hai trong cùng khối không dùng làm `section` được
+  (dùng tên bài tập thay thế).
 - Test **chỉ được dùng kiến thức bài đó hoặc bài trước đã dạy**; thiếu thì dạy thêm trong bài hoặc đổi câu.
 - Chạy `npm run check:lessons` (chạy Python thật trên mọi ví dụ, bài tập và câu "What does this print?").
 - Thêm task vào lịch trong `frontend/src/data/roadmap/plan.ts`. Đổi lịch không được làm đổi id của task
