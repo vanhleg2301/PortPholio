@@ -9,7 +9,7 @@ import { MermaidDiagram } from '@/components/learn/MermaidDiagram'
 import { MarkdownPreview } from '@/components/roadmap/MarkdownPreview'
 import { QuizItem } from '@/components/roadmap/TheoryCard'
 import { listContainer, listItem } from '@/lib/motion'
-import { LESSONS, LESSON_ANCHORS, LESSON_TESTS, blockAnchor, getExerciseIds, getLessonTerms } from '@/data/lessons'
+import { LESSONS, LESSON_ANCHORS, LESSON_TESTS, blockAnchor, getExerciseIds, getLessonTerms, sectionAnchor, splitTextSections } from '@/data/lessons'
 import { LessonTestCard } from '@/components/learn/LessonTestCard'
 import { LessonOutlineSheet } from '@/components/learn/LessonOutline'
 import { LessonFind, type LessonFindRequest } from '@/components/learn/LessonFind'
@@ -83,10 +83,17 @@ export function LessonView({
     setIsFindOpen(true)
   }
 
-  function renderBlock(block: LessonBlock) {
+  function renderBlock(block: LessonBlock, index: number) {
     switch (block.type) {
-      case 'text':
-        return <MarkdownPreview content={block.md} withGlossary />
+      case 'text': {
+        const parts = splitTextSections(block.md)
+        if (parts.length === 1) return <MarkdownPreview content={block.md} withGlossary />
+        return parts.map((part, j) => (
+          <div key={j} id={j > 0 ? sectionAnchor(index, j) : undefined} className={cn(j > 0 && 'mt-6 scroll-mt-32')}>
+            <MarkdownPreview content={part} withGlossary />
+          </div>
+        ))
+      }
       case 'callout': {
         const style = CALLOUT[block.tone]
         return (
@@ -239,7 +246,7 @@ export function LessonView({
 
       {lesson.blocks.map((block, i) => (
         <motion.div key={i} id={blockAnchor(i)} variants={listItem} className="mt-6 scroll-mt-32">
-          {renderBlock(block)}
+          {renderBlock(block, i)}
         </motion.div>
       ))}
 

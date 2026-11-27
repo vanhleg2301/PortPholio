@@ -53,8 +53,7 @@ Mỗi bài mới phải có đủ:
   của cả hai câu cùng concept, và `section` = tên một mục trong mục lục bài. Ví dụ Python ghi output bằng `# comment`
   (`check:lessons` chạy và so khớp). Đã có cho tuần 1 (dsa-arrays-hashing, net-latency-tcp, mock 22/11) và tuần 2
   (dsa-two-pointers, dsa-sliding-window, net-udp-tls, mock 29/11); bài khác viết dần theo góp ý của người dùng.
-  Mục lục chỉ lấy `## heading` đầu tiên của mỗi khối text; heading thứ hai trong cùng khối không dùng làm `section` được
-  (dùng tên bài tập thay thế).
+  Mỗi `## heading` (kể cả nhiều heading trong một khối text) là một mục lục riêng (`splitTextSections`, `sectionAnchor`).
 - Test **chỉ được dùng kiến thức bài đó hoặc bài trước đã dạy**; thiếu thì dạy thêm trong bài hoặc đổi câu.
 - Chạy `npm run check:lessons` (chạy Python thật trên mọi ví dụ, bài tập và câu "What does this print?").
 - Thêm task vào lịch trong `frontend/src/data/roadmap/plan.ts`. Đổi lịch không được làm đổi id của task

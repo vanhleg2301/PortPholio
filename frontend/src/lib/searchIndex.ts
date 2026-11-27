@@ -1,4 +1,4 @@
-import { LESSONS, VISUAL_TITLES, blockAnchor, getTermPlace, toPlainText } from '@/data/lessons'
+import { LESSONS, VISUAL_TITLES, blockAnchor, getSectionHeading, getTermPlace, sectionAnchor, splitTextSections, toPlainText } from '@/data/lessons'
 import { GLOSSARY } from '@/data/lessons/glossary'
 import { WEEKS } from '@/data/roadmap/plan'
 import { getStudyDayByDate } from '@/data/roadmap/studyDays'
@@ -49,9 +49,14 @@ function buildStaticEntries(): SearchEntry[] {
     lesson.blocks.forEach((block, i) => {
       const anchor = blockAnchor(i)
       if (block.type === 'text') {
-        const heading = block.md.split('\n').find((line) => line.startsWith('## '))
-        const title = heading ? toPlainText(heading.slice(3)) : lesson.title
-        entries.push(entry(`section:${lesson.id}:${i}`, 'Lessons', title, lesson.title, { type: 'lesson', lessonId: lesson.id, anchor }, toPlainText(block.md)))
+        const parts = splitTextSections(block.md)
+        parts.forEach((part, j) => {
+          // Text before the block's first heading is searched with that first section.
+          if (j === 0 && parts.length > 1 && !getSectionHeading(part)) return
+          const body = j === 1 && !getSectionHeading(parts[0]) ? `${parts[0]}\n${part}` : part
+          const id = j === 0 ? `section:${lesson.id}:${i}` : `section:${lesson.id}:${i}-${j}`
+          entries.push(entry(id, 'Lessons', getSectionHeading(part) ?? lesson.title, lesson.title, { type: 'lesson', lessonId: lesson.id, anchor: sectionAnchor(i, j) }, toPlainText(body)))
+        })
       } else if (block.type === 'exercise') {
         entries.push(entry(`exercise:${lesson.id}:${block.id}`, 'Lessons', block.title, `Exercise · ${lesson.title}`, { type: 'lesson', lessonId: lesson.id, anchor }, toPlainText(block.prompt)))
       } else if (block.type === 'visual') {

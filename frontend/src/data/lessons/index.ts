@@ -142,11 +142,14 @@ export function getTermPlace(term: string): TermPlace | null {
     for (const lesson of LESSONS) {
       for (const key of getLessonTerms(lesson)) {
         if (termPlaces.has(key)) continue
+        const mark = `[[${key}`
         const index = lesson.blocks.findIndex((b) => {
           const md = b.type === 'text' || b.type === 'callout' ? b.md : b.type === 'exercise' ? b.prompt : ''
-          return md.toLowerCase().includes(`[[${key}`)
+          return md.toLowerCase().includes(mark)
         })
-        termPlaces.set(key, { lessonId: lesson.id, lessonTitle: lesson.title, anchor: index >= 0 ? blockAnchor(index) : undefined })
+        const block = lesson.blocks[index]
+        const part = block?.type === 'text' ? splitTextSections(block.md).findIndex((p) => p.toLowerCase().includes(mark)) : 0
+        termPlaces.set(key, { lessonId: lesson.id, lessonTitle: lesson.title, anchor: index >= 0 ? sectionAnchor(index, part) : undefined })
       }
     }
   }
@@ -199,14 +202,37 @@ export interface OutlineItem {
 export const blockAnchor = (index: number) => `lesson-block-${index}`
 export const LESSON_ANCHORS = { words: 'lesson-words', reading: 'lesson-reading', finish: 'lesson-finish' } as const
 
+// A text block can hold several "## " sections. The first part keeps the block's own anchor, so
+// older links still land in the same place; later parts get "<block anchor>-<part>".
+export const sectionAnchor = (block: number, part: number) => (part === 0 ? blockAnchor(block) : `${blockAnchor(block)}-${part}`)
+
+// The block's markdown cut before every "## " heading outside a code fence.
+export function splitTextSections(md: string): string[] {
+  const parts: string[][] = [[]]
+  let isInFence = false
+  for (const line of md.split('\n')) {
+    if (line.startsWith('```')) isInFence = !isInFence
+    if (!isInFence && line.startsWith('## ') && parts[parts.length - 1].some((l) => l.trim())) parts.push([])
+    parts[parts.length - 1].push(line)
+  }
+  return parts.map((lines) => lines.join('\n'))
+}
+
+export function getSectionHeading(part: string): string | null {
+  const line = part.split('\n').find((l) => l.startsWith('## '))
+  return line ? toPlainText(line.slice(3)) : null
+}
+
 // The lesson menu, built from the lesson's own structure (every lesson has the same shape).
 export function getLessonOutline(lesson: Lesson): OutlineItem[] {
   const items: OutlineItem[] = []
   lesson.blocks.forEach((block, i) => {
     const anchor = blockAnchor(i)
     if (block.type === 'text') {
-      const heading = block.md.split('\n').find((line) => line.startsWith('## '))
-      if (heading) items.push({ anchor, label: toPlainText(heading.slice(3)), kind: 'section' })
+      splitTextSections(block.md).forEach((part, j) => {
+        const label = getSectionHeading(part)
+        if (label) items.push({ anchor: sectionAnchor(i, j), label, kind: 'section' })
+      })
     } else if (block.type === 'visual') {
       items.push({ anchor, label: VISUAL_TITLES[block.visual], kind: 'visual' })
     } else if (block.type === 'exercise') {
