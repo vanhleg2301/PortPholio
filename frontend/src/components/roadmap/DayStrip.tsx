@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { STUDY_DAYS, getWeekDays, type StudyDay } from '@/data/roadmap/studyDays'
+import { getTrackDays, getWeekDays, type StudyDay } from '@/data/roadmap/studyDays'
 import { SPRING, slide } from '@/lib/motion'
 
 interface DayStripProps {
@@ -28,8 +28,9 @@ export function DayStrip({ day, currentDay, doneIds, onSelect }: DayStripProps) 
     setDirection(days[0].number > lastWeek.first ? 1 : -1)
     setLastWeek({ id: weekId, first: days[0].number })
   }
-  const previous = STUDY_DAYS[days[0].number - 2]
-  const next = STUDY_DAYS[days[days.length - 1].number]
+  const trackDays = getTrackDays(day.track)
+  const previous = trackDays[days[0].number - 2]
+  const next = trackDays[days[days.length - 1].number]
 
   return (
     <div>

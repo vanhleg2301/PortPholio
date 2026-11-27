@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { CalendarCheck, ChevronLeft, ChevronRight, Library, Map as MapIcon, NotebookPen, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SPRING } from '@/lib/motion'
-import { STUDY_DAYS, getWeekDays, type StudyDay } from '@/data/roadmap/studyDays'
+import { getTrackDays, getWeekDays, type StudyDay } from '@/data/roadmap/studyDays'
 import type { RoadmapTab } from '@/components/roadmap/BottomTabBar'
 
 const NAV: Array<{ id: RoadmapTab; label: string; icon: LucideIcon }> = [
@@ -24,8 +24,9 @@ interface DesktopSidebarProps {
 export function DesktopSidebar({ tab, selectedDay, currentDay, doneIds, onChangeTab, onOpenDay }: DesktopSidebarProps) {
   const week = selectedDay.week
   const days = getWeekDays(week)
-  const previous = STUDY_DAYS[days[0].number - 2]
-  const next = STUDY_DAYS[days[days.length - 1].number]
+  const trackDays = getTrackDays(selectedDay.track)
+  const previous = trackDays[days[0].number - 2]
+  const next = trackDays[days[days.length - 1].number]
   const shiftWeek = (target: StudyDay | undefined) => target && onOpenDay(getWeekDays(target.week)[0].number)
 
   return (

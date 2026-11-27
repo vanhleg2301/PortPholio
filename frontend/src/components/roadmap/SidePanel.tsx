@@ -16,6 +16,8 @@ print(sorted(nums))`
 
 interface SidePanelProps {
   day: StudyDay
+  // Notes and files are saved under a calendar date of the main plan; private tracks have none.
+  hasNotes: boolean
   isOwner: boolean
   notes: RoadmapNote[]
   isNotesReady: boolean
@@ -31,7 +33,7 @@ function Title({ children }: { children: string }) {
 }
 
 // Desktop right column: notes, resources and a Python scratchpad next to whatever you are reading.
-export function SidePanel({ day, isOwner, notes, isNotesReady, resources, savedCode, isCodeReady, onSaveCode, onRequestSignIn }: SidePanelProps) {
+export function SidePanel({ day, hasNotes, isOwner, notes, isNotesReady, resources, savedCode, isCodeReady, onSaveCode, onRequestSignIn }: SidePanelProps) {
   const tasks = day.tasks
   const suggestedTopics = [...new Set(tasks.map((t): NoteTopic => t.kind))]
 
@@ -50,6 +52,8 @@ export function SidePanel({ day, isOwner, notes, isNotesReady, resources, savedC
 
   return (
     <div className="flex flex-col gap-8">
+      {hasNotes && (
+        <>
       <motion.section {...appear(0)}>
         <Title>Notes</Title>
         {isNotesReady ? (
@@ -62,6 +66,8 @@ export function SidePanel({ day, isOwner, notes, isNotesReady, resources, savedC
         <Title>Resources</Title>
         <ResourceList day={day.key} resources={resources.filter((r) => day.dates.includes(r.day))} />
       </motion.section>
+        </>
+      )}
       <motion.section {...appear(2)}>
         <Title>Scratchpad</Title>
         {isCodeReady ? (

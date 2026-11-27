@@ -19,7 +19,7 @@ import { DayStrip } from '@/components/roadmap/DayStrip'
 import type { RoadmapNote } from '@/hooks/useRoadmapNotes'
 import type { NoteTopic } from '@/data/roadmap/topics'
 import type { RoadmapResource } from '@/hooks/useRoadmapResources'
-import { formatStudyTime, type StudyDay } from '@/data/roadmap/studyDays'
+import { MAIN_TRACK, formatStudyTime, type StudyDay } from '@/data/roadmap/studyDays'
 import { cn } from '@/lib/utils'
 import { appear, listContainer, section, slide } from '@/lib/motion'
 
@@ -27,6 +27,11 @@ interface TodayViewProps {
   day: StudyDay
   // The first day with work left: flashcards and due reviews show there.
   currentDay: StudyDay
+  // Study tracks the learner can switch between (the main plan first), each with its own days.
+  tracks: Array<{ id: string; title: string }>
+  // About the private track on screen (null on the main plan).
+  trackAbout: string | null
+  onSelectTrack: (id: string) => void
   // Calendar date, for reviews and flashcards that fall due.
   today: string
   doneIds: Set<string>
@@ -65,6 +70,9 @@ function SectionTitle({ children }: { children: string }) {
 export function TodayView({
   day,
   currentDay,
+  tracks,
+  trackAbout,
+  onSelectTrack,
   today,
   doneIds,
   isOwner,
@@ -93,6 +101,8 @@ export function TodayView({
   const week = day.week
   const tasks = day.tasks
   const isCurrent = day.number === currentDay.number
+  // Notes and files are saved under a calendar date of the main plan; private tracks have none.
+  const hasNotes = day.track === MAIN_TRACK
   const done = tasks.filter((t) => doneIds.has(t.id)).length
   // Notes and files written on any calendar date packed into this day.
   const dayNotes = notes.filter((n) => day.dates.includes(n.day))
@@ -121,6 +131,26 @@ export function TodayView({
 
   return (
     <div>
+      {tracks.length > 1 && (
+        <div role="tablist" aria-label="Study track" className="mb-4 flex gap-1 overflow-x-auto rounded-2xl bg-foreground/[0.05] p-1 [scrollbar-width:none]">
+          {tracks.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={t.id === day.track}
+              onClick={() => t.id !== day.track && onSelectTrack(t.id)}
+              className={cn(
+                'shrink-0 flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition-colors',
+                t.id === day.track ? 'bg-background shadow-sm ring-1 ring-border' : 'text-muted-foreground hover:bg-foreground/[0.05]'
+              )}
+            >
+              {t.title}
+            </button>
+          ))}
+        </div>
+      )}
+      {trackAbout && <p className="mb-4 text-xs leading-relaxed text-muted-foreground">{trackAbout}</p>}
       {!isDesktop && <DayStrip day={day} currentDay={currentDay} doneIds={doneIds} onSelect={onSelectDay} />}
 
       <AnimatePresence mode="wait" custom={direction}>
@@ -309,7 +339,7 @@ export function TodayView({
             </motion.section>
           )}
 
-          {isDesktop ? null : isOwner ? (
+          {isDesktop || !hasNotes ? null : isOwner ? (
             <>
               <motion.section variants={section} layout="position">
                 <SectionTitle>Notes</SectionTitle>

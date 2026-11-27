@@ -76,6 +76,13 @@ Mỗi bài mới phải có đủ:
   tiêu đề = tên kiến thức. Không bao giờ tách một ngày lịch (id, ghi chú, đáp án giữ nguyên). "Today" = Day đầu tiên còn
   task bắt buộc chưa xong (`getCurrentDay`); task "Optional" không tính giờ. Ghi chú/file lưu dưới `day.key` (ngày đầu của Day),
   đọc theo mọi ngày trong `day.dates`. Nhắc học (`api/remind.ts`) đếm task tick từ nửa đêm giờ VN.
+- **Track riêng tư** (vd "Gateway of Asia"): repo này CÔNG KHAI, nên nội dung track riêng tư **không bao giờ** nằm trong
+  repo hay bundle JS. Nội dung viết ở repo riêng (GOA: `goa-smart-corpsec/docs/learn/goa-track.ts`), kiểm tra và sinh SQL
+  bằng `npx tsx scripts/build-private-track.ts <track.ts> <out.sql>`, người dùng dán SQL vào SQL Editor (bảng
+  `roadmap_private_tracks`, RLS chỉ owner, migration 012). App tải khi owner đăng nhập (`lib/privateTracks.ts`) rồi đăng ký
+  vào LESSON_BY_ID / LESSON_TESTS / GLOSSARY / TASK_BY_ID / ngày học (`lib/privateTrackRegistry.ts`). URL
+  `/roadmap/track/<id>[/day/<n>]`. Id task = `<track>:<lessonId>` (đổi ngày không mất tiến độ). Track riêng không có
+  ghi chú/file (cột `day` là DATE). Không dùng tên khách hay số liệu thật trong nội dung.
 - Test đã pass thì luôn tính là pass; làm lại thoải mái (kết quả mỗi lần + điểm cao nhất lưu trong `choice-state`).
 - URL giữ màn hình đang mở (`hooks/useSavedView.ts` → `useRoadmapRoute`): `/roadmap/today` (Day hiện tại),
   `/roadmap/day/<n>` (`#test` = cuộn tới bài test), link cũ `/roadmap/today/<ngày>` tự chuyển sang Day chứa ngày đó,

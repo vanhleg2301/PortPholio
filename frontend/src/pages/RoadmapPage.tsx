@@ -36,7 +36,8 @@ import { useRoadmapRoute } from '@/hooks/useSavedView'
 import { useRoadmapNotes } from '@/hooks/useRoadmapNotes'
 import { useRoadmapProgress, useToggleTask } from '@/hooks/useRoadmapProgress'
 import { useRoadmapResources } from '@/hooks/useRoadmapResources'
-import { getCurrentDay, getStudyDay, getStudyDayByDate, getStudyDayOfTask } from '@/data/roadmap/studyDays'
+import { MAIN_TRACK, STUDY_DAYS, getCurrentDay, getStudyDay, getStudyDayByDate, getStudyDayOfTask } from '@/data/roadmap/studyDays'
+import { usePrivateTracks } from '@/lib/privateTracks'
 import {
   ALL_TASKS,
   TASK_BY_ID,
@@ -74,11 +75,13 @@ const PAGE_LOADED_AT = Date.now()
 export default function RoadmapPage() {
   useDocumentTitle('Road to Big Tech · Study plan')
   const today = getTodayIso()
-  const { tab, day: routeDay, planMode, libraryTopic, viewPath, goTo } = useRoadmapRoute()
+  const { tab, track: routeTrack, day: routeDay, planMode, libraryTopic, viewPath, goTo } = useRoadmapRoute()
   const [isAccountOpen, setIsAccountOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
-  const { session, isOwner, signInWithGoogle, signOut } = useOwnerSession()
+  const { session, isReady: isSessionReady, isOwner, signInWithGoogle, signOut } = useOwnerSession()
+  // Owner-only tracks, loaded from the database (their content is not in the app's code).
+  const privateTracks = usePrivateTracks(isOwner)
   const { data: rows = [], isError } = useRoadmapProgress()
   const notesQuery = useRoadmapNotes(isOwner)
   const resourcesQuery = useRoadmapResources(isOwner)
@@ -128,7 +131,7 @@ export default function RoadmapPage() {
   // that merely links to a lesson keeps its own checkbox.
   const openedTaskId = (location.state as { taskId?: string } | null)?.taskId
   const lessonTask =
-    (openedTaskId ? TASK_BY_ID.get(openedTaskId) : undefined) ?? ALL_TASKS.find((t) => t.lessonId === lessonId && t.title.startsWith('Lesson:'))
+    (openedTaskId ? TASK_BY_ID.get(openedTaskId) : undefined) ?? [...TASK_BY_ID.values()].find((t) => t.lessonId === lessonId && t.title.startsWith('Lesson:'))
   const lessonTaskId = lessonTask?.title.startsWith('Lesson:') ? lessonTask.id : null
 
   const doneIds = useMemo(() => new Set(rows.map((r) => r.task_id)), [rows])
@@ -144,9 +147,17 @@ export default function RoadmapPage() {
     return map
   }, [sessions])
   // Self-paced: the current day is the first one with work left, whatever the calendar says.
-  const currentDay = useMemo(() => getCurrentDay(doneIds), [doneIds])
-  const selectedDay = (routeDay !== null ? getStudyDay(routeDay) : undefined) ?? currentDay
-  const todayTasks = currentDay.tasks
+  const activeTrack = privateTracks.data?.find((t) => t.id === routeTrack)
+  // A private track in the URL while the session or the track is still loading.
+  const isTrackLoading = routeTrack !== MAIN_TRACK && !activeTrack && (!isSessionReady || (isOwner && privateTracks.isLoading))
+  const trackDays = activeTrack?.days ?? STUDY_DAYS
+  const mainCurrentDay = useMemo(() => getCurrentDay(doneIds), [doneIds])
+  const currentDay = useMemo(() => getCurrentDay(doneIds, trackDays), [doneIds, trackDays])
+  const selectedDay = (routeDay !== null ? getStudyDay(Math.min(routeDay, trackDays.length), trackDays) : undefined) ?? currentDay
+  const todayTasks = mainCurrentDay.tasks
+  const trackOptions = [{ id: MAIN_TRACK, title: 'Big Tech' }, ...(privateTracks.data ?? []).map((t) => ({ id: t.id, title: t.title }))]
+  // A lesson of a private track opened before the track has loaded.
+  const isLessonLoading = Boolean(lessonId) && !lesson && (!isSessionReady || (isOwner && privateTracks.isLoading))
   const runningTask = focus.timer?.taskId ? TASK_BY_ID.get(focus.timer.taskId) : undefined
 
   useEffect(() => {
@@ -158,6 +169,13 @@ export default function RoadmapPage() {
   useEffect(() => {
     if (isError) setToast('Could not load progress.')
   }, [isError])
+
+  // A private track that this account cannot read (signed out, another account, removed): main plan.
+  useEffect(() => {
+    if (routeTrack === MAIN_TRACK || !isSessionReady || activeTrack) return
+    if (!isOwner || privateTracks.isSuccess || privateTracks.isError) goTo({ track: MAIN_TRACK, day: null }, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeTrack, isSessionReady, isOwner, activeTrack, privateTracks.isSuccess, privateTracks.isError])
 
   function handleToggle(taskId: string, isDone: boolean) {
     if (!isOwner) {
@@ -176,7 +194,7 @@ export default function RoadmapPage() {
   // Opens the study day of a task at its test section (/roadmap/day/<n>#test).
   function goToTest(taskId: string) {
     const day = getStudyDayOfTask(taskId)
-    if (day) goTo({ tab: 'today', day: day.number }, { hash: 'test' })
+    if (day) goTo({ tab: 'today', track: day.track, day: day.number }, { hash: 'test' })
   }
 
   function handleTestPassed(lessonId: string, itemId: string) {
@@ -341,14 +359,20 @@ export default function RoadmapPage() {
     saveCode.mutate({ key, code }, { onError: (err) => setToast(`Could not save code: ${err.message}`) })
   }
 
-  // A study day by number; null = the current day.
+  // A study day of the track on Today by number; null = its current day.
   function openDay(day: number | null) {
     goTo({ tab: 'today', day: day === currentDay.number ? null : day })
     window.scrollTo({ top: 0 })
   }
 
+  // A day of the main plan (Plan tab, notes, search results).
+  function openMainDay(day: number) {
+    goTo({ tab: 'today', track: MAIN_TRACK, day: day === mainCurrentDay.number ? null : day })
+    window.scrollTo({ top: 0 })
+  }
+
   // Something saved under a calendar date of the plan (a note, a search result).
-  const openDayOfDate = (date: string) => openDay(getStudyDayByDate(date).number)
+  const openDayOfDate = (date: string) => openMainDay(getStudyDayByDate(date).number)
 
   const avatarUrl = session?.user.user_metadata.avatar_url as string | undefined
   const showSidePanel = isDesktop && (tab === 'today' || Boolean(lesson))
@@ -468,7 +492,9 @@ export default function RoadmapPage() {
         )}
         <main className="min-w-0">
           <AnimatePresence mode="wait" initial={false}>
-            {lesson ? (
+            {isLessonLoading ? (
+              <motion.div key="lesson-loading" className="h-64 rounded-2xl bg-foreground/[0.04] animate-pulse" />
+            ) : lesson ? (
               <motion.div key={`lesson-${lesson.id}`} variants={fadeSwap} initial="initial" animate="animate" exit="exit">
                 <LessonView
                   findRequest={lessonFind}
@@ -496,10 +522,14 @@ export default function RoadmapPage() {
               </motion.div>
             ) : (
               <motion.div key={tab} variants={fadeSwap} initial="initial" animate="animate" exit="exit">
-        {tab === 'today' && (
+        {tab === 'today' && isTrackLoading && <div className="h-64 rounded-2xl bg-foreground/[0.04] animate-pulse" />}
+        {tab === 'today' && !isTrackLoading && (
           <TodayView
             day={selectedDay}
             currentDay={currentDay}
+            tracks={trackOptions}
+            trackAbout={activeTrack ? `${activeTrack.about} Checked against its sources on ${activeTrack.checkedOn}.` : null}
+            onSelectTrack={(id: string) => goTo({ track: id, day: null })}
             today={today}
             doneIds={doneIds}
             isOwner={isOwner}
@@ -531,8 +561,8 @@ export default function RoadmapPage() {
             doneIds={doneIds}
             today={today}
             onToggle={handleToggle}
-            onOpenDay={openDay}
-            currentDay={currentDay}
+            onOpenDay={openMainDay}
+            currentDay={mainCurrentDay}
             sessions={sessions}
             passed={passedItems}
             savedCode={savedCode}
@@ -566,6 +596,7 @@ export default function RoadmapPage() {
             {lesson && <LessonOutlinePanel lesson={lesson} passed={passedItems} isTestPassed={isLessonTestPassed(lesson.id, passedItems)} />}
             <SidePanel
               day={selectedDay}
+              hasNotes={selectedDay.track === MAIN_TRACK}
               isOwner={isOwner}
               notes={notesQuery.data ?? []}
               isNotesReady={notesQuery.isSuccess}

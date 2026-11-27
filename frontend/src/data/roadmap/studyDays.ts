@@ -14,6 +14,8 @@ export const DAY_MAX_MINUTES = 180
 const DAY_MIN_MINUTES = 60
 
 export interface StudyDay {
+  // 'bigtech' for the main plan, or the id of a private track.
+  track: string
   number: number
   // Stable key: the first calendar date packed into this day (notes and resources are saved under it).
   key: string
@@ -96,19 +98,31 @@ function buildStudyDays(): StudyDay[] {
         last.tasks.push(...chunk.tasks)
         continue
       }
-      days.push({ number: days.length + 1, key: chunk.dates[0], dates: chunk.dates, title: chunk.topics.join(' · '), topics: chunk.topics, minutes: chunk.minutes, tasks: chunk.tasks, week })
+      days.push({ track: MAIN_TRACK, number: days.length + 1, key: chunk.dates[0], dates: chunk.dates, title: chunk.topics.join(' · '), topics: chunk.topics, minutes: chunk.minutes, tasks: chunk.tasks, week })
     }
   }
   return days
 }
 
+export const MAIN_TRACK = 'bigtech'
 export const STUDY_DAYS: StudyDay[] = buildStudyDays()
+
+// Days of every track: the main plan, plus private tracks once they are loaded.
+const TRACK_DAYS = new Map<string, StudyDay[]>([[MAIN_TRACK, STUDY_DAYS]])
+
+export const getTrackDays = (track: string): StudyDay[] => TRACK_DAYS.get(track) ?? STUDY_DAYS
 
 export const STUDY_DAY_COUNT = STUDY_DAYS.length
 const BY_DATE = new Map(STUDY_DAYS.flatMap((d) => d.dates.map((date) => [date, d] as const)))
 const BY_TASK = new Map(STUDY_DAYS.flatMap((d) => d.tasks.map((t) => [t.id, d] as const)))
 
-export const getStudyDay = (number: number): StudyDay | undefined => STUDY_DAYS[number - 1]
+// A private track (loaded for the owner at run time) joins the lookups above.
+export function registerTrackDays(track: string, days: StudyDay[]) {
+  TRACK_DAYS.set(track, days)
+  for (const day of days) for (const task of day.tasks) BY_TASK.set(task.id, day)
+}
+
+export const getStudyDay = (number: number, days: StudyDay[] = STUDY_DAYS): StudyDay | undefined => days[number - 1]
 
 // The study day a calendar date of the plan was packed into (old links, notes, search results). A
 // date before or after the plan maps to the first or last day; a date with no tasks, to the next day.
@@ -120,12 +134,13 @@ export function getStudyDayByDate(date: string): StudyDay {
 
 export const getStudyDayOfTask = (taskId: string): StudyDay | undefined => BY_TASK.get(taskId)
 
-export const getWeekDays = (week: RoadmapWeek): StudyDay[] => STUDY_DAYS.filter((d) => d.week.id === week.id)
+export const getWeekDays = (week: RoadmapWeek): StudyDay[] =>
+  [...TRACK_DAYS.values()].flatMap((days) => days.filter((d) => d.week.id === week.id))
 
 
 // The first day with a required task not done yet; the last day once everything is done.
-export function getCurrentDay(doneIds: Set<string>): StudyDay {
-  return STUDY_DAYS.find((d) => d.tasks.some((t) => isRequiredTask(t) && !doneIds.has(t.id))) ?? STUDY_DAYS[STUDY_DAYS.length - 1]
+export function getCurrentDay(doneIds: Set<string>, days: StudyDay[] = STUDY_DAYS): StudyDay {
+  return days.find((d) => d.tasks.some((t) => isRequiredTask(t) && !doneIds.has(t.id))) ?? days[days.length - 1]
 }
 
 // "Day 12" or "Days 12–15".
