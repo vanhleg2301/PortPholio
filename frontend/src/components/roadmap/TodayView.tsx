@@ -15,7 +15,7 @@ import { ReviewList } from '@/components/roadmap/ReviewList'
 import type { RoadmapReview } from '@/hooks/useRoadmapReviews'
 import { formatMinutes } from '@/hooks/useStudySessions'
 import type { RoadmapTask } from '@/data/roadmap/types'
-import { DayStrip } from '@/components/roadmap/DayStrip'
+import { CourseMapSheet } from '@/components/roadmap/CourseMapSheet'
 import type { RoadmapNote } from '@/hooks/useRoadmapNotes'
 import type { NoteTopic } from '@/data/roadmap/topics'
 import type { RoadmapResource } from '@/hooks/useRoadmapResources'
@@ -151,7 +151,7 @@ export function TodayView({
         </div>
       )}
       {trackAbout && <p className="mb-4 text-xs leading-relaxed text-muted-foreground">{trackAbout}</p>}
-      {!isDesktop && <DayStrip day={day} currentDay={currentDay} doneIds={doneIds} onSelect={onSelectDay} />}
+      {!isDesktop && <CourseMapSheet day={day} currentDay={currentDay} doneIds={doneIds} onSelect={onSelectDay} />}
 
       <AnimatePresence mode="wait" custom={direction}>
         <motion.div key={day.number} custom={direction} variants={slide} initial="enter" animate="center" exit="exit">

@@ -137,6 +137,26 @@ export const getStudyDayOfTask = (taskId: string): StudyDay | undefined => BY_TA
 export const getWeekDays = (week: RoadmapWeek): StudyDay[] =>
   [...TRACK_DAYS.values()].flatMap((days) => days.filter((d) => d.week.id === week.id))
 
+export interface TrackModule {
+  week: RoadmapWeek
+  // 1-based position in the track.
+  number: number
+  days: StudyDay[]
+}
+
+// Private track modules are titled "Module 3 · Tax"; the map already shows the number.
+export const getModuleTitle = (label: string): string => label.replace(/^Module \d+ · /, '')
+
+// The weeks (main plan) or modules (private tracks) of a track, in order, with their days.
+export function getTrackModules(track: string): TrackModule[] {
+  const modules: TrackModule[] = []
+  for (const day of getTrackDays(track)) {
+    const last = modules[modules.length - 1]
+    if (last && last.week.id === day.week.id) last.days.push(day)
+    else modules.push({ week: day.week, number: modules.length + 1, days: [day] })
+  }
+  return modules
+}
 
 // The first day with a required task not done yet; the last day once everything is done.
 export function getCurrentDay(doneIds: Set<string>, days: StudyDay[] = STUDY_DAYS): StudyDay {
@@ -152,4 +172,19 @@ export function formatStudyTime(minutes: number): string {
   if (minutes < 60) return `~${Math.max(minutes, 15)} min`
   const hours = Math.round((minutes / 60) * 2) / 2
   return `~${hours % 1 === 0 ? hours : hours.toFixed(1)} h`
+}
+
+export type DayState = 'none' | 'partial' | 'done'
+
+export function getDayState(day: StudyDay, doneIds: Set<string>): DayState {
+  const required = day.tasks.filter(isRequiredTask)
+  if (required.length > 0 && required.every((t) => doneIds.has(t.id))) return 'done'
+  return day.tasks.some((t) => doneIds.has(t.id)) ? 'partial' : 'none'
+}
+
+// Share of the track's required tasks that are done, 0–100.
+export function getTrackPercent(track: string, doneIds: Set<string>): number {
+  const required = getTrackModules(track).flatMap((m) => m.days.flatMap((d) => d.tasks.filter(isRequiredTask)))
+  if (required.length === 0) return 0
+  return Math.round((required.filter((t) => doneIds.has(t.id)).length / required.length) * 100)
 }
